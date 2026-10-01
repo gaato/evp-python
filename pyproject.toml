@@ -6,6 +6,8 @@ readme = "README.md"
 authors = [
     { name = "Gakuto Furuya", email = "g.furuya@gaato.net" }
 ]
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 keywords = ["email", "verification", "evp", "sd-jwt", "jose", "authentication"]
 classifiers = [

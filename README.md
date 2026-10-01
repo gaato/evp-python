@@ -5,6 +5,7 @@
 [![spec: draft-hardt-02](https://img.shields.io/badge/spec-draft--hardt--02-blue)](https://github.com/dickhardt/email-verification)
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaato/evp-python)
 
 Relying-party verification for the **Email Verification Protocol** (EVP): the browser obtains a
@@ -127,3 +128,7 @@ uv run ruff check && uv run ruff format --check && uv run ty check
 
 CI also runs the network checks weekly (`.github/workflows/drift.yml`) and opens a `spec-drift`
 issue when the deployed ecosystem diverges from the default profile.
+
+## License
+
+[MIT](LICENSE)

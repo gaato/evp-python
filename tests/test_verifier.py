@@ -171,3 +171,13 @@ def test_localhost_audience_allowed(issuer: FakeIssuer) -> None:
     assert make_verifier(issuer, audience="http://localhost:8000").audience == (
         "http://localhost:8000"
     )
+
+
+def test_default_accepts_port_overrides(issuer: FakeIssuer, token: str, nonce: str) -> None:
+    verifier = Verifier.default(
+        audience=AUDIENCE,
+        resolver=InMemoryDns(issuer.dns_records()),
+        fetcher=InMemoryHttp(issuer.http_documents()),
+        clock=issuer.clock,
+    )
+    assert verifier.verify(token, nonce=nonce).email == EMAIL

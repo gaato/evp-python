@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 
 from evp import DEFAULT_PROFILE, Profile, _jose
+from evp.adapters import doh
 from evp.adapters.dnspython import DnsPythonResolver
 from evp.adapters.httpx import HttpxFetcher
 from evp.discovery import (
@@ -44,3 +45,10 @@ def test_issuer_discovery(domain: str, expected_issuer: str, profile: Profile) -
     assert usable, f"no key in {metadata.jwks_uri} usable with {advertised}"
     if profile.require_kid:
         assert all(k.get("kid") for k in usable)
+
+
+@pytest.mark.parametrize("endpoint", [doh.GOOGLE, doh.CLOUDFLARE])
+def test_doh_discovery(endpoint: str) -> None:
+    with doh.DohResolver(endpoint) as resolver:
+        records = resolver.resolve_txt(txt_name_for("user@gmail.com", DEFAULT_PROFILE))
+    assert parse_txt_records(records) == KNOWN_ISSUERS["gmail.com"]

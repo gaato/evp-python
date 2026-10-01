@@ -117,6 +117,22 @@ verifier = Verifier.default(audience="https://example.com", observer=observe)
 
 Exceptions raised by an observer are logged and ignored, so monitoring can never break sign-in.
 
+### DNS over HTTPS
+
+Where plain DNS is unavailable or untrusted, for example on serverless platforms, resolve the
+`_email-verification` record over HTTPS with only an HTTP client:
+
+```python
+from evp.adapters.doh import CLOUDFLARE, AsyncDohResolver
+
+verifier = AsyncVerifier.default(audience="https://example.com", resolver=AsyncDohResolver())
+# or AsyncDohResolver(CLOUDFLARE, require_dnssec=True)
+```
+
+Google's JSON API is the default. `require_dnssec` trusts the provider's `AD` flag, and unsigned
+zones such as gmail.com never pass it. With `dnspython[doh]` installed, an RFC 8484 resolver can
+also be passed to `DnsPythonResolver`.
+
 ## Design
 
 | Module | Role |

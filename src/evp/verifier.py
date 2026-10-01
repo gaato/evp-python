@@ -157,12 +157,13 @@ class Verifier(_Base):
 
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
-        from evp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
-        from evp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
-
         if "resolver" not in kwargs:
+            from evp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
+
             kwargs["resolver"] = DnsPythonResolver()
         if "fetcher" not in kwargs:
+            from evp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
+
             kwargs["fetcher"] = HttpxFetcher()
         return cls(audience=audience, **kwargs)
 
@@ -254,12 +255,13 @@ class AsyncVerifier(_Base):
 
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
-        from evp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
-        from evp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
-
         if "resolver" not in kwargs:
+            from evp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
+
             kwargs["resolver"] = AsyncDnsPythonResolver()
         if "fetcher" not in kwargs:
+            from evp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
+
             kwargs["fetcher"] = AsyncHttpxFetcher()
         return cls(audience=audience, **kwargs)
 

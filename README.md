@@ -214,6 +214,9 @@ your own.
 
 - [`examples/fastapi/`](examples/fastapi/app.py) is a FastAPI app with session nonces. Its tests
   override the verifier dependency with fakes.
+- [`examples/fastapi_users/`](examples/fastapi_users/app.py) is a fastapi-users registration that
+  creates EVP-verified users with `is_verified=True` and falls back to the usual verification
+  email otherwise.
 - [`examples/django_allauth/`](examples/django_allauth/evp_allauth.py) shows a django-allauth
   adapter. It marks the new `EmailAddress` verified when the token checks out, and falls back to
   normal email confirmation otherwise.

@@ -1,0 +1,72 @@
+[project]
+name = "evp"
+version = "0.1.0"
+description = "Relying-party verification for the Email Verification Protocol (EVP)"
+readme = "README.md"
+authors = [
+    { name = "Gakuto Furuya", email = "g.furuya@gaato.net" }
+]
+requires-python = ">=3.12"
+keywords = ["email", "verification", "evp", "sd-jwt", "jose", "authentication"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = [
+    "joserfc>=1.7",
+]
+
+[project.optional-dependencies]
+dns = [
+    "dnspython>=2.7",
+]
+httpx = [
+    "httpx>=0.28",
+]
+all = [
+    "evp[dns,httpx]",
+]
+
+[project.urls]
+Repository = "https://github.com/gaato/evp-python"
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "anyio>=4.15.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+    "ty>=0.0.84",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "-m", "not network"]
+markers = [
+    "network: talks to real DNS / HTTPS endpoints (deselected by default)",
+]
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "PT", "C4", "PIE", "RET", "PL"]
+ignore = ["PLR0913", "PLR2004", "PLR0911", "PLR0912"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR"]
+
+[tool.uv.workspace]
+members = ["examples/*"]

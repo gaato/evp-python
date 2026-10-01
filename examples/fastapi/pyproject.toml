@@ -1,0 +1,27 @@
+[project]
+name = "evp-example-fastapi"
+version = "0"
+description = "FastAPI relying party using evp"
+requires-python = ">=3.12"
+dependencies = [
+    "evp[all]",
+    "fastapi>=0.142",
+    "itsdangerous>=2.2",
+    "python-multipart>=0.0.32",
+    "uvicorn>=0.54",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13",
+    "pytest>=9.1",
+]
+
+[tool.uv.sources]
+evp = { workspace = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = ["error"]

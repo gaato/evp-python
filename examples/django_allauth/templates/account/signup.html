@@ -1,0 +1,8 @@
+<!doctype html>
+<title>Sign up</title>
+<form method="post" action="{% url 'account_signup' %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  {% evp_token_input %}
+  <button type="submit">Sign up</button>
+</form>

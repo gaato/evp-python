@@ -1,0 +1,117 @@
+"""Issuer discovery: pure functions, no I/O."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
+from urllib.parse import urlsplit
+
+from evp import _jose
+from evp.errors import DiscoveryError, ErrorCode
+from evp.profile import IssuerFormat, Profile
+from evp.types import IssuerMetadata, JSONObject
+
+__all__ = [
+    "canonical_issuer",
+    "email_domain",
+    "metadata_url",
+    "parse_txt_records",
+    "txt_name_for",
+    "validate_jwks",
+    "validate_metadata",
+]
+
+_FORBIDDEN_HOST_CHARS = frozenset("/:@?#\\ \t\r\n")
+
+
+def email_domain(email: str) -> str:
+    """Return the DNS (A-label) form of the domain part of ``email``."""
+    local, sep, domain = email.rpartition("@")
+    if not sep or not local or not domain:
+        raise ValueError(f"not an email address: {email!r}")
+    domain = domain.rstrip(".").lower()
+    if not domain.isascii():
+        domain = domain.encode("idna").decode("ascii")
+    return domain
+
+
+def txt_name_for(email: str, profile: Profile) -> str:
+    return f"{profile.dns_label}.{email_domain(email)}"
+
+
+def canonical_issuer(value: str, accepted: IssuerFormat) -> str | None:
+    """Turn an issuer identifier into its ``https://host`` form.
+
+    Returns ``None`` when ``value`` is not acceptable under ``accepted``.  The
+    host is not case-folded: the drafts require byte-for-byte comparison.
+    """
+    if value.startswith("https://"):
+        if accepted is IssuerFormat.HOST:
+            return None
+        host = value.removeprefix("https://")
+    else:
+        if accepted is IssuerFormat.ORIGIN:
+            return None
+        host = value
+    if not host or any(c in _FORBIDDEN_HOST_CHARS for c in host) or not host.isascii():
+        return None
+    return f"https://{host}"
+
+
+def parse_txt_records(records: Sequence[str]) -> str:
+    """Extract the canonical issuer from the TXT records of the discovery name."""
+    values = [r.removeprefix("iss=").strip() for r in records if r.startswith("iss=")]
+    if len(values) != 1:
+        raise DiscoveryError(
+            ErrorCode.ISSUER_DISCOVERY_FAILED,
+            f"expected exactly one 'iss=' TXT record, found {len(values)}",
+        )
+    issuer = canonical_issuer(values[0], IssuerFormat.ANY)
+    if issuer is None:
+        raise DiscoveryError(ErrorCode.ISSUER_DISCOVERY_FAILED, "invalid 'iss=' TXT record")
+    return issuer
+
+
+def metadata_url(issuer: str, profile: Profile) -> str:
+    return issuer + profile.metadata_path
+
+
+def _require_https_url(value: Any, field: str) -> str:
+    if not isinstance(value, str):
+        raise DiscoveryError(ErrorCode.METADATA_INVALID, f"{field} is missing")
+    parts = urlsplit(value)
+    if parts.scheme != "https" or not parts.hostname:
+        raise DiscoveryError(ErrorCode.METADATA_INVALID, f"{field} is not an https URL")
+    return value
+
+
+def validate_metadata(document: object, expected_issuer: str) -> IssuerMetadata:
+    if not isinstance(document, dict):
+        raise DiscoveryError(ErrorCode.METADATA_INVALID, "metadata is not a JSON object")
+    if document.get("issuer") != expected_issuer:
+        raise DiscoveryError(
+            ErrorCode.ISSUER_MISMATCH,
+            f"metadata issuer {document.get('issuer')!r} != {expected_issuer!r}",
+        )
+    algs = document.get("signing_alg_values_supported")
+    if algs is not None and not (isinstance(algs, list) and all(isinstance(a, str) for a in algs)):
+        raise DiscoveryError(ErrorCode.METADATA_INVALID, "bad signing_alg_values_supported")
+    return IssuerMetadata(
+        issuer=expected_issuer,
+        issuance_endpoint=_require_https_url(
+            document.get("issuance_endpoint"), "issuance_endpoint"
+        ),
+        jwks_uri=_require_https_url(document.get("jwks_uri"), "jwks_uri"),
+        signing_alg_values_supported=tuple(algs) if algs is not None else None,
+        raw=document,
+    )
+
+
+def validate_jwks(document: object) -> tuple[JSONObject, ...]:
+    """Return the usable public keys of a JWK Set; unknown or private entries are dropped."""
+    if not isinstance(document, dict) or not isinstance(document.get("keys"), list):
+        raise DiscoveryError(ErrorCode.METADATA_INVALID, "JWKS is not a JWK Set")
+    keys = tuple(k for k in document["keys"] if isinstance(k, dict) and _jose.is_public_jwk(k))
+    if not keys:
+        raise DiscoveryError(ErrorCode.METADATA_INVALID, "JWKS contains no usable public keys")
+    return keys

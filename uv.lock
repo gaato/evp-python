@@ -279,10 +279,14 @@ dns = [
 httpx = [
     { name = "httpx" },
 ]
+httpx2 = [
+    { name = "httpx2" },
+]
 
 [package.dev-dependencies]
 dev = [
     { name = "anyio" },
+    { name = "httpx2" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "ty" },
@@ -293,13 +297,15 @@ requires-dist = [
     { name = "dnspython", marker = "extra == 'dns'", specifier = ">=2.7" },
     { name = "evp", extras = ["dns", "httpx"], marker = "extra == 'all'" },
     { name = "httpx", marker = "extra == 'httpx'", specifier = ">=0.28" },
+    { name = "httpx2", marker = "extra == 'httpx2'", specifier = ">=2.13" },
     { name = "joserfc", specifier = ">=1.7" },
 ]
-provides-extras = ["dns", "httpx", "all"]
+provides-extras = ["dns", "httpx", "httpx2", "all"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "anyio", specifier = ">=4.15.1" },
+    { name = "httpx2", specifier = ">=2.13" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.16.9" },
     { name = "ty", specifier = ">=0.0.84" },

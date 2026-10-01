@@ -16,7 +16,8 @@ follows the compatibility policy described in the README.
   rate-limited key refresh.
 - Profiles `compat-2026-10` (default; accepts Gmail as deployed) and `draft-hardt-02` (strict).
 - Stable `ErrorCode`s on every failure.
-- dnspython and httpx adapters (`evp[dns]`, `evp[httpx]`, `evp[all]`).
+- dnspython and httpx / httpx2 adapters (`evp[dns]`, `evp[httpx]`, `evp[httpx2]`, `evp[all]`);
+  httpx2 is preferred when installed.
 - Opt-in replay protection (`replay_guard=`, `InMemoryReplayGuard`, `ErrorCode.TOKEN_REPLAYED`).
 - Observer hook for logging and metrics (`observer=`, `VerificationEvent`, `LoggingObserver`).
 - Test doubles in `evp.testing`: `FakeIssuer`, `FakeBrowser`, in-memory DNS / HTTP.

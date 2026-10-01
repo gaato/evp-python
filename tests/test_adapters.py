@@ -1,32 +1,51 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+import importlib
+import importlib.util
+from collections.abc import Callable, Iterator
+from types import ModuleType
+from typing import Any
 
-import httpx
 import pytest
 
+from evp.adapters import _http
 from evp.adapters.httpx import AsyncHttpxFetcher, FetchError, HttpxFetcher
 
 URL = "https://issuer.example/.well-known/email-verification"
 
+# The adapters accept a client from either library; test whichever are installed.
+MODULES = [
+    importlib.import_module(name)
+    for name in ("httpx2", "httpx")
+    if importlib.util.find_spec(name) is not None
+]
 
-def _handler(request: httpx.Request) -> httpx.Response:
-    match request.url.path:
-        case "/.well-known/email-verification":
-            return httpx.Response(200, json={"issuer": "https://issuer.example"})
-        case "/redirect":
-            return httpx.Response(302, headers={"Location": "https://evil.example/"})
-        case "/html":
-            return httpx.Response(200, text="<html>")
-        case "/huge":
-            return httpx.Response(200, content=b"[" + b"0," * 200_000 + b"0]")
-        case _:
-            return httpx.Response(404)
+
+def _handler(mod: ModuleType) -> Callable[[Any], Any]:
+    def handle(request: Any) -> Any:
+        match request.url.path:
+            case "/.well-known/email-verification":
+                return mod.Response(200, json={"issuer": "https://issuer.example"})
+            case "/redirect":
+                return mod.Response(302, headers={"Location": "https://evil.example/"})
+            case "/html":
+                return mod.Response(200, text="<html>")
+            case "/huge":
+                return mod.Response(200, content=b"[" + b"0," * 200_000 + b"0]")
+            case _:
+                return mod.Response(404)
+
+    return handle
+
+
+@pytest.fixture(params=MODULES, ids=lambda m: m.__name__)
+def mod(request: pytest.FixtureRequest) -> ModuleType:
+    return request.param
 
 
 @pytest.fixture
-def fetcher() -> Iterator[HttpxFetcher]:
-    with HttpxFetcher(httpx.Client(transport=httpx.MockTransport(_handler))) as fetcher:
+def fetcher(mod: ModuleType) -> Iterator[HttpxFetcher]:
+    with HttpxFetcher(mod.Client(transport=mod.MockTransport(_handler(mod)))) as fetcher:
         yield fetcher
 
 
@@ -41,9 +60,16 @@ def test_fetch_errors(fetcher: HttpxFetcher, path: str) -> None:
 
 
 @pytest.mark.anyio
-async def test_async_fetch_json() -> None:
-    client = httpx.AsyncClient(transport=httpx.MockTransport(_handler))
+async def test_async_fetch_json(mod: ModuleType) -> None:
+    client = mod.AsyncClient(transport=mod.MockTransport(_handler(mod)))
     async with AsyncHttpxFetcher(client) as fetcher:
         assert await fetcher.fetch_json(URL) == {"issuer": "https://issuer.example"}
         with pytest.raises(FetchError):
             await fetcher.fetch_json("https://issuer.example/redirect")
+
+
+def test_prefers_httpx2() -> None:
+    expected = "httpx2" if importlib.util.find_spec("httpx2") else "httpx"
+    assert _http.http.__name__ == expected
+    with HttpxFetcher() as fetcher:
+        assert type(fetcher._client).__module__.split(".")[0] == expected

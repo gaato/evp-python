@@ -11,14 +11,15 @@ AUDIENCE = "https://rp.example"
 EMAIL = "alice@example.com"
 
 # Tests for optional adapters are skipped when the extras are not installed.
-_REQUIRES = {
-    "test_adapters.py": ("httpx",),
-    "test_network.py": ("httpx", "dns"),
+# Each requirement is a group of alternatives, any of which will do.
+_REQUIRES: dict[str, tuple[tuple[str, ...], ...]] = {
+    "test_adapters.py": (("httpx", "httpx2"),),
+    "test_network.py": (("httpx", "httpx2"), ("dns",)),
 }
 collect_ignore = [
     name
-    for name, modules in _REQUIRES.items()
-    if any(importlib.util.find_spec(m) is None for m in modules)
+    for name, groups in _REQUIRES.items()
+    if not all(any(importlib.util.find_spec(m) for m in group) for group in groups)
 ]
 
 

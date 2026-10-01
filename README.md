@@ -28,6 +28,12 @@ pip install "evp[all]"   # core + dnspython + httpx adapters
 The core depends only on [joserfc]. DNS and HTTP are pluggable; `[all]` installs the default
 adapters used by `Verifier.default()`.
 
+The HTTP adapters work with [httpx2] (pydantic's maintained fork of httpx) or httpx and prefer
+httpx2 when both are installed: `pip install "evp[dns,httpx2]"`. A client from either library can
+be passed explicitly, e.g. `HttpxFetcher(httpx.Client(...))`.
+
+[httpx2]: https://github.com/pydantic/httpx2
+
 [joserfc]: https://jose.authlib.org/
 
 ## How it works

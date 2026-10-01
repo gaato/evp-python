@@ -98,6 +98,26 @@ token = browser.present(
 
 `FakeIssuer.gmail_like()` reproduces Gmail's current deviations from the draft.
 
+## Compatibility policy
+
+- Before 1.0, minor releases may contain breaking changes; they are listed in the
+  [changelog](CHANGELOG.md). From 1.0 on, the project follows [Semantic Versioning].
+- Profile presets are only ever added. An existing preset never changes behaviour; following
+  the protocol means adding a new one.
+- Switching `DEFAULT_PROFILE` to a newer preset is a breaking change (a major release after 1.0).
+- `ErrorCode` values are stable. New codes may be added in minor releases, so handle unknown codes.
+- Supported Pythons: 3.11 and newer. A version is dropped only after its upstream end of life.
+
+Libraries that support older Pythons can still offer EVP as an optional extra by gating it with
+an environment marker:
+
+```toml
+[project.optional-dependencies]
+evp = ["evp>=1,<2; python_version >= '3.11'"]
+```
+
+[Semantic Versioning]: https://semver.org/
+
 ## Examples
 
 Each example is a standalone project and a member of the uv workspace, with its own dependencies

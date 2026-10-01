@@ -1,5 +1,12 @@
 # evp
 
+[![CI](https://github.com/gaato/evp-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gaato/evp-python/actions/workflows/ci.yml)
+[![Spec drift](https://github.com/gaato/evp-python/actions/workflows/drift.yml/badge.svg)](https://github.com/gaato/evp-python/actions/workflows/drift.yml)
+[![spec: draft-hardt-02](https://img.shields.io/badge/spec-draft--hardt--02-blue)](https://github.com/dickhardt/email-verification)
+![status: alpha](https://img.shields.io/badge/status-alpha-orange)
+[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaato/evp-python)
+
 Relying-party verification for the **Email Verification Protocol** (EVP): the browser obtains a
 token from the user's email provider proving they control an address, and your server verifies it,
 with no confirmation email round-trip.

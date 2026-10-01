@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypeAlias
 
 import pytest
 
@@ -62,7 +62,8 @@ def test_key_rotation_requests_refresh(
 
 # --- negative cases -------------------------------------------------------------
 
-type Build = Callable[[FakeIssuer, FakeBrowser, str, FixedClock], str]
+# TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
+Build: TypeAlias = Callable[[FakeIssuer, FakeBrowser, str, FixedClock], str]
 
 
 def _present(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypeAlias, runtime_checkable
 
 __all__ = [
     "AsyncJsonFetcher",
@@ -15,7 +15,8 @@ __all__ = [
     "system_clock",
 ]
 
-type Clock = Callable[[], datetime]
+# TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
+Clock: TypeAlias = Callable[[], datetime]
 """Returns the current time as an aware ``datetime``."""
 
 

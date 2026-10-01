@@ -126,6 +126,11 @@ uv run --directory examples/django_allauth pytest
 uv run ruff check && uv run ruff format --check && uv run ty check
 ```
 
+The library supports Python 3.11, so type aliases use `TypeAlias` instead of `type` statements
+(marked `TODO(py3.12)`). When 3.11 support is dropped, raise `requires-python` and run
+`uv run ruff check --select UP040 --fix --unsafe-fixes` to convert them back
+(the fix is "unsafe" only because `type` aliases are evaluated lazily).
+
 CI also runs the network checks weekly (`.github/workflows/drift.yml`) and opens a `spec-drift`
 issue when the deployed ecosystem diverges from the default profile.
 

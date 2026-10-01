@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from joserfc.jwk import ECKey, OKPKey
 
@@ -39,7 +39,8 @@ __all__ = [
     "make_verifier",
 ]
 
-type SigningAlg = Literal["Ed25519", "EdDSA", "ES256"]
+# TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
+SigningAlg: TypeAlias = Literal["Ed25519", "EdDSA", "ES256"]
 
 
 def _generate_key(alg: str) -> OKPKey | ECKey:

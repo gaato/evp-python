@@ -12,7 +12,7 @@ import hmac
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from evp import _jose, discovery
 from evp.errors import DiscoveryError, ErrorCode, PolicyError, TokenError
@@ -52,8 +52,9 @@ class FetchJson:
     refresh: bool = False
 
 
-type Effect = ResolveTxt | FetchJson
-type Steps = Generator[Effect, Any, VerifiedEmail]
+# TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
+Effect: TypeAlias = ResolveTxt | FetchJson
+Steps: TypeAlias = Generator[Effect, Any, VerifiedEmail]
 
 
 @dataclass(frozen=True, slots=True)

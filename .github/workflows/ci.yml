@@ -40,13 +40,19 @@ jobs:
         python: ["3.12", "3.13", "3.14"]
         extras: [none, all]
         experimental: [false]
+        locked: [true]
         include:
+          # The workspace lock needs >=3.12 (Django in the examples), so 3.11
+          # installs the library alone, outside the lock.
+          - { python: "3.11", extras: none, experimental: false, locked: false }
+          - { python: "3.11", extras: all, experimental: false, locked: false }
           # 3.15 is a release candidate; promote to required once 3.15.0 is out.
-          - { python: "3.15", extras: none, experimental: true }
-          - { python: "3.15", extras: all, experimental: true }
+          - { python: "3.15", extras: none, experimental: true, locked: true }
+          - { python: "3.15", extras: all, experimental: true, locked: true }
     env:
       PYTHON: ${{ matrix.python }}
       EXTRAS: ${{ matrix.extras }}
+      LOCKED: ${{ matrix.locked }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,12 +60,18 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - name: Install
         run: |
-          if [ "$EXTRAS" = all ]; then flags=--all-extras; else flags=; fi
-          uv sync --locked --python "$PYTHON" $flags
-      - run: uv run --no-sync pytest
+          if [ "$LOCKED" = true ]; then
+            if [ "$EXTRAS" = all ]; then flags=--all-extras; else flags=; fi
+            uv sync --locked --python "$PYTHON" $flags
+          else
+            if [ "$EXTRAS" = all ]; then target=".[all]"; else target="."; fi
+            uv venv --python "$PYTHON"
+            uv pip install "$target" pytest anyio
+          fi
+      - run: .venv/bin/pytest
 
   test-lowest:
-    name: test (lowest direct dependencies)
+    name: test (py3.11, lowest direct dependencies)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,7 +83,7 @@ jobs:
       # Outside the workspace lock, so that only the library's own lower bounds are tested.
       - name: Install lowest direct dependencies
         run: |
-          uv venv --python 3.12
+          uv venv --python 3.11
           uv pip install --resolution lowest-direct ".[all]"
           uv pip install pytest anyio
       - run: .venv/bin/pytest

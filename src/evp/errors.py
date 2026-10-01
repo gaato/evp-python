@@ -27,6 +27,7 @@ class ErrorCode(StrEnum):
     NONCE_MISMATCH = "nonce_mismatch"
     TOKEN_EXPIRED = "token_expired"
     TOKEN_NOT_YET_VALID = "token_not_yet_valid"
+    TOKEN_REPLAYED = "token_replayed"
     SD_HASH_MISMATCH = "sd_hash_mismatch"
     KB_SIGNATURE_INVALID = "kb_signature_invalid"
     # issuer

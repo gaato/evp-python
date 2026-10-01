@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import inspect
 from datetime import timedelta
 from typing import Any, Self
 from urllib.parse import urlsplit
 
 from evp.cache import Cache, CacheEntry, InMemoryCache
-from evp.core import Effect, FetchJson, ResolveTxt, Steps, verification_steps
+from evp.core import Effect, FetchJson, MarkUsed, ResolveTxt, Steps, verification_steps
 from evp.errors import DiscoveryError, ErrorCode, EVPError
 from evp.ports import (
     AsyncJsonFetcher,
@@ -18,6 +19,7 @@ from evp.ports import (
     system_clock,
 )
 from evp.profile import DEFAULT_PROFILE, Profile
+from evp.replay import AsyncReplayGuard, ReplayGuard
 from evp.types import VerifiedEmail
 
 __all__ = ["AsyncVerifier", "Verifier"]
@@ -49,8 +51,10 @@ class _Base:
         clock: Clock,
         cache_ttl: timedelta,
         min_refresh_interval: timedelta,
+        replay_protection: bool,
     ) -> None:
         self.audience = _validate_origin(audience)
+        self._replay_protection = replay_protection
         self.profile = profile
         self._clock = clock
         self._cache: Cache = cache if cache is not None else InMemoryCache(clock=clock)
@@ -65,6 +69,7 @@ class _Base:
             now=self._clock(),
             profile=self.profile,
             email=email,
+            replay_protection=self._replay_protection,
         )
 
     def _cached(self, effect: FetchJson) -> CacheEntry | None:
@@ -79,7 +84,7 @@ class _Base:
         self._cache.set(effect.url, CacheEntry(value, self._clock()), self._cache_ttl)
 
 
-def _unreachable(effect: Effect, exc: Exception) -> DiscoveryError:
+def _unreachable(effect: ResolveTxt | FetchJson, exc: Exception) -> DiscoveryError:
     target = effect.name if isinstance(effect, ResolveTxt) else effect.url
     err = DiscoveryError(ErrorCode.ISSUER_UNREACHABLE, f"lookup of {target} failed: {exc}")
     err.__cause__ = exc
@@ -103,6 +108,7 @@ class Verifier(_Base):
         clock: Clock = system_clock,
         cache_ttl: timedelta = timedelta(minutes=10),
         min_refresh_interval: timedelta = timedelta(minutes=1),
+        replay_guard: ReplayGuard | None = None,
     ) -> None:
         super().__init__(
             audience=audience,
@@ -111,19 +117,26 @@ class Verifier(_Base):
             clock=clock,
             cache_ttl=cache_ttl,
             min_refresh_interval=min_refresh_interval,
+            replay_protection=replay_guard is not None,
         )
         self._resolver = resolver
         self._fetcher = fetcher
+        self._replay_guard = replay_guard
 
     @classmethod
     def default(cls, *, audience: str, **kwargs: Any) -> Self:
-        """Build a verifier using dnspython and httpx (``pip install evp[all]``)."""
+        """Build a verifier using dnspython and httpx (``pip install evp[all]``).
+
+        Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
+        """
         from evp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
         from evp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
 
-        return cls(
-            audience=audience, resolver=DnsPythonResolver(), fetcher=HttpxFetcher(), **kwargs
-        )
+        if "resolver" not in kwargs:
+            kwargs["resolver"] = DnsPythonResolver()
+        if "fetcher" not in kwargs:
+            kwargs["fetcher"] = HttpxFetcher()
+        return cls(audience=audience, **kwargs)
 
     def verify(
         self, token: str, *, nonce: str, email: str | None = None, audience: str | None = None
@@ -146,6 +159,10 @@ class Verifier(_Base):
             steps.close()
 
     def _perform(self, effect: Effect) -> object:
+        if isinstance(effect, MarkUsed):
+            # Failures of the application's own store propagate unchanged.
+            assert self._replay_guard is not None
+            return self._replay_guard.mark_used(effect.key, effect.expires_at)
         try:
             match effect:
                 case ResolveTxt(name=name):
@@ -176,6 +193,7 @@ class AsyncVerifier(_Base):
         clock: Clock = system_clock,
         cache_ttl: timedelta = timedelta(minutes=10),
         min_refresh_interval: timedelta = timedelta(minutes=1),
+        replay_guard: ReplayGuard | AsyncReplayGuard | None = None,
     ) -> None:
         super().__init__(
             audience=audience,
@@ -184,22 +202,26 @@ class AsyncVerifier(_Base):
             clock=clock,
             cache_ttl=cache_ttl,
             min_refresh_interval=min_refresh_interval,
+            replay_protection=replay_guard is not None,
         )
         self._resolver = resolver
         self._fetcher = fetcher
+        self._replay_guard = replay_guard
 
     @classmethod
     def default(cls, *, audience: str, **kwargs: Any) -> Self:
-        """Build a verifier using dnspython and httpx (``pip install evp[all]``)."""
+        """Build a verifier using dnspython and httpx (``pip install evp[all]``).
+
+        Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
+        """
         from evp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
         from evp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
 
-        return cls(
-            audience=audience,
-            resolver=AsyncDnsPythonResolver(),
-            fetcher=AsyncHttpxFetcher(),
-            **kwargs,
-        )
+        if "resolver" not in kwargs:
+            kwargs["resolver"] = AsyncDnsPythonResolver()
+        if "fetcher" not in kwargs:
+            kwargs["fetcher"] = AsyncHttpxFetcher()
+        return cls(audience=audience, **kwargs)
 
     async def verify(
         self, token: str, *, nonce: str, email: str | None = None, audience: str | None = None
@@ -216,6 +238,10 @@ class AsyncVerifier(_Base):
             steps.close()
 
     async def _perform(self, effect: Effect) -> object:
+        if isinstance(effect, MarkUsed):
+            assert self._replay_guard is not None
+            marked = self._replay_guard.mark_used(effect.key, effect.expires_at)
+            return await marked if inspect.isawaitable(marked) else marked
         try:
             match effect:
                 case ResolveTxt(name=name):

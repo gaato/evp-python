@@ -17,6 +17,7 @@ follows the compatibility policy described in the README.
 - Profiles `compat-2026-10` (default; accepts Gmail as deployed) and `draft-hardt-02` (strict).
 - Stable `ErrorCode`s on every failure.
 - dnspython and httpx adapters (`evp[dns]`, `evp[httpx]`, `evp[all]`).
+- Opt-in replay protection (`replay_guard=`, `InMemoryReplayGuard`, `ErrorCode.TOKEN_REPLAYED`).
 - Test doubles in `evp.testing`: `FakeIssuer`, `FakeBrowser`, in-memory DNS / HTTP.
 
 [Unreleased]: https://github.com/gaato/evp-python/compare/v0.1.0...HEAD

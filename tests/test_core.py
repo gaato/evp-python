@@ -210,6 +210,7 @@ def test_every_error_code_is_exercised() -> None:
         ErrorCode.EMAIL_MISMATCH,  # test_email_mismatch
         ErrorCode.METADATA_INVALID,  # test_discovery
         ErrorCode.ISSUER_UNREACHABLE,  # test_verifier
+        ErrorCode.TOKEN_REPLAYED,  # test_replay
     }
     assert covered == set(ErrorCode)
 

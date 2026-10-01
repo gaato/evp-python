@@ -62,6 +62,35 @@ before doing any I/O. It then discovers the issuer from DNS (`_email-verificatio
 TXT `iss=…`), fetches its metadata and JWKS (cached), and verifies the issuer's signature. Only
 hosts derived from DNS are ever contacted, never hosts named in the token.
 
+## Operations
+
+### Replay protection
+
+The nonce on the form is the first line of defence: store it server-side and consume it once.
+If your sessions live client-side, as with Starlette's signed-cookie `SessionMiddleware`, an
+attacker who captured a token can resend it together with the old cookie. A replay guard
+remembers every accepted token until it would expire anyway:
+
+```python
+from evp import InMemoryReplayGuard
+
+verifier = AsyncVerifier.default(audience="https://example.com", replay_guard=InMemoryReplayGuard())
+```
+
+`InMemoryReplayGuard` only works within one process. With several workers, implement
+`mark_used(key, expires_at) -> bool` as an atomic "add if absent" on a shared store:
+
+```python
+class RedisReplayGuard:
+    def __init__(self, redis): self.redis = redis
+    def mark_used(self, key, expires_at):
+        return bool(self.redis.set(f"evp:used:{key}", 1, nx=True,
+                                   pxat=int(expires_at.timestamp() * 1000)))
+```
+
+Replays are rejected with `ErrorCode.TOKEN_REPLAYED`. The guard is only consulted after every
+other check has passed, so rejected tokens never fill the store.
+
 ## Design
 
 | Module | Role |

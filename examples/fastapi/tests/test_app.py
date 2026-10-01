@@ -10,6 +10,7 @@ import pytest
 from app import app, get_verifier
 from fastapi.testclient import TestClient
 
+from evp import InMemoryReplayGuard
 from evp.testing import FakeBrowser, FakeIssuer, make_async_verifier
 
 ORIGIN = "http://testserver"
@@ -23,7 +24,10 @@ def issuer() -> FakeIssuer:
 @pytest.fixture
 def client(issuer: FakeIssuer, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(example, "ORIGIN", ORIGIN)
-    app.dependency_overrides[get_verifier] = lambda: make_async_verifier(issuer, audience=ORIGIN)
+    verifier = make_async_verifier(
+        issuer, audience=ORIGIN, replay_guard=InMemoryReplayGuard(clock=issuer.clock)
+    )
+    app.dependency_overrides[get_verifier] = lambda: verifier
     with TestClient(app) as client:
         yield client
     app.dependency_overrides.clear()
@@ -67,3 +71,21 @@ def test_signup_without_token(client: TestClient) -> None:
     _nonce(client)
     response = client.post("/signup", data={"email": "alice@example.com"})
     assert response.json() == {"email": "alice@example.com", "verified": False}
+
+
+def test_replay_with_old_session_cookie(client: TestClient, issuer: FakeIssuer) -> None:
+    browser = FakeBrowser(clock=issuer.clock)
+    nonce = _nonce(client)
+    captured = dict(client.cookies)
+    evt = browser.present(
+        issuer.issue("alice@example.com", browser.public_jwk), audience=ORIGIN, nonce=nonce
+    )
+    form = {"email": "alice@example.com", "evt": evt}
+    assert client.post("/signup", data=form).json()["verified"] is True
+
+    # The session cookie is client-side: restoring it brings the nonce back.
+    client.cookies.clear()
+    client.cookies.update(captured)
+    response = client.post("/signup", data=form)
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "token_replayed"

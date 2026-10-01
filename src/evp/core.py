@@ -8,6 +8,7 @@ by hand.  Everything else in this module is a pure function.
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
@@ -23,10 +24,12 @@ from evp.types import JSONObject, VerifiedEmail
 __all__ = [
     "Effect",
     "FetchJson",
+    "MarkUsed",
     "ResolveTxt",
     "Steps",
     "check_email",
     "precheck_evt",
+    "replay_key",
     "verification_steps",
     "verify_evt_signature",
     "verify_kb",
@@ -52,8 +55,20 @@ class FetchJson:
     refresh: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class MarkUsed:
+    """Record that a token has been accepted.  Reply ``True`` if it was not seen before.
+
+    ``key`` only needs remembering until ``expires_at``; after that the token
+    fails the freshness checks anyway.
+    """
+
+    key: str
+    expires_at: datetime
+
+
 # TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
-Effect: TypeAlias = ResolveTxt | FetchJson
+Effect: TypeAlias = ResolveTxt | FetchJson | MarkUsed
 Steps: TypeAlias = Generator[Effect, Any, VerifiedEmail]
 
 
@@ -137,8 +152,11 @@ def verify_kb(
     nonce: str,
     now: datetime,
     profile: Profile,
-) -> None:
-    """Verify the key-binding JWT against the holder key bound in the EVT."""
+) -> datetime:
+    """Verify the key-binding JWT against the holder key bound in the EVT.
+
+    Returns the KB-JWT's ``iat``.
+    """
     kb = token.kb
     alg = _check_header(kb.alg, kb.typ, profile.kb_algorithms, profile.kb_types, "KB-JWT")
     cnf_alg = cnf_jwk.get("alg")
@@ -168,6 +186,7 @@ def verify_kb(
         sd_hash.encode(), compute_sd_hash(token.sd_hash_input).encode()
     ):
         raise TokenError(ErrorCode.SD_HASH_MISMATCH, "KB-JWT sd_hash does not match the EVT")
+    return iat
 
 
 def verify_evt_signature(token: ParsedToken, keys: Sequence[JSONObject], profile: Profile) -> None:
@@ -207,6 +226,11 @@ def _signing_alg_advertised(alg: str, advertised: tuple[str, ...] | None) -> boo
     return any(_jose.algorithms_compatible(alg, a) for a in advertised)
 
 
+def replay_key(token: str) -> str:
+    """Stable identifier of a presentation token for replay detection."""
+    return _jose.b64url_encode(hashlib.sha256(token.encode("ascii")).digest())
+
+
 def verification_steps(
     token: str,
     *,
@@ -215,16 +239,21 @@ def verification_steps(
     now: datetime,
     profile: Profile,
     email: str | None = None,
+    replay_protection: bool = False,
 ) -> Steps:
     """Full RP verification.  Yields effects; returns :class:`VerifiedEmail`.
 
     Order matters: everything that can be checked offline (including the
     key-binding signature) is checked before any network effect is requested,
     and the only hosts ever contacted are derived from DNS, never from the token.
+    With ``replay_protection`` the token is marked as used once everything else
+    has passed, so that garbage tokens cannot fill the replay store.
     """
     parsed = parse_token(token, allow_disclosures=profile.allow_disclosures)
     evt = precheck_evt(parsed, now=now, profile=profile)
-    verify_kb(parsed, cnf_jwk=evt.cnf_jwk, audience=audience, nonce=nonce, now=now, profile=profile)
+    kb_issued_at = verify_kb(
+        parsed, cnf_jwk=evt.cnf_jwk, audience=audience, nonce=nonce, now=now, profile=profile
+    )
     check_email(evt.email, email, profile)
 
     try:
@@ -256,6 +285,11 @@ def verification_steps(
         # Possibly a key rotation; the driver rate-limits forced refreshes.
         keys = discovery.validate_jwks((yield FetchJson(metadata.jwks_uri, "jwks", refresh=True)))
         verify_evt_signature(parsed, keys, profile)
+
+    if replay_protection:
+        expires_at = kb_issued_at + profile.max_token_age + profile.clock_skew
+        if not (yield MarkUsed(replay_key(parsed.raw), expires_at)):
+            raise TokenError(ErrorCode.TOKEN_REPLAYED, "token has already been used")
 
     private = parsed.evt.claims.get("is_private_email")
     return VerifiedEmail(

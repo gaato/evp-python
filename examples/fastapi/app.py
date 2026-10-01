@@ -21,7 +21,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from evp import AsyncVerifier, EVPError, generate_nonce
+from evp import AsyncVerifier, EVPError, InMemoryReplayGuard, generate_nonce
 
 ORIGIN = os.environ.get("EVP_ORIGIN", "http://localhost:8000")
 SESSION_KEY = "evp_nonce"
@@ -29,7 +29,11 @@ SESSION_KEY = "evp_nonce"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    app.state.verifier = AsyncVerifier.default(audience=ORIGIN)
+    # SessionMiddleware keeps the session in a signed cookie, so popping the nonce
+    # does not stop an attacker from resending a captured token with the old
+    # cookie.  The replay guard does.  Use a shared store (e.g. Redis) when
+    # running more than one worker.
+    app.state.verifier = AsyncVerifier.default(audience=ORIGIN, replay_guard=InMemoryReplayGuard())
     yield
 
 

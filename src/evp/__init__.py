@@ -5,12 +5,14 @@ from evp.errors import DiscoveryError, ErrorCode, EVPError, PolicyError, TokenEr
 from evp.nonce import generate_nonce, nonces_equal
 from evp.ports import AsyncJsonFetcher, AsyncTxtResolver, Clock, JsonFetcher, TxtResolver
 from evp.profile import DEFAULT_PROFILE, EmailComparison, IssuerFormat, Profile
+from evp.replay import AsyncReplayGuard, InMemoryReplayGuard, ReplayGuard
 from evp.types import IssuerMetadata, VerifiedEmail
 from evp.verifier import AsyncVerifier, Verifier
 
 __all__ = [
     "DEFAULT_PROFILE",
     "AsyncJsonFetcher",
+    "AsyncReplayGuard",
     "AsyncTxtResolver",
     "AsyncVerifier",
     "Cache",
@@ -21,12 +23,14 @@ __all__ = [
     "EmailComparison",
     "ErrorCode",
     "InMemoryCache",
+    "InMemoryReplayGuard",
     "IssuerFormat",
     "IssuerMetadata",
     "JsonFetcher",
     "NullCache",
     "PolicyError",
     "Profile",
+    "ReplayGuard",
     "TokenError",
     "TxtResolver",
     "VerifiedEmail",

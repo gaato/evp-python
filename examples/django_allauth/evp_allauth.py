@@ -12,7 +12,7 @@ template can use ``{% evp_token_input %}``.
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import cache
 
 from allauth.account.adapter import DefaultAccountAdapter
@@ -21,6 +21,7 @@ from django import forms, template
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.http import HttpRequest
+from django.utils import timezone
 from django.utils.html import format_html
 
 from evp import CacheEntry, EVPError, Verifier, generate_nonce
@@ -40,9 +41,23 @@ class DjangoCache:
         django_cache.set(f"evp:{key}", entry, timeout=ttl.total_seconds())
 
 
+class DjangoCacheReplayGuard:
+    """Remember accepted tokens in Django's cache (``add`` is atomic on Redis / Memcached).
+
+    Django's default database-backed sessions already make the nonce single-use;
+    this guards against replay if sessions are stored client-side (signed cookies).
+    """
+
+    def mark_used(self, key: str, expires_at: datetime) -> bool:
+        timeout = max((expires_at - timezone.now()).total_seconds(), 1)
+        return django_cache.add(f"evp:used:{key}", 1, timeout=timeout)
+
+
 @cache
 def get_verifier() -> Verifier:
-    return Verifier.default(audience=settings.EVP_ORIGIN, cache=DjangoCache())
+    return Verifier.default(
+        audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoCacheReplayGuard()
+    )
 
 
 @register.simple_tag(takes_context=True)

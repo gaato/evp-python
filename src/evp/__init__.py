@@ -3,6 +3,7 @@
 from evp.cache import Cache, CacheEntry, InMemoryCache, NullCache
 from evp.errors import DiscoveryError, ErrorCode, EVPError, PolicyError, TokenError
 from evp.nonce import generate_nonce, nonces_equal
+from evp.observability import LoggingObserver, Observer, VerificationEvent
 from evp.ports import AsyncJsonFetcher, AsyncTxtResolver, Clock, JsonFetcher, TxtResolver
 from evp.profile import DEFAULT_PROFILE, EmailComparison, IssuerFormat, Profile
 from evp.replay import AsyncReplayGuard, InMemoryReplayGuard, ReplayGuard
@@ -27,12 +28,15 @@ __all__ = [
     "IssuerFormat",
     "IssuerMetadata",
     "JsonFetcher",
+    "LoggingObserver",
     "NullCache",
+    "Observer",
     "PolicyError",
     "Profile",
     "ReplayGuard",
     "TokenError",
     "TxtResolver",
+    "VerificationEvent",
     "VerifiedEmail",
     "Verifier",
     "generate_nonce",

@@ -22,6 +22,7 @@ from joserfc.jwk import ECKey, OKPKey
 
 from evp import discovery
 from evp.cache import Cache
+from evp.observability import Observer
 from evp.profile import DEFAULT_PROFILE, Profile
 from evp.replay import AsyncReplayGuard, ReplayGuard
 from evp.token import build_kb, sign_jwt
@@ -273,6 +274,7 @@ def make_verifier(
     clock: FixedClock | None = None,
     cache: Cache | None = None,
     replay_guard: ReplayGuard | None = None,
+    observer: Observer | None = None,
 ) -> Verifier:
     """A :class:`Verifier` wired to in-memory DNS/HTTP serving ``issuers``."""
     records, documents = _live(issuers)
@@ -285,6 +287,7 @@ def make_verifier(
         clock=clock,
         cache=cache,
         replay_guard=replay_guard,
+        observer=observer,
     )
 
 
@@ -295,6 +298,7 @@ def make_async_verifier(
     clock: FixedClock | None = None,
     cache: Cache | None = None,
     replay_guard: ReplayGuard | AsyncReplayGuard | None = None,
+    observer: Observer | None = None,
 ) -> AsyncVerifier:
     records, documents = _live(issuers)
     clock = clock or (issuers[0].clock if issuers else FixedClock())
@@ -306,4 +310,5 @@ def make_async_verifier(
         clock=clock,
         cache=cache,
         replay_guard=replay_guard,
+        observer=observer,
     )

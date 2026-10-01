@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import inspect
+import logging
+import time
 from datetime import timedelta
 from typing import Any, Self
 from urllib.parse import urlsplit
@@ -10,6 +12,7 @@ from urllib.parse import urlsplit
 from evp.cache import Cache, CacheEntry, InMemoryCache
 from evp.core import Effect, FetchJson, MarkUsed, ResolveTxt, Steps, verification_steps
 from evp.errors import DiscoveryError, ErrorCode, EVPError
+from evp.observability import Observer, VerificationEvent, claimed_email_domain
 from evp.ports import (
     AsyncJsonFetcher,
     AsyncTxtResolver,
@@ -23,6 +26,8 @@ from evp.replay import AsyncReplayGuard, ReplayGuard
 from evp.types import VerifiedEmail
 
 __all__ = ["AsyncVerifier", "Verifier"]
+
+logger = logging.getLogger("evp")
 
 
 def _validate_origin(origin: str) -> str:
@@ -52,9 +57,11 @@ class _Base:
         cache_ttl: timedelta,
         min_refresh_interval: timedelta,
         replay_protection: bool,
+        observer: Observer | None,
     ) -> None:
         self.audience = _validate_origin(audience)
         self._replay_protection = replay_protection
+        self._observer = observer
         self.profile = profile
         self._clock = clock
         self._cache: Cache = cache if cache is not None else InMemoryCache(clock=clock)
@@ -71,6 +78,25 @@ class _Base:
             email=email,
             replay_protection=self._replay_protection,
         )
+
+    def _notify(
+        self, token: str, result: VerifiedEmail | None, error: Exception | None, started: float
+    ) -> None:
+        if self._observer is None:
+            return
+        try:
+            self._observer(
+                VerificationEvent(
+                    ok=result is not None,
+                    code=error.code if isinstance(error, EVPError) else None,
+                    issuer=result.issuer if result is not None else None,
+                    email_domain=claimed_email_domain(token),
+                    profile=self.profile.name,
+                    duration=timedelta(seconds=time.perf_counter() - started),
+                )
+            )
+        except Exception:
+            logger.exception("EVP observer raised; ignoring")
 
     def _cached(self, effect: FetchJson) -> CacheEntry | None:
         entry = self._cache.get(effect.url)
@@ -109,6 +135,7 @@ class Verifier(_Base):
         cache_ttl: timedelta = timedelta(minutes=10),
         min_refresh_interval: timedelta = timedelta(minutes=1),
         replay_guard: ReplayGuard | None = None,
+        observer: Observer | None = None,
     ) -> None:
         super().__init__(
             audience=audience,
@@ -118,6 +145,7 @@ class Verifier(_Base):
             cache_ttl=cache_ttl,
             min_refresh_interval=min_refresh_interval,
             replay_protection=replay_guard is not None,
+            observer=observer,
         )
         self._resolver = resolver
         self._fetcher = fetcher
@@ -148,7 +176,17 @@ class Verifier(_Base):
         :param audience: override the configured origin (multi-host deployments).
         :raises evp.EVPError: on any failure; see ``.code``.
         """
-        steps = self._steps(token, nonce, email, audience)
+        started, result, error = time.perf_counter(), None, None
+        try:
+            result = self._run(self._steps(token, nonce, email, audience))
+            return result
+        except Exception as exc:
+            error = exc
+            raise
+        finally:
+            self._notify(token, result, error, started)
+
+    def _run(self, steps: Steps) -> VerifiedEmail:
         try:
             effect = next(steps)
             while True:
@@ -194,6 +232,7 @@ class AsyncVerifier(_Base):
         cache_ttl: timedelta = timedelta(minutes=10),
         min_refresh_interval: timedelta = timedelta(minutes=1),
         replay_guard: ReplayGuard | AsyncReplayGuard | None = None,
+        observer: Observer | None = None,
     ) -> None:
         super().__init__(
             audience=audience,
@@ -203,6 +242,7 @@ class AsyncVerifier(_Base):
             cache_ttl=cache_ttl,
             min_refresh_interval=min_refresh_interval,
             replay_protection=replay_guard is not None,
+            observer=observer,
         )
         self._resolver = resolver
         self._fetcher = fetcher
@@ -227,7 +267,17 @@ class AsyncVerifier(_Base):
         self, token: str, *, nonce: str, email: str | None = None, audience: str | None = None
     ) -> VerifiedEmail:
         """Async counterpart of :meth:`Verifier.verify`."""
-        steps = self._steps(token, nonce, email, audience)
+        started, result, error = time.perf_counter(), None, None
+        try:
+            result = await self._run(self._steps(token, nonce, email, audience))
+            return result
+        except Exception as exc:
+            error = exc
+            raise
+        finally:
+            self._notify(token, result, error, started)
+
+    async def _run(self, steps: Steps) -> VerifiedEmail:
         try:
             effect = next(steps)
             while True:

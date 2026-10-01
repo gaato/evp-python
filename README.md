@@ -82,14 +82,34 @@ verifier = AsyncVerifier.default(audience="https://example.com", replay_guard=In
 
 ```python
 class RedisReplayGuard:
-    def __init__(self, redis): self.redis = redis
+    def __init__(self, redis):
+        self.redis = redis
+
     def mark_used(self, key, expires_at):
-        return bool(self.redis.set(f"evp:used:{key}", 1, nx=True,
-                                   pxat=int(expires_at.timestamp() * 1000)))
+        return bool(
+            self.redis.set(f"evp:used:{key}", 1, nx=True, pxat=int(expires_at.timestamp() * 1000))
+        )
 ```
 
 Replays are rejected with `ErrorCode.TOKEN_REPLAYED`. The guard is only consulted after every
 other check has passed, so rejected tokens never fill the store.
+
+### Logging and metrics
+
+Pass `observer=` to receive one `VerificationEvent` per `verify` call. It carries `ok`, `code`,
+`issuer`, the claimed `email_domain`, `profile` and `duration`. `LoggingObserver()` logs one line
+per verification to the `evp` logger. Anything else, such as a Prometheus counter, is a small
+callable:
+
+```python
+def observe(event: VerificationEvent) -> None:
+    VERIFICATIONS.labels(event.code or "ok", event.issuer or "").inc()
+
+
+verifier = Verifier.default(audience="https://example.com", observer=observe)
+```
+
+Exceptions raised by an observer are logged and ignored, so monitoring can never break sign-in.
 
 ## Design
 

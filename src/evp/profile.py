@@ -123,3 +123,4 @@ PROFILES: Mapping[str, Profile] = MappingProxyType(
 """All presets by name."""
 
 DEFAULT_PROFILE = PROFILES["compat-2026-10"]
+"""The profile verifiers use unless told otherwise."""

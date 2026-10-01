@@ -42,6 +42,7 @@ class VerificationEvent:
 
 # TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
 Observer: TypeAlias = Callable[[VerificationEvent], None]
+"""Receives one :class:`VerificationEvent` per verification; must not block or raise."""
 
 
 def claimed_email_domain(token: str) -> str | None:

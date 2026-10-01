@@ -30,6 +30,8 @@ class Cache(Protocol):
 
 
 class NullCache:
+    """A cache that stores nothing: every verification fetches metadata and keys."""
+
     def get(self, key: str) -> CacheEntry | None:
         return None
 

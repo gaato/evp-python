@@ -21,4 +21,5 @@ def generate_nonce(nbytes: int = 32) -> str:
 
 
 def nonces_equal(a: str, b: str) -> bool:
+    """Compare two nonces in constant time."""
     return hmac.compare_digest(a.encode(), b.encode())

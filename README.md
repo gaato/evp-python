@@ -217,6 +217,8 @@ your own.
 - [`examples/fastapi_users/`](examples/fastapi_users/app.py) is a fastapi-users registration that
   creates EVP-verified users with `is_verified=True` and falls back to the usual verification
   email otherwise.
+- [`examples/authx/`](examples/authx/app.py) is a passwordless login: the EVP token proves the
+  address and AuthX issues the session cookie. Its tests show a replayed token being rejected.
 - [`examples/django_allauth/`](examples/django_allauth/evp_allauth.py) shows a django-allauth
   adapter. It marks the new `EmailAddress` verified when the token checks out, and falls back to
   normal email confirmation otherwise.

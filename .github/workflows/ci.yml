@@ -96,7 +96,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [fastapi, fastapi_users, django_allauth]
+        example: [fastapi, fastapi_users, authx, django_allauth]
     env:
       EXAMPLE: ${{ matrix.example }}
     steps:

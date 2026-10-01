@@ -1,0 +1,28 @@
+[project]
+name = "evp-example-authx"
+version = "0"
+description = "Passwordless login with EVP and AuthX cookie JWTs"
+requires-python = ">=3.12"
+dependencies = [
+    "evp[all]",
+    "authx>=1.7",
+    "fastapi>=0.142",
+    "itsdangerous>=2.2",
+    "python-multipart>=0.0.32",
+    "uvicorn>=0.54",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13",
+    "pytest>=9.1",
+]
+
+[tool.uv.sources]
+evp = { workspace = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = ["error"]

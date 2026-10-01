@@ -1,5 +1,6 @@
 # evp
 
+[![Documentation](https://app.readthedocs.org/projects/evp/badge/?version=latest)](https://evp.readthedocs.io/en/latest/)
 [![CI](https://github.com/gaato/evp-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gaato/evp-python/actions/workflows/ci.yml)
 [![Spec drift](https://github.com/gaato/evp-python/actions/workflows/drift.yml/badge.svg)](https://github.com/gaato/evp-python/actions/workflows/drift.yml)
 [![spec: draft-hardt-02](https://img.shields.io/badge/spec-draft--hardt--02-blue)](https://github.com/dickhardt/email-verification)
@@ -11,6 +12,8 @@
 Relying-party verification for the **Email Verification Protocol** (EVP): the browser obtains a
 token from the user's email provider proving they control an address, and your server verifies it,
 with no confirmation email round-trip.
+
+**Documentation: <https://evp.readthedocs.io/>**
 
 > **Status: alpha.** The protocol ([draft-hardt-email-verification], [WICG Email Verification API])
 > and browser support (Chrome origin trial) are still changing. This library isolates every

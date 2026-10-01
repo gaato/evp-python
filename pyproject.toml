@@ -49,6 +49,8 @@ cli = [
 evp = "evp.__main__:main"
 
 [project.urls]
+Documentation = "https://evp.readthedocs.io/"
+Changelog = "https://evp.readthedocs.io/en/latest/changelog.html"
 Repository = "https://github.com/gaato/evp-python"
 
 [build-system]

@@ -1,0 +1,47 @@
+name: Spec drift
+
+# Checks deployed issuers (DNS records, metadata, JWKS) against the default
+# profile, and opens or updates a "spec-drift" issue when they diverge.
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  network:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv run --locked --all-extras pytest -m network -v
+
+  report:
+    needs: network
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open or update the drift issue
+        run: |
+          gh label create spec-drift --color D93F0B \
+            --description "Deployed EVP ecosystem diverged from the default profile" --force
+          body="The weekly network check failed: $RUN_URL"
+          number=$(gh issue list --label spec-drift --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "Spec drift detected by network tests" \
+              --label spec-drift --body "$body"
+          fi

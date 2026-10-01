@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      # Install the examples too so that ty can resolve FastAPI / Django imports.
+      - run: uv sync --locked --all-packages --all-extras
+      - run: uv run --no-sync ruff check
+      - run: uv run --no-sync ruff format --check
+      - run: uv run --no-sync ty check
+
+  test:
+    name: test (py${{ matrix.python }}, extras=${{ matrix.extras }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13", "3.14"]
+        extras: [none, all]
+        experimental: [false]
+        include:
+          # 3.15 is a release candidate; promote to required once 3.15.0 is out.
+          - { python: "3.15", extras: none, experimental: true }
+          - { python: "3.15", extras: all, experimental: true }
+    env:
+      PYTHON: ${{ matrix.python }}
+      EXTRAS: ${{ matrix.extras }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - name: Install
+        run: |
+          if [ "$EXTRAS" = all ]; then flags=--all-extras; else flags=; fi
+          uv sync --locked --python "$PYTHON" $flags
+      - run: uv run --no-sync pytest
+
+  test-lowest:
+    name: test (lowest direct dependencies)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      # Outside the workspace lock, so that only the library's own lower bounds are tested.
+      - name: Install lowest direct dependencies
+        run: |
+          uv venv --python 3.12
+          uv pip install --resolution lowest-direct ".[all]"
+          uv pip install pytest anyio
+      - run: .venv/bin/pytest
+
+  examples:
+    name: example (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [fastapi, django_allauth]
+    env:
+      EXAMPLE: ${{ matrix.example }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv run --locked --directory "examples/$EXAMPLE" pytest
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv build
+      - name: Smoke-test the wheel in a clean environment
+        run: uv run --isolated --no-project --with dist/*.whl python -c "import evp, evp.testing"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist
+          path: dist/

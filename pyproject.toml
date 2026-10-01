@@ -40,6 +40,13 @@ httpx2 = [
 all = [
     "evp[dns,httpx]",
 ]
+cli = [
+    "evp[dns,httpx2]",
+    "typer>=0.27",
+]
+
+[project.scripts]
+evp = "evp.__main__:main"
 
 [project.urls]
 Repository = "https://github.com/gaato/evp-python"
@@ -74,6 +81,8 @@ ignore = ["PLR0913", "PLR2004", "PLR0911", "PLR0912"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["PLR"]
+# Typer maps CLI options to parameters; commands are closures inside make_app().
+"src/evp/cli/**" = ["PLR0915", "PLR0917"]
 
 [tool.uv.workspace]
 members = ["examples/*"]

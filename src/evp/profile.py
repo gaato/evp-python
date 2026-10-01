@@ -9,13 +9,16 @@ verification code.  Existing presets are never changed in incompatible ways.
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
+from types import MappingProxyType
 from typing import Any, Self
 
 __all__ = [
     "DEFAULT_PROFILE",
+    "PROFILES",
     "EmailComparison",
     "IssuerFormat",
     "Profile",
@@ -101,9 +104,22 @@ class Profile:
             allow_disclosures=False,
         )
 
+    @staticmethod
+    def named(name: str) -> Profile:
+        """Look up a preset by name (e.g. ``"draft-hardt-02"``)."""
+        try:
+            return PROFILES[name]
+        except KeyError:
+            raise ValueError(f"unknown profile {name!r}; known: {', '.join(PROFILES)}") from None
+
     def replace(self, **changes: Any) -> Self:
         """Return a copy with some fields changed (``dataclasses.replace``)."""
         return dataclasses.replace(self, **changes)
 
 
-DEFAULT_PROFILE = Profile.compat_2026_10()
+PROFILES: Mapping[str, Profile] = MappingProxyType(
+    {p.name: p for p in (Profile.compat_2026_10(), Profile.draft_hardt_02())}
+)
+"""All presets by name."""
+
+DEFAULT_PROFILE = PROFILES["compat-2026-10"]

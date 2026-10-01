@@ -15,6 +15,7 @@ EMAIL = "alice@example.com"
 _REQUIRES: dict[str, tuple[tuple[str, ...], ...]] = {
     "test_adapters.py": (("httpx", "httpx2"),),
     "test_doh.py": (("httpx", "httpx2"),),
+    "test_cli.py": (("typer",),),
     "test_network.py": (("httpx", "httpx2"), ("dns",)),
 }
 collect_ignore = [

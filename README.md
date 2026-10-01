@@ -68,6 +68,23 @@ before doing any I/O. It then discovers the issuer from DNS (`_email-verificatio
 TXT `iss=…`), fetches its metadata and JWKS (cached), and verifies the issuer's signature. Only
 hosts derived from DNS are ever contacted, never hosts named in the token.
 
+## Command line
+
+`evp[cli]` installs an `evp` command for relying-party developers and operators, and for
+issuer operators checking their own setup. It runs without installing anything into your project:
+
+```sh
+uvx --from "evp[cli]" evp discover gmail.com           # DNS record, metadata, keys vs. profile
+uvx --from "evp[cli]" evp discover example.com --doh --profile draft-hardt-02
+pbpaste | uvx --from "evp[cli]" evp inspect            # decode a token offline (no signature checks)
+uvx --from "evp[cli]" evp verify "$TOKEN" --audience https://example.com --nonce "$NONCE"
+```
+
+Every command accepts `--json`. The exit status is 0 on success, 1 when verification or discovery
+fails, 2 for usage errors and 3 when the `cli` extra is missing. Tokens contain email addresses,
+so treat them as personal data. The same checks are available in code from `evp.diagnostics`
+(`discover()` / `adiscover()`).
+
 ## Operations
 
 ### Replay protection

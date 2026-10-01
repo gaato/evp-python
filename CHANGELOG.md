@@ -22,6 +22,9 @@ follows the compatibility policy described in the README.
 - Observer hook for logging and metrics (`observer=`, `VerificationEvent`, `LoggingObserver`).
 - DNS-over-HTTPS TXT resolvers (`evp.adapters.doh`, Google and Cloudflare JSON APIs).
 - `Verifier.default()` / `AsyncVerifier.default()` accept `resolver=` / `fetcher=` overrides.
+- Issuer diagnostics (`evp.diagnostics`) and an `evp` command (`evp[cli]`) with `discover`,
+  `inspect` and `verify`.
+- Profile registry: `PROFILES` and `Profile.named()`.
 - Test doubles in `evp.testing`: `FakeIssuer`, `FakeBrowser`, in-memory DNS / HTTP.
 
 [Unreleased]: https://github.com/gaato/evp-python/compare/v0.1.0...HEAD

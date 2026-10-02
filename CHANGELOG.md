@@ -12,7 +12,9 @@ follows the compatibility policy described in the README.
   (RFC 9421 HTTP Message Signatures with an `hwk` Signature-Key, `Content-Digest`), mint EVTs,
   and produce the metadata, JWKS and DNS records to publish. Issuance profiles `chrome-153`
   (default) and `draft-hardt-02`; `Signer` protocol for KMS / HSM keys; optional replay guard
-  and observer. Private email is not supported yet.
+  and observer. Private email is not supported yet. Tested end to end with Chrome 154.
+- `evp.issuer.web_identity_document()` and `accounts_document()` for the FedCM account check
+  that Chrome performs before issuing.
 - `evp issuer keygen` and `evp issuer documents` CLI commands.
 - `FakeBrowser.issuance_request()` for testing issuers.
 - `examples/issuer_fastapi`.

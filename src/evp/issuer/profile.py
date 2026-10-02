@@ -33,13 +33,19 @@ class IssuanceProfile:
 
     @classmethod
     def chrome_153(cls) -> Self:
-        """What Chrome 153+ sends (2026-08): ``hwk`` keys may omit ``alg``."""
+        """What Chrome 153+ sends and accepts (verified end to end with 154.0.8037.92).
+
+        Chrome signs requests with ``hwk`` keys that omit ``alg``, and it rejects EVTs
+        whose header says ``"alg": "Ed25519"``: it only accepts ``EdDSA``, ``ES256``
+        and ``RS256``.  Ed25519-signed EVTs therefore carry ``EdDSA``, as Gmail's do.
+        """
         return cls(
             name="chrome-153",
             request_algorithms=frozenset({"Ed25519", "ES256"}),
             require_request_key_alg=False,
             max_request_age=timedelta(seconds=300),
             require_sec_fetch_dest=True,
+            polymorphic_eddsa_header=True,
         )
 
     @classmethod

@@ -19,7 +19,9 @@ from evp.issuer import (
     IssuanceRequest,
     Issuer,
     SigningKey,
+    accounts_document,
     is_valid_email,
+    web_identity_document,
 )
 from evp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
 
@@ -106,27 +108,55 @@ def error(issuer: Issuer, request: Any) -> IssuanceError:
 # --- end to end ---
 
 
-@pytest.mark.parametrize("profile", [Profile.compat_2026_10(), Profile.draft_hardt_02()])
+@pytest.mark.parametrize(
+    ("issuance", "verification"),
+    [
+        # What Chrome and Gmail do today, checked by the default verifier profile.
+        (IssuanceProfile.chrome_153(), Profile.compat_2026_10()),
+        # The draft on both sides.
+        (IssuanceProfile.draft_hardt_02(), Profile.draft_hardt_02()),
+        (IssuanceProfile.draft_hardt_02(), Profile.compat_2026_10()),
+    ],
+)
 @pytest.mark.parametrize("alg", ["Ed25519", "ES256"])
-def test_issued_tokens_verify(clock: FixedClock, profile: Profile, alg: str) -> None:
-    issuer = make_issuer(clock, signer=SigningKey.generate(alg, kid="k1"))
+def test_issued_tokens_verify(
+    clock: FixedClock, issuance: IssuanceProfile, verification: Profile, alg: str
+) -> None:
+    issuer = make_issuer(clock, signer=SigningKey.generate(alg, kid="k1"), profile=issuance)
     browser = Browser(clock, alg)
-    request = issuer.parse_request(**browser.request())
+    request = issuer.parse_request(**browser.request(include_alg=True))
     evt = issuer.issue(request)
     assert evt.endswith("~")
-    result = verifier_for(issuer, clock, profile).verify(
+    result = verifier_for(issuer, clock, verification).verify(
         present(evt, browser), nonce="n-1", email="alice@example.com"
     )
     assert result.email == "alice@example.com"
     assert result.issuer == ISSUER
 
 
-def test_evt_shape(clock: FixedClock) -> None:
+def test_chrome_profile_tokens_fail_the_strict_verifier(clock: FixedClock) -> None:
+    """Chrome only accepts ``EdDSA`` headers, which draft-hardt-02 forbids."""
     issuer = make_issuer(clock)
     browser = Browser(clock)
-    evt = issuer.issue(issuer.parse_request(**browser.request("Alice@Example.com")))
+    evt = issuer.issue(issuer.parse_request(**browser.request()))
+    with pytest.raises(EVPError):
+        verifier_for(issuer, clock, Profile.draft_hardt_02()).verify(
+            present(evt, browser), nonce="n-1"
+        )
+
+
+@pytest.mark.parametrize(
+    ("profile", "header_alg"),
+    [(IssuanceProfile.chrome_153(), "EdDSA"), (IssuanceProfile.draft_hardt_02(), "Ed25519")],
+)
+def test_evt_shape(clock: FixedClock, profile: IssuanceProfile, header_alg: str) -> None:
+    issuer = make_issuer(clock, profile=profile)
+    browser = Browser(clock)
+    evt = issuer.issue(
+        issuer.parse_request(**browser.request("Alice@Example.com", include_alg=True))
+    )
     header, claims, _ = evt.removesuffix("~").split(".")
-    assert decode_json_segment(header) == {"alg": "Ed25519", "kid": "2026-10", "typ": "evt+jwt"}
+    assert decode_json_segment(header) == {"alg": header_alg, "kid": "2026-10", "typ": "evt+jwt"}
     assert decode_json_segment(claims) == {
         "iss": ISSUER,
         "iat": int(clock().timestamp()),
@@ -136,13 +166,10 @@ def test_evt_shape(clock: FixedClock) -> None:
     }
 
 
-def test_polymorphic_eddsa_header(clock: FixedClock) -> None:
-    profile = IssuanceProfile.chrome_153().replace(polymorphic_eddsa_header=True)
-    issuer = make_issuer(clock, profile=profile)
-    browser = Browser(clock)
-    evt = issuer.issue(issuer.parse_request(**browser.request()))
-    assert decode_json_segment(evt.split(".")[0])["alg"] == "EdDSA"
-    verifier_for(issuer, clock).verify(present(evt, browser), nonce="n-1")
+def test_es256_header_is_unchanged_by_the_chrome_profile(clock: FixedClock) -> None:
+    issuer = make_issuer(clock, signer=SigningKey.generate("ES256", kid="k1"))
+    evt = issuer.issue(issuer.parse_request(**Browser(clock).request()))
+    assert decode_json_segment(evt.split(".")[0])["alg"] == "ES256"
 
 
 def test_success_response(clock: FixedClock) -> None:
@@ -504,3 +531,16 @@ def test_fake_browser_issuance_request(clock: FixedClock, alg: Any) -> None:
                 "bob@example.com", endpoint=ENDPOINT, extra={"private_email": True}
             )
         )
+
+
+def test_fedcm_documents() -> None:
+    assert web_identity_document(
+        accounts_endpoint="https://issuer.example/fedcm/accounts",
+        login_url="https://issuer.example/login",
+    ) == {
+        "accounts_endpoint": "https://issuer.example/fedcm/accounts",
+        "login_url": "https://issuer.example/login",
+    }
+    assert accounts_document(["a@example.com"]) == {
+        "accounts": [{"id": "a@example.com", "email": "a@example.com", "name": "a@example.com"}]
+    }

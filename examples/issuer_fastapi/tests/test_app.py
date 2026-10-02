@@ -93,15 +93,27 @@ def test_failures_look_the_same(client: TestClient, clock: FixedClock) -> None:
 
 
 def test_login_status(client: TestClient, clock: FixedClock) -> None:
-    login = client.post(
-        "/login",
-        data={"email": "alice@example.com", "password": "hunter2"},
-        follow_redirects=False,
-    )
+    login = _login(client)
     assert login.headers["set-login"] == "logged-in"
-    logout = client.post("/logout", follow_redirects=False)
+    logout = client.post("/logout")
     assert logout.headers["set-login"] == "logged-out"
     assert _issue(client, FakeBrowser(clock=clock), "alice@example.com").status_code == 401
+
+
+def test_fedcm_documents(client: TestClient) -> None:
+    assert client.get("/.well-known/web-identity").json() == {
+        "accounts_endpoint": "https://issuer.example/fedcm/accounts",
+        "login_url": "https://issuer.example/login",
+    }
+    fedcm = {"Sec-Fetch-Dest": "webidentity"}
+    assert client.get("/fedcm/accounts", headers=fedcm).status_code == 401
+    _login(client)
+    assert client.get("/fedcm/accounts").status_code == 400
+    assert client.get("/fedcm/accounts", headers=fedcm).json() == {
+        "accounts": [
+            {"id": "alice@example.com", "email": "alice@example.com", "name": "alice@example.com"}
+        ]
+    }
 
 
 def test_bad_password(client: TestClient) -> None:

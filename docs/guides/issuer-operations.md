@@ -2,8 +2,9 @@
 
 ```{warning}
 **Experimental.** `evp.issuer` follows draft-hardt-email-verification-02 and the request format
-Chrome sends from version 153 on. It has not yet been tested against Chrome end to end; until it
-has, treat it as a preview and expect the `chrome-153` issuance profile to change.
+Chrome sends from version 153 on. It was tested end to end with Chrome 154.0.8037.92 (the
+`#email-verification-protocol` flag). Chrome and the draft are still changing, so expect the
+`chrome-153` issuance profile to follow them.
 ```
 
 `evp.issuer` provides building blocks for issuing EVTs for email domains you control. It does
@@ -23,7 +24,8 @@ system. A complete FastAPI sketch lives in
    the browser's key.
 
 `evp.issuer` covers steps 1–4 except "the logged-in user controls the address", which is
-yours.
+yours. Chrome also requires the FedCM documents described in [What Chrome requires beyond the
+draft](#what-chrome-requires-beyond-the-draft).
 
 ## Set up
 
@@ -115,11 +117,33 @@ Rate-limit the issuance endpoint per IP address in front of the application. `ob
 receives an {class}`evp.issuer.IssuanceEvent` for every validated request and issued token, for
 metrics and audit logs.
 
-## Cookies
+## What Chrome requires beyond the draft
 
-The browser sends the issuer's first-party cookies with the issuance request. Mark the session
-cookie `Secure` and scope it to the issuer's origin. Confirm the `SameSite` attribute your
-target browser needs before going live. The example uses `SameSite=None`.
+Chrome 154 does more than the draft describes. Without the following, it fetches the metadata
+and then stops without telling the page why.
+
+- **FedCM account check.** Before issuing, Chrome fetches
+  `https://<registrable domain of the issuer>/.well-known/web-identity`. For an issuer on
+  `accounts.example.com`, that is `https://example.com/.well-known/web-identity`. Serve
+  `evp.issuer.web_identity_document(accounts_endpoint=..., login_url=...)` there, with no
+  `provider_urls` member. `accounts_endpoint` must be on the issuer's origin. Chrome requests it
+  with the issuer's cookies and `Sec-Fetch-Dest: webidentity`. Answer with
+  `evp.issuer.accounts_document([...])` listing the signed-in user's addresses; the typed address
+  must be one of them.
+- **Login status.** Chrome skips issuers it knows the user is signed out of. Send
+  `Set-Login: logged-in` on a page response after login (or call
+  `navigator.login.setStatus("logged-in")`), and `logged-out` on logout.
+- **Cookies.** Both the accounts request and the issuance request are cross-site from the relying
+  party, so the session cookie needs `SameSite=None; Secure`. Scope it to the issuer's origin.
+- **EVT header.** Chrome accepts only `EdDSA`, `ES256` and `RS256` in the EVT header, not the
+  `Ed25519` the draft requires. The default `chrome-153` profile therefore writes `EdDSA` for
+  Ed25519 keys, as Gmail does. Relying parties using this library's default profile accept
+  that, and the strict `draft-hardt-02` verifier profile does not. With an ES256 key, both are
+  satisfied.
+
+Chrome also shows the user a one-time prompt per address ("verify this email automatically?")
+before the first issuance. It starts the check when focus moves from the email field to another
+form field, and it rate-limits repeated failures per address.
 
 ## Not supported yet
 

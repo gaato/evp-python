@@ -13,6 +13,12 @@ log in with a password.  Configure it with environment variables::
 
 and publish ``_email-verification.example.com TXT "iss=issuer.example"``.
 Check the result with ``evp discover example.com``.
+
+Chrome also needs a FedCM well-known on the issuer's registrable domain (for
+``issuer.example`` that is ``https://issuer.example/.well-known/web-identity``;
+for ``accounts.example.com`` it is ``https://example.com/...``).  This app serves
+it when the issuer's host is its own registrable domain; otherwise serve
+``web_identity_document(...)`` there yourself.  See ``evp.issuer.fedcm``.
 """
 
 from __future__ import annotations
@@ -24,13 +30,24 @@ import os
 from typing import Annotated
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from starlette.middleware.sessions import SessionMiddleware
 
-from evp.issuer import IssuanceError, IssuanceErrorCode, IssuanceResponse, Issuer, SigningKey
+from evp.issuer import (
+    FEDCM_FETCH_DEST,
+    IssuanceError,
+    IssuanceErrorCode,
+    IssuanceResponse,
+    Issuer,
+    SigningKey,
+    accounts_document,
+    web_identity_document,
+)
 
 ISSUANCE_PATH = "/email-verification/issuance"
 JWKS_PATH = "/email-verification/jwks"
+ACCOUNTS_PATH = "/fedcm/accounts"
+LOGIN_PATH = "/login"
 MAX_BODY = 16 * 1024
 SESSION_USER = "user"
 
@@ -38,9 +55,8 @@ SESSION_USER = "user"
 def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) -> FastAPI:
     """``users`` maps each email address to its (demo) password."""
     app = FastAPI()
-    # The browser calls the issuance endpoint with the issuer's own cookies.  SameSite=None
-    # and Secure keep the session cookie in that request; confirm the attributes against
-    # the browser you target before going live.
+    # Chrome sends the issuer's cookies with its FedCM accounts request and the issuance
+    # request, both cross-site from the relying party: the cookie needs SameSite=None.
     app.add_middleware(
         SessionMiddleware, secret_key=session_secret, same_site="none", https_only=True
     )
@@ -52,6 +68,25 @@ def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) ->
     @app.get(JWKS_PATH)
     async def jwks() -> JSONResponse:
         return JSONResponse(issuer.jwks_document())
+
+    @app.get("/.well-known/web-identity")
+    async def web_identity() -> JSONResponse:
+        base = issuer.issuer
+        return JSONResponse(
+            web_identity_document(
+                accounts_endpoint=base + ACCOUNTS_PATH, login_url=base + LOGIN_PATH
+            )
+        )
+
+    @app.get(ACCOUNTS_PATH)
+    async def accounts(request: Request) -> JSONResponse:
+        # Chrome checks that the user is signed in with the typed address before issuing.
+        if request.headers.get("sec-fetch-dest") != FEDCM_FETCH_DEST:
+            return JSONResponse({"error": "not a FedCM request"}, status_code=400)
+        user = request.session.get(SESSION_USER)
+        if user is None:
+            return JSONResponse({"accounts": []}, status_code=401)
+        return JSONResponse(accounts_document([user]))
 
     @app.post(ISSUANCE_PATH)
     async def issuance(request: Request) -> Response:
@@ -71,7 +106,7 @@ def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) ->
             result = exc.to_response()
         return _response(result)
 
-    @app.get("/login", response_class=HTMLResponse)
+    @app.get(LOGIN_PATH, response_class=HTMLResponse)
     async def login_form() -> str:
         return """<!doctype html>
 <form method="post" action="/login">
@@ -80,7 +115,7 @@ def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) ->
   <button>Log in</button>
 </form>"""
 
-    @app.post("/login")
+    @app.post(LOGIN_PATH)
     async def login(
         request: Request, email: Annotated[str, Form()], password: Annotated[str, Form()]
     ) -> Response:
@@ -88,13 +123,17 @@ def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) ->
         if not hmac.compare_digest(expected.encode(), password.encode()) or not expected:
             return HTMLResponse(f"<p>Wrong password for {html.escape(email)}</p>", status_code=401)
         request.session[SESSION_USER] = email
-        # Login Status API: Chrome only asks issuers it knows the user is logged in to.
-        return RedirectResponse("/login", status_code=303, headers={"Set-Login": "logged-in"})
+        # Login Status API: Chrome skips issuers it knows the user is signed out of.  The
+        # header is sent on a page response; whether Chrome honours it on a redirect was
+        # not confirmed in testing.
+        return HTMLResponse(
+            f"<p>Logged in as {html.escape(email)}</p>", headers={"Set-Login": "logged-in"}
+        )
 
     @app.post("/logout")
     async def logout(request: Request) -> Response:
         request.session.clear()
-        return RedirectResponse("/login", status_code=303, headers={"Set-Login": "logged-out"})
+        return HTMLResponse("<p>Logged out</p>", headers={"Set-Login": "logged-out"})
 
     return app
 

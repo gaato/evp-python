@@ -161,7 +161,8 @@ also be passed to `DnsPythonResolver`.
 If you run mail for your own domains, `evp.issuer` provides the issuer side: it validates the
 browser's signed issuance request (HTTP Message Signatures, as Chrome 153+ sends it), mints EVTs,
 and produces the metadata, JWKS and DNS records to publish. Logging the user in stays with your
-application. It has not been tested against Chrome end to end yet. See the
+application. It has been tested end to end with Chrome 154, which also needs the FedCM documents
+described in the guide. See the
 [guide](https://evp.readthedocs.io/en/latest/guides/issuer-operations.html) and
 [`examples/issuer_fastapi/`](examples/issuer_fastapi/app.py).
 

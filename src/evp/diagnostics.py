@@ -101,9 +101,14 @@ def discovery_steps(target: str, profile: Profile = DEFAULT_PROFILE) -> ReportSt
         return done(f"JWKS: {exc.args[0]}")
 
     problems: list[str] = []
-    advertised = metadata.signing_alg_values_supported or _DEFAULT_ALGS
+    advertised = metadata.signing_alg_values_supported
+    if advertised is None:
+        advertised = _DEFAULT_ALGS
     accepted = [a for a in advertised if a in profile.evt_algorithms]
-    if not accepted:
+    if not advertised:
+        # Unlike an absent list, an empty one makes every token fail verification.
+        problems.append("issuer advertises an empty signing_alg_values_supported")
+    elif not accepted:
         problems.append(
             f"issuer signs with {', '.join(advertised)}; profile {profile.name} accepts "
             f"{', '.join(sorted(profile.evt_algorithms))}"

@@ -233,7 +233,9 @@ def _print_report(out: Console, report: IssuerReport) -> None:
     if report.metadata is not None:
         table.add_row("jwks_uri", report.metadata.jwks_uri)
         algs = report.metadata.signing_alg_values_supported
-        table.add_row("algorithms", ", ".join(algs) if algs else "(not advertised)")
+        table.add_row(
+            "algorithms", "(not advertised)" if algs is None else ", ".join(algs) or "(none)"
+        )
     for key in report.keys:
         table.add_row("key", f"{key.kty}/{key.crv} alg={key.alg} kid={key.kid!r}")
     out.print(table)

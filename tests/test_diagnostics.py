@@ -59,6 +59,12 @@ def test_kid_required() -> None:
         (lambda dns, http, i: dns.records.clear(), "expected exactly one"),
         (lambda dns, http, i: http.documents.update({i.metadata_url: {}}), "metadata:"),
         (lambda dns, http, i: http.documents.update({i.jwks_uri: {"keys": []}}), "JWKS:"),
+        (
+            lambda dns, http, i: http.documents[i.metadata_url].update(
+                signing_alg_values_supported=[]
+            ),
+            "issuer advertises an empty",
+        ),
     ],
 )
 def test_problems(issuer: FakeIssuer, break_it, problem: str) -> None:
@@ -67,6 +73,14 @@ def test_problems(issuer: FakeIssuer, break_it, problem: str) -> None:
     report = discover("example.com", resolver=resolver, fetcher=fetcher)
     assert not report.ok
     assert report.problems[0].startswith(problem)
+
+
+def test_absent_algorithm_list_defaults(issuer: FakeIssuer) -> None:
+    resolver, fetcher = _ports(issuer)
+    metadata = dict(issuer.metadata)
+    del metadata["signing_alg_values_supported"]
+    fetcher.documents[issuer.metadata_url] = metadata
+    assert discover("example.com", resolver=resolver, fetcher=fetcher).ok
 
 
 def test_transport_failure_raises(issuer: FakeIssuer) -> None:

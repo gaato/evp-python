@@ -48,7 +48,6 @@ guides/issuer-operations
 
 api
 compatibility
-changelog
 ```
 
 [draft-hardt-email-verification]: https://github.com/dickhardt/email-verification

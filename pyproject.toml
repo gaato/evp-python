@@ -56,7 +56,6 @@ pyevp = "pyevp.__main__:main"
 
 [project.urls]
 Documentation = "https://pyevp.readthedocs.io/"
-Changelog = "https://pyevp.readthedocs.io/en/latest/changelog.html"
 Repository = "https://github.com/gaato/pyevp"
 
 [build-system]

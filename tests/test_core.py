@@ -9,11 +9,11 @@ from typing import Any, Literal, TypeAlias
 
 import pytest
 
-from evp import DEFAULT_PROFILE, ErrorCode, EVPError, Profile, Verifier
-from evp._jose import b64url_encode
-from evp.core import FetchJson, ResolveTxt, verification_steps
-from evp.testing import FakeBrowser, FakeIssuer, FixedClock, make_verifier
-from evp.token import build_kb, compute_sd_hash, sign_jwt
+from pyevp import DEFAULT_PROFILE, ErrorCode, EVPError, Profile, Verifier
+from pyevp._jose import b64url_encode
+from pyevp.core import FetchJson, ResolveTxt, verification_steps
+from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, make_verifier
+from pyevp.token import build_kb, compute_sd_hash, sign_jwt
 
 from .conftest import AUDIENCE, EMAIL
 

@@ -1,4 +1,4 @@
-# evp
+# pyevp
 
 Relying-party verification for the **Email Verification Protocol** (EVP).
 
@@ -16,7 +16,7 @@ changes.
 - **Typed:** frozen dataclasses, protocols and stable error codes.
 - **Sync and async from one core:** the verification logic does no I/O itself; thin drivers
   serve Django and FastAPI alike.
-- **Testable:** `evp.testing` ships a fake issuer and a fake browser, so your application's tests
+- **Testable:** `pyevp.testing` ships a fake issuer and a fake browser, so your application's tests
   need no network access.
 - **Small:** the only required dependency is [joserfc]; DNS and HTTP are pluggable.
 

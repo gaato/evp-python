@@ -1,22 +1,22 @@
 # Logging and metrics
 
-Pass `observer=` to a verifier to receive one {class}`~evp.VerificationEvent` per `verify()` call.
+Pass `observer=` to a verifier to receive one {class}`~pyevp.VerificationEvent` per `verify()` call.
 An event carries:
 
 - `ok`
-- `code`: the {class}`~evp.ErrorCode` on failure
+- `code`: the {class}`~pyevp.ErrorCode` on failure
 - `issuer`: on success
 - `email_domain`: the claimed domain, read before verification
 - `profile`
 - `duration`
 
 ```python
-from evp import LoggingObserver, Verifier
+from pyevp import LoggingObserver, Verifier
 
 verifier = Verifier.default(audience="https://example.com", observer=LoggingObserver())
 ```
 
-{class}`~evp.LoggingObserver` writes one line per verification to the `evp` logger. For metrics,
+{class}`~pyevp.LoggingObserver` writes one line per verification to the `pyevp` logger. For metrics,
 write a small callable:
 
 ```python
@@ -31,9 +31,9 @@ def observe(event):
     LATENCY.observe(event.duration.total_seconds())
 ```
 
-Observers should be fast. Exceptions raised by an observer are logged to the `evp` logger and
+Observers should be fast. Exceptions raised by an observer are logged to the `pyevp` logger and
 ignored, so monitoring can never break sign-in.
 
 Watching these numbers per `email_domain` and `code` shows quickly when an issuer changes its
 behaviour (a spike of `unsupported_alg`, for example). That is the same drift that
-`evp discover` checks for (see {doc}`cli`).
+`pyevp discover` checks for (see {doc}`cli`).

@@ -1,4 +1,4 @@
-"""JSON fetchers backed by httpx2 or httpx (``pip install evp[httpx2]`` / ``evp[httpx]``).
+"""JSON fetchers backed by httpx2 or httpx (``pip install pyevp[httpx2]`` / ``pyevp[httpx]``).
 
 httpx2 is used for default clients when it is installed; a client from either
 library can be passed in explicitly.
@@ -10,10 +10,10 @@ import json
 from types import TracebackType
 from typing import TYPE_CHECKING, Self
 
-from evp.adapters._http import http
+from pyevp.adapters._http import http
 
 if TYPE_CHECKING:
-    from evp.adapters._http import AsyncClient, Client, Response
+    from pyevp.adapters._http import AsyncClient, Client, Response
 
 __all__ = ["AsyncHttpxFetcher", "FetchError", "HttpxFetcher"]
 

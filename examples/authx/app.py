@@ -24,7 +24,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from evp import AsyncVerifier, EVPError, InMemoryReplayGuard, generate_nonce
+from pyevp import AsyncVerifier, EVPError, InMemoryReplayGuard, generate_nonce
 
 ORIGIN = os.environ.get("EVP_ORIGIN", "http://localhost:8000")
 # A random development secret: sessions and logins do not survive restarts.

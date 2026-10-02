@@ -4,8 +4,8 @@ import importlib.util
 
 import pytest
 
-from evp import Verifier, generate_nonce
-from evp.testing import FakeBrowser, FakeIssuer, FixedClock, make_verifier
+from pyevp import Verifier, generate_nonce
+from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, make_verifier
 
 AUDIENCE = "https://rp.example"
 EMAIL = "alice@example.com"

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from evp import DEFAULT_PROFILE, DiscoveryError, ErrorCode, IssuerFormat
-from evp.discovery import (
+from pyevp import DEFAULT_PROFILE, DiscoveryError, ErrorCode, IssuerFormat
+from pyevp.discovery import (
     canonical_issuer,
     email_domain,
     parse_txt_records,

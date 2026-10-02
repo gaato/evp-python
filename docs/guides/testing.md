@@ -1,10 +1,10 @@
 # Testing your application
 
-{mod}`evp.testing` lets your test suite produce real, correctly signed tokens without a browser,
+{mod}`pyevp.testing` lets your test suite produce real, correctly signed tokens without a browser,
 DNS or network access.
 
 ```python
-from evp.testing import FakeBrowser, FakeIssuer, make_async_verifier
+from pyevp.testing import FakeBrowser, FakeIssuer, make_async_verifier
 
 issuer = FakeIssuer()  # https://issuer.example, for @example.com
 browser = FakeBrowser(clock=issuer.clock)
@@ -17,11 +17,11 @@ token = browser.present(
 )
 ```
 
-- {class}`~evp.testing.FakeIssuer` serves DNS records, metadata and keys to
-  {func}`~evp.testing.make_verifier` / {func}`~evp.testing.make_async_verifier`. You can override
+- {class}`~pyevp.testing.FakeIssuer` serves DNS records, metadata and keys to
+  {func}`~pyevp.testing.make_verifier` / {func}`~pyevp.testing.make_async_verifier`. You can override
   claims and headers (`claims={"email_verified": False}`) and rotate keys. To mimic Gmail's current
-  deviations from the draft, use {meth}`FakeIssuer.gmail_like() <evp.testing.FakeIssuer.gmail_like>`.
-- {class}`~evp.testing.FixedClock` controls time for freshness tests.
+  deviations from the draft, use {meth}`FakeIssuer.gmail_like() <pyevp.testing.FakeIssuer.gmail_like>`.
+- {class}`~pyevp.testing.FixedClock` controls time for freshness tests.
 - To test your handlers, inject the verifier through your framework's dependency mechanism,
   e.g. `app.dependency_overrides` in FastAPI or `monkeypatch` in Django. The examples' tests show
   both.
@@ -29,7 +29,7 @@ token = browser.present(
 The verification core can also be driven by hand. That is useful when writing your own driver:
 
 ```python
-from evp.core import verification_steps
+from pyevp.core import verification_steps
 
 steps = verification_steps(token, audience=..., nonce=..., now=..., profile=...)
 effect = next(steps)  # ResolveTxt("_email-verification.example.com")

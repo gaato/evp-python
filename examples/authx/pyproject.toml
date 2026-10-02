@@ -1,10 +1,10 @@
 [project]
-name = "evp-example-authx"
+name = "pyevp-example-authx"
 version = "0"
 description = "Passwordless login with EVP and AuthX cookie JWTs"
 requires-python = ">=3.12"
 dependencies = [
-    "evp[all]",
+    "pyevp[all]",
     "authx>=1.7",
     "fastapi>=0.142",
     "itsdangerous>=2.2",
@@ -19,7 +19,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-evp = { workspace = true }
+pyevp = { workspace = true }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

@@ -1,61 +1,61 @@
 # API reference
 
-## `evp`
+## `pyevp`
 
 Everything most applications need is importable from the top-level package.
 
 ```{eval-rst}
-.. automodule:: evp
+.. automodule:: pyevp
    :members:
    :imported-members:
 
-.. data:: evp.DEFAULT_PROFILE
+.. data:: pyevp.DEFAULT_PROFILE
    :type: Profile
 
    The profile verifiers use unless told otherwise: ``compat-2026-10``.
 
-.. data:: evp.profile.PROFILES
+.. data:: pyevp.profile.PROFILES
    :type: Mapping[str, Profile]
 
    All presets by name; see :meth:`Profile.named`.
 
-.. autodata:: evp.Clock
+.. autodata:: pyevp.Clock
 
-.. autodata:: evp.Observer
+.. autodata:: pyevp.Observer
 ```
 
 ## Verification core
 
 ```{eval-rst}
-.. automodule:: evp.core
+.. automodule:: pyevp.core
    :members: verification_steps, ResolveTxt, FetchJson, MarkUsed, Effect, Steps, replay_key
 
-.. automodule:: evp.token
+.. automodule:: pyevp.token
    :members: parse_token, ParsedToken, CompactJWT, compute_sd_hash, build_kb, sign_jwt
 
-.. automodule:: evp.discovery
+.. automodule:: pyevp.discovery
 ```
 
 ## Diagnostics
 
 ```{eval-rst}
-.. automodule:: evp.diagnostics
+.. automodule:: pyevp.diagnostics
 ```
 
 ## Adapters
 
 ```{eval-rst}
-.. automodule:: evp.adapters.dnspython
+.. automodule:: pyevp.adapters.dnspython
 
-.. automodule:: evp.adapters.httpx
+.. automodule:: pyevp.adapters.httpx
 
-.. automodule:: evp.adapters.doh
+.. automodule:: pyevp.adapters.doh
 ```
 
 ## Issuer (experimental)
 
 ```{eval-rst}
-.. automodule:: evp.issuer
+.. automodule:: pyevp.issuer
    :members:
    :imported-members:
 ```
@@ -63,5 +63,5 @@ Everything most applications need is importable from the top-level package.
 ## Testing
 
 ```{eval-rst}
-.. automodule:: evp.testing
+.. automodule:: pyevp.testing
 ```

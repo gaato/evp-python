@@ -1,9 +1,9 @@
 """Command-line tools for relying parties and issuer operators.
 
-- ``evp discover``: check a domain's issuer as a relying party would see it.
-- ``evp inspect``: decode a presentation token offline (signatures not checked).
-- ``evp verify``: run the full verification of a token.
-- ``evp issuer keygen`` / ``evp issuer documents``: set up an issuer (experimental).
+- ``pyevp discover``: check a domain's issuer as a relying party would see it.
+- ``pyevp inspect``: decode a presentation token offline (signatures not checked).
+- ``pyevp verify``: run the full verification of a token.
+- ``pyevp issuer keygen`` / ``pyevp issuer documents``: set up an issuer (experimental).
 """
 
 from __future__ import annotations
@@ -22,13 +22,13 @@ from joserfc import jwk
 from rich.console import Console
 from rich.table import Table
 
-from evp.diagnostics import IssuerReport, discover
-from evp.errors import EVPError
-from evp.issuer import SIGNING_ALGORITHMS, Issuer, SigningKey
-from evp.ports import JsonFetcher, TxtResolver
-from evp.profile import DEFAULT_PROFILE, PROFILES, Profile
-from evp.token import ParsedToken, compute_sd_hash, parse_token
-from evp.verifier import Verifier
+from pyevp.diagnostics import IssuerReport, discover
+from pyevp.errors import EVPError
+from pyevp.issuer import SIGNING_ALGORITHMS, Issuer, SigningKey
+from pyevp.ports import JsonFetcher, TxtResolver
+from pyevp.profile import DEFAULT_PROFILE, PROFILES, Profile
+from pyevp.token import ParsedToken, compute_sd_hash, parse_token
+from pyevp.verifier import Verifier
 
 __all__ = ["app", "make_app"]
 
@@ -42,16 +42,16 @@ FetcherFactory = Callable[[], JsonFetcher]
 
 def _default_resolver(doh_endpoint: str | None) -> TxtResolver:
     if doh_endpoint is not None:
-        from evp.adapters.doh import DohResolver  # noqa: PLC0415
+        from pyevp.adapters.doh import DohResolver  # noqa: PLC0415
 
         return DohResolver(doh_endpoint)
-    from evp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
+    from pyevp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
 
     return DnsPythonResolver()
 
 
 def _default_fetcher() -> JsonFetcher:
-    from evp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
+    from pyevp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
 
     return HttpxFetcher()
 
@@ -106,7 +106,7 @@ def make_app(
         try:
             return resolver_factory(doh_endpoint if doh else None), fetcher_factory()
         except ImportError as exc:
-            typer.echo(f'Missing dependency {exc.name!r}: pip install "evp[cli]"', err=True)
+            typer.echo(f'Missing dependency {exc.name!r}: pip install "pyevp[cli]"', err=True)
             raise typer.Exit(MISSING_EXTRA) from None
 
     @app.command("discover")
@@ -333,7 +333,7 @@ def _print_report(out: Console, report: IssuerReport) -> None:
 
 
 def _print_inspection(out: Console, data: dict[str, Any]) -> None:
-    out.print("[yellow]Signatures are NOT verified; use `evp verify` for that.[/yellow]")
+    out.print("[yellow]Signatures are NOT verified; use `pyevp verify` for that.[/yellow]")
     for part in ("evt", "kb"):
         table = _table(part.upper(), 3)
         for section in ("header", "claims"):

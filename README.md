@@ -1,19 +1,19 @@
-# evp
+# pyevp
 
-[![Documentation](https://app.readthedocs.org/projects/evp/badge/?version=latest)](https://evp.readthedocs.io/en/latest/)
-[![CI](https://github.com/gaato/evp-python/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gaato/evp-python/actions/workflows/ci.yml)
-[![Spec drift](https://github.com/gaato/evp-python/actions/workflows/drift.yml/badge.svg)](https://github.com/gaato/evp-python/actions/workflows/drift.yml)
+[![Documentation](https://app.readthedocs.org/projects/pyevp/badge/?version=latest)](https://pyevp.readthedocs.io/en/latest/)
+[![CI](https://github.com/gaato/pyevp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gaato/pyevp/actions/workflows/ci.yml)
+[![Spec drift](https://github.com/gaato/pyevp/actions/workflows/drift.yml/badge.svg)](https://github.com/gaato/pyevp/actions/workflows/drift.yml)
 [![spec: draft-hardt-02](https://img.shields.io/badge/spec-draft--hardt--02-blue)](https://github.com/dickhardt/email-verification)
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaato/evp-python)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaato/pyevp)
 
 Relying-party verification for the **Email Verification Protocol** (EVP): the browser obtains a
 token from the user's email provider proving they control an address, and your server verifies it,
 with no confirmation email round-trip.
 
-**Documentation: <https://evp.readthedocs.io/>**
+**Documentation: <https://pyevp.readthedocs.io/>**
 
 > **Status: alpha.** The protocol ([draft-hardt-email-verification], [WICG Email Verification API])
 > and browser support (Chrome origin trial) are still changing. This library isolates every
@@ -25,14 +25,14 @@ with no confirmation email round-trip.
 ## Install
 
 ```sh
-pip install "evp[all]"   # core + dnspython + httpx adapters
+pip install "pyevp[all]"   # core + dnspython + httpx adapters
 ```
 
 The core depends only on [joserfc]. DNS and HTTP are pluggable; `[all]` installs the default
 adapters used by `Verifier.default()`.
 
 The HTTP adapters work with [httpx2] (pydantic's maintained fork of httpx) or httpx and prefer
-httpx2 when both are installed: `pip install "evp[dns,httpx2]"`. A client from either library can
+httpx2 when both are installed: `pip install "pyevp[dns,httpx2]"`. A client from either library can
 be passed explicitly, e.g. `HttpxFetcher(httpx.Client(...))`.
 
 [httpx2]: https://github.com/pydantic/httpx2
@@ -52,7 +52,7 @@ be passed explicitly, e.g. `HttpxFetcher(httpx.Client(...))`.
 3. On submit, verify it:
 
    ```python
-   from evp import Verifier, EVPError, generate_nonce
+   from pyevp import Verifier, EVPError, generate_nonce
 
    verifier = Verifier.default(audience="https://example.com")  # your origin
 
@@ -73,19 +73,19 @@ hosts derived from DNS are ever contacted, never hosts named in the token.
 
 ## Command line
 
-`evp[cli]` installs an `evp` command for relying-party developers and operators, and for
+`pyevp[cli]` installs an `pyevp` command for relying-party developers and operators, and for
 issuer operators checking their own setup. It runs without installing anything into your project:
 
 ```sh
-uvx --from "evp[cli]" evp discover gmail.com           # DNS record, metadata, keys vs. profile
-uvx --from "evp[cli]" evp discover example.com --doh --profile draft-hardt-02
-pbpaste | uvx --from "evp[cli]" evp inspect            # decode a token offline (no signature checks)
-uvx --from "evp[cli]" evp verify "$TOKEN" --audience https://example.com --nonce "$NONCE"
+uvx --from "pyevp[cli]" pyevp discover gmail.com           # DNS record, metadata, keys vs. profile
+uvx --from "pyevp[cli]" pyevp discover example.com --doh --profile draft-hardt-02
+pbpaste | uvx --from "pyevp[cli]" pyevp inspect            # decode a token offline (no signature checks)
+uvx --from "pyevp[cli]" pyevp verify "$TOKEN" --audience https://example.com --nonce "$NONCE"
 ```
 
 Every command accepts `--json`. The exit status is 0 on success, 1 when verification or discovery
 fails, 2 for usage errors and 3 when the `cli` extra is missing. Tokens contain email addresses,
-so treat them as personal data. The same checks are available in code from `evp.diagnostics`
+so treat them as personal data. The same checks are available in code from `pyevp.diagnostics`
 (`discover()` / `adiscover()`).
 
 ## Operations
@@ -98,7 +98,7 @@ attacker who captured a token can resend it together with the old cookie. A repl
 remembers every accepted token until it would expire anyway:
 
 ```python
-from evp import InMemoryReplayGuard
+from pyevp import InMemoryReplayGuard
 
 verifier = AsyncVerifier.default(audience="https://example.com", replay_guard=InMemoryReplayGuard())
 ```
@@ -127,7 +127,7 @@ other check has passed, so rejected tokens never fill the store.
 
 Pass `observer=` to receive one `VerificationEvent` per `verify` call. It carries `ok`, `code`,
 `issuer`, the claimed `email_domain`, `profile` and `duration`. `LoggingObserver()` logs one line
-per verification to the `evp` logger. Anything else, such as a Prometheus counter, is a small
+per verification to the `pyevp` logger. Anything else, such as a Prometheus counter, is a small
 callable:
 
 ```python
@@ -146,7 +146,7 @@ Where plain DNS is unavailable or untrusted, for example on serverless platforms
 `_email-verification` record over HTTPS with only an HTTP client:
 
 ```python
-from evp.adapters.doh import CLOUDFLARE, AsyncDohResolver
+from pyevp.adapters.doh import CLOUDFLARE, AsyncDohResolver
 
 verifier = AsyncVerifier.default(audience="https://example.com", resolver=AsyncDohResolver())
 # or AsyncDohResolver(CLOUDFLARE, require_dnssec=True)
@@ -158,28 +158,28 @@ also be passed to `DnsPythonResolver`.
 
 ## Running an issuer (experimental)
 
-If you run mail for your own domains, `evp.issuer` provides the issuer side: it validates the
+If you run mail for your own domains, `pyevp.issuer` provides the issuer side: it validates the
 browser's signed issuance request (HTTP Message Signatures, as Chrome 153+ sends it), mints EVTs,
 and produces the metadata, JWKS and DNS records to publish. Logging the user in stays with your
 application. It has been tested end to end with Chrome 154, which also needs the FedCM documents
 described in the guide. See the
-[guide](https://evp.readthedocs.io/en/latest/guides/issuer-operations.html) and
+[guide](https://pyevp.readthedocs.io/en/latest/guides/issuer-operations.html) and
 [`examples/issuer_fastapi/`](examples/issuer_fastapi/app.py).
 
 ```sh
-uvx --from "evp[cli]" evp issuer keygen --kid 2026-10 --out signing-key.json
+uvx --from "pyevp[cli]" pyevp issuer keygen --kid 2026-10 --out signing-key.json
 ```
 
 ## Design
 
 | Module | Role |
 |---|---|
-| `evp.core` | Sans-I/O verification: pure checks plus a generator that yields `ResolveTxt` / `FetchJson` effects |
-| `evp.verifier` | `Verifier` / `AsyncVerifier`, thin drivers that run the core against injected ports |
-| `evp.ports` | `TxtResolver`, `JsonFetcher` (sync and async) and `Clock` protocols |
-| `evp.profile` | Spec knobs (algorithms, `typ`, `kid` rules, `iss` format, email comparison, freshness) |
-| `evp.testing` | `FakeIssuer`, `FakeBrowser`, in-memory DNS/HTTP, `make_verifier()` |
-| `evp.adapters` | dnspython / httpx implementations of the ports |
+| `pyevp.core` | Sans-I/O verification: pure checks plus a generator that yields `ResolveTxt` / `FetchJson` effects |
+| `pyevp.verifier` | `Verifier` / `AsyncVerifier`, thin drivers that run the core against injected ports |
+| `pyevp.ports` | `TxtResolver`, `JsonFetcher` (sync and async) and `Clock` protocols |
+| `pyevp.profile` | Spec knobs (algorithms, `typ`, `kid` rules, `iss` format, email comparison, freshness) |
+| `pyevp.testing` | `FakeIssuer`, `FakeBrowser`, in-memory DNS/HTTP, `make_verifier()` |
+| `pyevp.adapters` | dnspython / httpx implementations of the ports |
 
 ### Profiles
 
@@ -193,7 +193,7 @@ as the protocol evolves; existing ones are not changed incompatibly.
 ### Testing your application
 
 ```python
-from evp.testing import FakeBrowser, FakeIssuer, make_verifier
+from pyevp.testing import FakeBrowser, FakeIssuer, make_verifier
 
 issuer, browser = FakeIssuer(), FakeBrowser()
 verifier = make_verifier(issuer, audience="https://example.com")
@@ -221,7 +221,7 @@ an environment marker:
 
 ```toml
 [project.optional-dependencies]
-evp = ["evp>=1,<2; python_version >= '3.11'"]
+pyevp = ["pyevp>=1,<2; python_version >= '3.11'"]
 ```
 
 [Semantic Versioning]: https://semver.org/
@@ -229,7 +229,7 @@ evp = ["evp>=1,<2; python_version >= '3.11'"]
 ## Examples
 
 Each example is a standalone project and a member of the uv workspace, with its own dependencies
-and tests. Copy one out and replace `evp = { workspace = true }` with a normal dependency to start
+and tests. Copy one out and replace `pyevp = { workspace = true }` with a normal dependency to start
 your own.
 
 - [`examples/fastapi/`](examples/fastapi/app.py) is a FastAPI app with session nonces. Its tests

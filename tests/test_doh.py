@@ -4,8 +4,8 @@ from typing import Any
 
 import pytest
 
-from evp.adapters import _http
-from evp.adapters.doh import (
+from pyevp.adapters import _http
+from pyevp.adapters.doh import (
     CLOUDFLARE,
     GOOGLE,
     AsyncDohResolver,

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from evp import ErrorCode, TokenError, _jose
-from evp.testing import FakeBrowser, FakeIssuer
-from evp.token import compute_sd_hash, parse_token
+from pyevp import ErrorCode, TokenError, _jose
+from pyevp.testing import FakeBrowser, FakeIssuer
+from pyevp.token import compute_sd_hash, parse_token
 
 
 def test_parse_roundtrip(token: str) -> None:

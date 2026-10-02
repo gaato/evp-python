@@ -9,9 +9,9 @@ from typing import Any
 
 import pytest
 
-import evp.adapters.httpx
-from evp.adapters import _http
-from evp.adapters.httpx import AsyncHttpxFetcher, FetchError, HttpxFetcher
+import pyevp.adapters.httpx
+from pyevp.adapters import _http
+from pyevp.adapters.httpx import AsyncHttpxFetcher, FetchError, HttpxFetcher
 
 URL = "https://issuer.example/.well-known/email-verification"
 
@@ -86,7 +86,7 @@ async def test_async_fetch_json(mod: ModuleType) -> None:
 
 
 def test_deeply_nested_body(fetcher: HttpxFetcher, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(evp.adapters.httpx, "MAX_DOCUMENT_BYTES", 1024 * 1024)
+    monkeypatch.setattr(pyevp.adapters.httpx, "MAX_DOCUMENT_BYTES", 1024 * 1024)
     with pytest.raises(FetchError, match="JSON"):
         fetcher.fetch_json("https://issuer.example/deep")
 

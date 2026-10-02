@@ -5,7 +5,7 @@ from datetime import timedelta
 import anyio
 import pytest
 
-from evp import (
+from pyevp import (
     AsyncVerifier,
     DiscoveryError,
     ErrorCode,
@@ -15,7 +15,7 @@ from evp import (
     TokenError,
     Verifier,
 )
-from evp.testing import (
+from pyevp.testing import (
     AsyncInMemoryHttp,
     FakeBrowser,
     FakeIssuer,

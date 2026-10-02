@@ -13,7 +13,7 @@ from typing import Any, Protocol, runtime_checkable
 from joserfc.errors import JoseError
 from joserfc.jwk import ECKey, OKPKey
 
-from evp import _jose
+from pyevp import _jose
 
 __all__ = ["SIGNING_ALGORITHMS", "Signer", "SigningKey", "public_jwk"]
 

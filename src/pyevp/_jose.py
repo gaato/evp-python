@@ -12,7 +12,7 @@ from joserfc import jwk, jws
 from joserfc.errors import JoseError, SecurityWarning
 from joserfc.jws import JWSRegistry
 
-from evp.types import JSONObject
+from pyevp.types import JSONObject
 
 # Never acceptable regardless of profile.
 FORBIDDEN_ALGORITHMS = frozenset({"none", "HS256", "HS384", "HS512"})

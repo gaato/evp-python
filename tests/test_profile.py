@@ -5,7 +5,7 @@ from datetime import timedelta
 
 import pytest
 
-from evp import DEFAULT_PROFILE, EmailComparison, Profile
+from pyevp import DEFAULT_PROFILE, EmailComparison, Profile
 
 
 def test_default_is_compat() -> None:

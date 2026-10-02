@@ -10,9 +10,9 @@ from rich.console import Console
 from typer import Typer
 from typer.testing import CliRunner
 
-from evp import __main__ as entry
-from evp.cli import make_app
-from evp.testing import FakeBrowser, FakeIssuer, FixedClock, InMemoryDns, InMemoryHttp
+from pyevp import __main__ as entry
+from pyevp.cli import make_app
+from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, InMemoryDns, InMemoryHttp
 
 ORIGIN = "https://rp.example"
 runner = CliRunner()
@@ -135,7 +135,7 @@ def test_missing_extra_message(
     real_import = builtins.__import__
 
     def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "evp.cli":
+        if name == "pyevp.cli":
             raise ModuleNotFoundError("No module named 'typer'", name="typer")
         return real_import(name, *args, **kwargs)
 
@@ -143,7 +143,7 @@ def test_missing_extra_message(
     with pytest.raises(SystemExit) as exc:
         entry.main()
     assert exc.value.code == entry.MISSING_EXTRA
-    assert 'uvx --from "evp[cli]"' in capsys.readouterr().err
+    assert 'uvx --from "pyevp[cli]"' in capsys.readouterr().err
 
 
 def test_issuer_keygen_and_documents(app: Typer, tmp_path: Any) -> None:

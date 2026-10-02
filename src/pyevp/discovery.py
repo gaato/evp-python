@@ -8,10 +8,10 @@ from urllib.parse import urlsplit
 
 import idna
 
-from evp import _jose
-from evp.errors import DiscoveryError, ErrorCode
-from evp.profile import IssuerFormat, Profile
-from evp.types import IssuerMetadata, JSONObject
+from pyevp import _jose
+from pyevp.errors import DiscoveryError, ErrorCode
+from pyevp.profile import IssuerFormat, Profile
+from pyevp.types import IssuerMetadata, JSONObject
 
 __all__ = [
     "canonical_issuer",

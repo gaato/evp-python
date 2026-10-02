@@ -1,10 +1,10 @@
 [project]
-name = "evp-example-fastapi"
+name = "pyevp-example-fastapi"
 version = "0"
-description = "FastAPI relying party using evp"
+description = "FastAPI relying party using pyevp"
 requires-python = ">=3.12"
 dependencies = [
-    "evp[all]",
+    "pyevp[all]",
     "fastapi>=0.142",
     "itsdangerous>=2.2",
     "python-multipart>=0.0.32",
@@ -18,7 +18,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-evp = { workspace = true }
+pyevp = { workspace = true }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

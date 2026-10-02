@@ -1,6 +1,6 @@
 """Issuer diagnostics: what a relying party sees when it discovers a domain's issuer.
 
-Used by ``evp discover``, by the weekly drift check, and by issuer operators who
+Used by ``pyevp discover``, by the weekly drift check, and by issuer operators who
 want to check their DNS record, metadata and keys against a profile.
 """
 
@@ -10,13 +10,13 @@ from collections.abc import Generator
 from dataclasses import dataclass, field, replace
 from typing import Any, TypeAlias
 
-from evp import _jose, discovery
-from evp.core import Effect, FetchJson, ResolveTxt, _signing_alg_advertised
-from evp.errors import DiscoveryError, EVPError
-from evp.ports import AsyncJsonFetcher, AsyncTxtResolver, JsonFetcher, TxtResolver
-from evp.profile import DEFAULT_PROFILE, Profile
-from evp.types import IssuerMetadata, JSONObject
-from evp.verifier import _unreachable
+from pyevp import _jose, discovery
+from pyevp.core import Effect, FetchJson, ResolveTxt, _signing_alg_advertised
+from pyevp.errors import DiscoveryError, EVPError
+from pyevp.ports import AsyncJsonFetcher, AsyncTxtResolver, JsonFetcher, TxtResolver
+from pyevp.profile import DEFAULT_PROFILE, Profile
+from pyevp.types import IssuerMetadata, JSONObject
+from pyevp.verifier import _unreachable
 
 __all__ = ["IssuerReport", "KeySummary", "adiscover", "discover", "discovery_steps"]
 
@@ -68,7 +68,7 @@ def discovery_steps(target: str, profile: Profile = DEFAULT_PROFILE) -> ReportSt
     """Sans-I/O issuer check for an email address or domain.
 
     Content problems are collected in :attr:`IssuerReport.problems`; transport
-    failures surface as :class:`~evp.DiscoveryError` from the driver.
+    failures surface as :class:`~pyevp.DiscoveryError` from the driver.
     """
     domain = _normalize_domain(target)
     dns_name = f"{profile.dns_label}.{domain}"

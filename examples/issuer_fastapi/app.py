@@ -3,7 +3,7 @@
 This is a sketch of the moving parts, not a mail service: users are a dict and
 log in with a password.  Configure it with environment variables::
 
-    evp issuer keygen --kid 2026-10 --out signing-key.json
+    pyevp issuer keygen --kid 2026-10 --out signing-key.json
     export EVP_ISSUER=https://issuer.example
     export EVP_PUBLIC_URL=https://issuer.example     # where this app is reachable
     export EVP_EMAIL_DOMAINS=example.com
@@ -12,13 +12,13 @@ log in with a password.  Configure it with environment variables::
     uv run uvicorn app:app --port 8000               # behind an HTTPS proxy
 
 and publish ``_email-verification.example.com TXT "iss=issuer.example"``.
-Check the result with ``evp discover example.com``.
+Check the result with ``pyevp discover example.com``.
 
 Chrome also needs a FedCM well-known on the issuer's registrable domain (for
 ``issuer.example`` that is ``https://issuer.example/.well-known/web-identity``;
 for ``accounts.example.com`` it is ``https://example.com/...``).  This app serves
 it when the issuer's host is its own registrable domain; otherwise serve
-``web_identity_document(...)`` there yourself.  See ``evp.issuer.fedcm``.
+``web_identity_document(...)`` there yourself.  See ``pyevp.issuer.fedcm``.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from starlette.middleware.sessions import SessionMiddleware
 
-from evp.issuer import (
+from pyevp.issuer import (
     FEDCM_FETCH_DEST,
     IssuanceError,
     IssuanceErrorCode,

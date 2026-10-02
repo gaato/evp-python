@@ -10,7 +10,7 @@ from django.core import mail
 from django.core.cache import cache
 from django.test import Client
 
-from evp.testing import FakeBrowser, FakeIssuer, make_verifier
+from pyevp.testing import FakeBrowser, FakeIssuer, make_verifier
 
 ORIGIN = "http://testserver"
 EMAIL = "alice@example.com"

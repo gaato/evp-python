@@ -1,4 +1,4 @@
-"""TXT resolvers backed by dnspython (``pip install evp[dns]``)."""
+"""TXT resolvers backed by dnspython (``pip install pyevp[dns]``)."""
 
 from __future__ import annotations
 

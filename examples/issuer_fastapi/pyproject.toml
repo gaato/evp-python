@@ -1,10 +1,10 @@
 [project]
-name = "evp-example-issuer-fastapi"
+name = "pyevp-example-issuer-fastapi"
 version = "0"
-description = "FastAPI EVP issuer using evp.issuer"
+description = "FastAPI EVP issuer using pyevp.issuer"
 requires-python = ">=3.12"
 dependencies = [
-    "evp",
+    "pyevp",
     "fastapi>=0.142",
     "itsdangerous>=2.2",
     "python-multipart>=0.0.32",
@@ -18,7 +18,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-evp = { workspace = true }
+pyevp = { workspace = true }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

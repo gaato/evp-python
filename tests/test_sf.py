@@ -1,4 +1,4 @@
-"""Run the httpwg Structured Field test suite against evp._sf."""
+"""Run the httpwg Structured Field test suite against pyevp._sf."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from evp import _sf
+from pyevp import _sf
 
 SUITE = Path(__file__).parent / "data" / "structured-field-tests"
 

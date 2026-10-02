@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/evp
+      url: https://pypi.org/p/pyevp
     permissions:
       id-token: write
     steps:

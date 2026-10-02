@@ -1,10 +1,10 @@
 [project]
-name = "evp-example-fastapi-users"
+name = "pyevp-example-fastapi-users"
 version = "0"
 description = "fastapi-users registration that marks EVP-verified addresses as verified"
 requires-python = ">=3.12"
 dependencies = [
-    "evp[all]",
+    "pyevp[all]",
     "aiosqlite>=0.22",
     "fastapi>=0.142",
     "fastapi-users[sqlalchemy]>=15",
@@ -20,7 +20,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-evp = { workspace = true }
+pyevp = { workspace = true }
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

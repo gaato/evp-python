@@ -1,12 +1,12 @@
 # Framework integration
 
 The repository's `examples/` directory has a complete, tested project for each integration
-below. Copy one out and replace `evp = { workspace = true }` with a normal dependency to start
+below. Copy one out and replace `pyevp = { workspace = true }` with a normal dependency to start
 your own.
 
 ## FastAPI
 
-Create one {class}`~evp.AsyncVerifier` at startup and inject it as a dependency, so that tests can
+Create one {class}`~pyevp.AsyncVerifier` at startup and inject it as a dependency, so that tests can
 override it. Starlette's `SessionMiddleware` keeps the session in a signed cookie, so the
 example enables a replay guard.
 
@@ -52,5 +52,5 @@ Add `{% evp_token_input %}` inside the signup form template, and set `ACCOUNT_AD
 ## Other frameworks
 
 Anything else works the same way: keep a nonce in the session, read the hidden `evt` field,
-and call {meth}`evp.Verifier.verify`. Use {class}`~evp.Verifier` in synchronous code and
-{class}`~evp.AsyncVerifier` under asyncio.
+and call {meth}`pyevp.Verifier.verify`. Use {class}`~pyevp.Verifier` in synchronous code and
+{class}`~pyevp.AsyncVerifier` under asyncio.

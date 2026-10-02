@@ -4,8 +4,8 @@ If you run an email service and issue EVP tokens, you can check what relying par
 library will see. To build an issuer with this library, see {doc}`issuer-operations`.
 
 ```sh
-uvx --from "evp[cli]" evp discover your-domain.example
-uvx --from "evp[cli]" evp discover your-domain.example --profile draft-hardt-02 --json
+uvx --from "pyevp[cli]" pyevp discover your-domain.example
+uvx --from "pyevp[cli]" pyevp discover your-domain.example --profile draft-hardt-02 --json
 ```
 
 `discover` reports problems such as:
@@ -20,12 +20,12 @@ uvx --from "evp[cli]" evp discover your-domain.example --profile draft-hardt-02 
 The same checks are available in code, for example from a monitoring job:
 
 ```python
-from evp.diagnostics import discover
+from pyevp.diagnostics import discover
 
 report = discover("your-domain.example", resolver=..., fetcher=...)
 assert report.ok, report.problems
 ```
 
-To test token issuance end to end, combine your issuer with {class}`evp.testing.FakeBrowser`. It
+To test token issuance end to end, combine your issuer with {class}`pyevp.testing.FakeBrowser`. It
 holds a key-binding key, signs issuance requests the way Chrome does
 (`FakeBrowser.issuance_request`), and builds the presentation token from your EVT.

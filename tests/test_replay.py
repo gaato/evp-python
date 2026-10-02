@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from evp import (
+from pyevp import (
     DEFAULT_PROFILE,
     AsyncReplayGuard,
     AsyncVerifier,
@@ -15,9 +15,9 @@ from evp import (
     ReplayGuard,
     Verifier,
 )
-from evp._jose import b64url_decode, b64url_encode
-from evp.core import replay_key
-from evp.testing import (
+from pyevp._jose import b64url_decode, b64url_encode
+from pyevp.core import replay_key
+from pyevp.testing import (
     AsyncInMemoryDns,
     AsyncInMemoryHttp,
     FakeBrowser,
@@ -28,7 +28,7 @@ from evp.testing import (
     make_async_verifier,
     make_verifier,
 )
-from evp.token import parse_token
+from pyevp.token import parse_token
 
 from .conftest import AUDIENCE, EMAIL
 

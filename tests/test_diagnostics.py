@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from evp import DiscoveryError, ErrorCode, EVPError, Profile, Verifier
-from evp.diagnostics import adiscover, discover
-from evp.testing import (
+from pyevp import DiscoveryError, ErrorCode, EVPError, Profile, Verifier
+from pyevp.diagnostics import adiscover, discover
+from pyevp.testing import (
     AsyncInMemoryDns,
     AsyncInMemoryHttp,
     FakeBrowser,

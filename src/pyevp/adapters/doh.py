@@ -1,4 +1,4 @@
-"""TXT resolvers over DNS-over-HTTPS JSON APIs (``pip install evp[httpx2]`` or ``evp[httpx]``).
+"""TXT resolvers over DNS-over-HTTPS JSON APIs (``pip install pyevp[httpx2]`` or ``pyevp[httpx]``).
 
 Useful where plain DNS is unavailable or untrusted (serverless platforms,
 locked-down networks).  Only an HTTP client is needed; dnspython is not.
@@ -19,10 +19,10 @@ from __future__ import annotations
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 
-from evp.adapters._http import http
+from pyevp.adapters._http import http
 
 if TYPE_CHECKING:
-    from evp.adapters._http import AsyncClient, Client, Response
+    from pyevp.adapters._http import AsyncClient, Client, Response
 
 __all__ = [
     "CLOUDFLARE",

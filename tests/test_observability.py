@@ -5,9 +5,9 @@ from datetime import timedelta
 
 import pytest
 
-from evp import ErrorCode, EVPError, LoggingObserver, VerificationEvent
-from evp.observability import claimed_email_domain
-from evp.testing import FakeIssuer, make_async_verifier, make_verifier
+from pyevp import ErrorCode, EVPError, LoggingObserver, VerificationEvent
+from pyevp.observability import claimed_email_domain
+from pyevp.testing import FakeIssuer, make_async_verifier, make_verifier
 
 from .conftest import AUDIENCE
 
@@ -56,7 +56,7 @@ def test_observer_errors_do_not_break_verification(
         raise RuntimeError("metrics backend down")
 
     verifier = make_verifier(issuer, audience=AUDIENCE, observer=broken)
-    with caplog.at_level(logging.ERROR, logger="evp"):
+    with caplog.at_level(logging.ERROR, logger="pyevp"):
         assert verifier.verify(token, nonce=nonce).email == "alice@example.com"
     assert "observer raised" in caplog.text
 
@@ -65,7 +65,7 @@ def test_logging_observer(
     issuer: FakeIssuer, token: str, nonce: str, caplog: pytest.LogCaptureFixture
 ) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE, observer=LoggingObserver())
-    with caplog.at_level(logging.INFO, logger="evp"):
+    with caplog.at_level(logging.INFO, logger="pyevp"):
         verifier.verify(token, nonce=nonce)
     assert "EVP verification succeeded" in caplog.text
     assert "issuer=https://issuer.example" in caplog.text

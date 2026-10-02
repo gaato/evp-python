@@ -1,14 +1,14 @@
 """Relying-party verification for the Email Verification Protocol (EVP)."""
 
-from evp.cache import Cache, CacheEntry, InMemoryCache, NullCache
-from evp.errors import DiscoveryError, ErrorCode, EVPError, PolicyError, TokenError
-from evp.nonce import generate_nonce, nonces_equal
-from evp.observability import LoggingObserver, Observer, VerificationEvent
-from evp.ports import AsyncJsonFetcher, AsyncTxtResolver, Clock, JsonFetcher, TxtResolver
-from evp.profile import DEFAULT_PROFILE, EmailComparison, IssuerFormat, Profile
-from evp.replay import AsyncReplayGuard, InMemoryReplayGuard, ReplayGuard
-from evp.types import IssuerMetadata, VerifiedEmail
-from evp.verifier import AsyncVerifier, Verifier
+from pyevp.cache import Cache, CacheEntry, InMemoryCache, NullCache
+from pyevp.errors import DiscoveryError, ErrorCode, EVPError, PolicyError, TokenError
+from pyevp.nonce import generate_nonce, nonces_equal
+from pyevp.observability import LoggingObserver, Observer, VerificationEvent
+from pyevp.ports import AsyncJsonFetcher, AsyncTxtResolver, Clock, JsonFetcher, TxtResolver
+from pyevp.profile import DEFAULT_PROFILE, EmailComparison, IssuerFormat, Profile
+from pyevp.replay import AsyncReplayGuard, InMemoryReplayGuard, ReplayGuard
+from pyevp.types import IssuerMetadata, VerifiedEmail
+from pyevp.verifier import AsyncVerifier, Verifier
 
 __all__ = [
     "DEFAULT_PROFILE",

@@ -21,14 +21,14 @@ from typing import Any, Literal, TypeAlias
 
 from joserfc.jwk import ECKey, OKPKey
 
-from evp import _httpsig, discovery
-from evp.cache import Cache
-from evp.observability import Observer
-from evp.profile import DEFAULT_PROFILE, Profile
-from evp.replay import AsyncReplayGuard, ReplayGuard
-from evp.token import build_kb, sign_jwt
-from evp.types import JSONObject
-from evp.verifier import AsyncVerifier, Verifier
+from pyevp import _httpsig, discovery
+from pyevp.cache import Cache
+from pyevp.observability import Observer
+from pyevp.profile import DEFAULT_PROFILE, Profile
+from pyevp.replay import AsyncReplayGuard, ReplayGuard
+from pyevp.token import build_kb, sign_jwt
+from pyevp.types import JSONObject
+from pyevp.verifier import AsyncVerifier, Verifier
 
 __all__ = [
     "AsyncInMemoryDns",

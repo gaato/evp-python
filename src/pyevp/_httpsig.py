@@ -17,7 +17,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, TypeAlias, cast
 from urllib.parse import urlsplit
 
-from evp import _jose, _sf
+from pyevp import _jose, _sf
 
 __all__ = [
     "Headers",

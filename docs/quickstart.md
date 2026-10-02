@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-pip install "evp[all]"
+pip install "pyevp[all]"
 ```
 
 `[all]` adds dnspython and httpx, which `Verifier.default()` uses for DNS and HTTPS. See
@@ -15,7 +15,7 @@ Generate a fresh nonce per form, keep it in the user's session, and add two inpu
 field the user fills in, and a hidden field the browser fills with the token.
 
 ```python
-from evp import generate_nonce
+from pyevp import generate_nonce
 
 nonce = generate_nonce()
 session["evp_nonce"] = nonce
@@ -34,7 +34,7 @@ are not picked up by the browser.
 Create the verifier once, with your origin as the audience:
 
 ```python
-from evp import EVPError, Verifier
+from pyevp import EVPError, Verifier
 
 verifier = Verifier.default(audience="https://example.com")
 ```
@@ -57,13 +57,13 @@ if token and nonce:
 
 ## 3. Handle failures
 
-Every failure raises a subclass of {class}`evp.EVPError` with a stable {class}`evp.ErrorCode`:
+Every failure raises a subclass of {class}`pyevp.EVPError` with a stable {class}`pyevp.ErrorCode`:
 
 | Exception | Meaning | Typical codes |
 |---|---|---|
-| {class}`~evp.TokenError` | Malformed, stale, mis-bound or badly signed token | `nonce_mismatch`, `token_expired`, `token_replayed` |
-| {class}`~evp.DiscoveryError` | The issuer could not be discovered or used | `issuer_mismatch`, `issuer_unreachable` |
-| {class}`~evp.PolicyError` | Authentic, but not acceptable | `email_mismatch`, `email_not_verified` |
+| {class}`~pyevp.TokenError` | Malformed, stale, mis-bound or badly signed token | `nonce_mismatch`, `token_expired`, `token_replayed` |
+| {class}`~pyevp.DiscoveryError` | The issuer could not be discovered or used | `issuer_mismatch`, `issuer_unreachable` |
+| {class}`~pyevp.PolicyError` | Authentic, but not acceptable | `email_mismatch`, `email_not_verified` |
 
 `issuer_unreachable` may be transient. Everything else means "do not trust this token". EVP is a
 progressive enhancement: when there is no token, or it is rejected, fall back to your existing

@@ -25,7 +25,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.html import format_html
 
-from evp import CacheEntry, EVPError, Verifier, generate_nonce
+from pyevp import CacheEntry, EVPError, Verifier, generate_nonce
 
 logger = logging.getLogger(__name__)
 SESSION_KEY = "evp_nonce"

@@ -5,7 +5,7 @@ import dns.flags
 import dns.resolver
 import pytest
 
-from evp.adapters.dnspython import AsyncDnsPythonResolver, DnsPythonResolver
+from pyevp.adapters.dnspython import AsyncDnsPythonResolver, DnsPythonResolver
 
 
 def _flags(resolver: dns.resolver.BaseResolver) -> dns.flags.Flag:

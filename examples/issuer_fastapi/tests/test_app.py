@@ -9,9 +9,9 @@ import pytest
 from app import ISSUANCE_PATH, JWKS_PATH, create_app
 from fastapi.testclient import TestClient
 
-from evp import Verifier
-from evp.issuer import Issuer, SigningKey
-from evp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
+from pyevp import Verifier
+from pyevp.issuer import Issuer, SigningKey
+from pyevp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
 
 PUBLIC_URL = "https://testserver"
 RP = "https://rp.example"

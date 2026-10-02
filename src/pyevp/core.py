@@ -2,7 +2,7 @@
 
 :func:`verification_steps` is a generator that yields :data:`Effect` requests
 (DNS / HTTPS lookups) and receives their results via ``send``.  Drivers in
-:mod:`evp.verifier` run it synchronously or asynchronously; tests can drive it
+:mod:`pyevp.verifier` run it synchronously or asynchronously; tests can drive it
 by hand.  Everything else in this module is a pure function.
 """
 
@@ -16,11 +16,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Literal, TypeAlias
 
-from evp import _jose, discovery
-from evp.errors import DiscoveryError, ErrorCode, PolicyError, TokenError
-from evp.profile import EmailComparison, Profile
-from evp.token import ParsedToken, compute_sd_hash, parse_token
-from evp.types import JSONObject, VerifiedEmail
+from pyevp import _jose, discovery
+from pyevp.errors import DiscoveryError, ErrorCode, PolicyError, TokenError
+from pyevp.profile import EmailComparison, Profile
+from pyevp.token import ParsedToken, compute_sd_hash, parse_token
+from pyevp.types import JSONObject, VerifiedEmail
 
 __all__ = [
     "Effect",
@@ -250,7 +250,7 @@ def replay_key(token: str | ParsedToken) -> str:
     → ``n - s``, non-canonical base64url), while the signing input cannot. The
     payload binds the nonce, audience, ``iat`` and, through ``sd_hash``, the EVT.
 
-    A raw token is parsed first and raises :class:`~evp.TokenError` if malformed.
+    A raw token is parsed first and raises :class:`~pyevp.TokenError` if malformed.
     """
     if isinstance(token, str):
         token = parse_token(token, allow_disclosures=True)

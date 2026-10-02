@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from joserfc.jwk import ECKey, OKPKey
 
-from evp import _httpsig, _jose, _sf
+from pyevp import _httpsig, _jose, _sf
 
 NOW = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 ENDPOINT = "https://accounts.issuer.example/email-verification/issuance"

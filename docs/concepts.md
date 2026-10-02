@@ -15,7 +15,7 @@ browser's public key (`cnf.jwk`). The KB-JWT is signed with that browser key and
 
 ## Verification
 
-{func}`evp.core.verification_steps` checks, in this order:
+{func}`pyevp.core.verification_steps` checks, in this order:
 
 1. **Offline checks.** It parses the token, then checks the EVT's header and claims and its
    freshness. It verifies the KB-JWT signature against `cnf.jwk`, and checks `aud`, `nonce`, `iat`
@@ -33,27 +33,27 @@ contacted are derived from DNS, never from the token.
 
 ## Sans-I/O core
 
-The verification logic in {mod}`evp.core` performs no I/O. It is a generator that *yields*
-requests, {class}`~evp.core.ResolveTxt`, {class}`~evp.core.FetchJson` and
-{class}`~evp.core.MarkUsed`, and receives their results. The drivers {class}`evp.Verifier` and
-{class}`evp.AsyncVerifier` only answer those requests through injected *ports*:
+The verification logic in {mod}`pyevp.core` performs no I/O. It is a generator that *yields*
+requests, {class}`~pyevp.core.ResolveTxt`, {class}`~pyevp.core.FetchJson` and
+{class}`~pyevp.core.MarkUsed`, and receives their results. The drivers {class}`pyevp.Verifier` and
+{class}`pyevp.AsyncVerifier` only answer those requests through injected *ports*:
 
-- {class}`~evp.TxtResolver`
-- {class}`~evp.JsonFetcher`
-- {class}`~evp.ReplayGuard`
+- {class}`~pyevp.TxtResolver`
+- {class}`~pyevp.JsonFetcher`
+- {class}`~pyevp.ReplayGuard`
 - their async counterparts
 
 As a result:
 
 - the same logic serves synchronous Django views and asynchronous FastAPI endpoints;
 - DNS, HTTP, caches and replay stores can be swapped without touching verification;
-- tests can drive the generator by hand or plug in the fakes from {mod}`evp.testing`.
+- tests can drive the generator by hand or plug in the fakes from {mod}`pyevp.testing`.
 
 ## Profiles
 
 The protocol is still moving, and deployed issuers lag behind the drafts. Gmail, for instance,
 signs with `EdDSA` and publishes keys without `kid`, which the latest draft forbids. Every such
-choice lives in a {class}`evp.Profile`:
+choice lives in a {class}`pyevp.Profile`:
 
 | Preset | Purpose |
 |---|---|
@@ -62,12 +62,12 @@ choice lives in a {class}`evp.Profile`:
 
 ```python
 from datetime import timedelta
-from evp import Profile
+from pyevp import Profile
 
 strict = Profile.named("draft-hardt-02")
 short_lived = Profile.compat_2026_10().replace(max_token_age=timedelta(minutes=2))
 ```
 
 Following a spec change means adding a new preset. Existing presets never change behaviour (see
-{doc}`compatibility`). Run `evp discover <domain> --profile <name>` to see how an issuer fares
+{doc}`compatibility`). Run `pyevp discover <domain> --profile <name>` to see how an issuer fares
 under a profile.

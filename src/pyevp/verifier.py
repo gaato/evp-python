@@ -1,4 +1,4 @@
-"""Drivers that run :func:`evp.core.verification_steps` against real ports."""
+"""Drivers that run :func:`pyevp.core.verification_steps` against real ports."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from datetime import datetime, timedelta
 from typing import Any, Self
 from urllib.parse import urlsplit
 
-from evp.cache import Cache, CacheEntry, InMemoryCache
-from evp.core import Effect, FetchJson, MarkUsed, ResolveTxt, Steps, verification_steps
-from evp.errors import DiscoveryError, ErrorCode, EVPError, TokenError
-from evp.observability import Observer, VerificationEvent, claimed_email_domain
-from evp.ports import (
+from pyevp.cache import Cache, CacheEntry, InMemoryCache
+from pyevp.core import Effect, FetchJson, MarkUsed, ResolveTxt, Steps, verification_steps
+from pyevp.errors import DiscoveryError, ErrorCode, EVPError, TokenError
+from pyevp.observability import Observer, VerificationEvent, claimed_email_domain
+from pyevp.ports import (
     AsyncJsonFetcher,
     AsyncTxtResolver,
     Clock,
@@ -22,13 +22,13 @@ from evp.ports import (
     TxtResolver,
     system_clock,
 )
-from evp.profile import DEFAULT_PROFILE, Profile
-from evp.replay import AsyncReplayGuard, ReplayGuard
-from evp.types import VerifiedEmail
+from pyevp.profile import DEFAULT_PROFILE, Profile
+from pyevp.replay import AsyncReplayGuard, ReplayGuard
+from pyevp.types import VerifiedEmail
 
 __all__ = ["AsyncVerifier", "Verifier"]
 
-logger = logging.getLogger("evp")
+logger = logging.getLogger("pyevp")
 
 
 def _validate_origin(origin: str) -> str:
@@ -175,16 +175,16 @@ class Verifier(_Base):
 
     @classmethod
     def default(cls, *, audience: str, **kwargs: Any) -> Self:
-        """Build a verifier using dnspython and httpx (``pip install evp[all]``).
+        """Build a verifier using dnspython and httpx (``pip install pyevp[all]``).
 
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
         if "resolver" not in kwargs:
-            from evp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
+            from pyevp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
 
             kwargs["resolver"] = DnsPythonResolver()
         if "fetcher" not in kwargs:
-            from evp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
+            from pyevp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
 
             kwargs["fetcher"] = HttpxFetcher()
         return cls(audience=audience, **kwargs)
@@ -197,7 +197,7 @@ class Verifier(_Base):
         :param nonce: the nonce this server put on the form (from the session).
         :param email: the address the user submitted; checked against the token.
         :param audience: override the configured origin (multi-host deployments).
-        :raises evp.EVPError: on any failure; see ``.code``.
+        :raises pyevp.EVPError: on any failure; see ``.code``.
         """
         started, result, error = time.perf_counter(), None, None
         try:
@@ -275,16 +275,16 @@ class AsyncVerifier(_Base):
 
     @classmethod
     def default(cls, *, audience: str, **kwargs: Any) -> Self:
-        """Build a verifier using dnspython and httpx (``pip install evp[all]``).
+        """Build a verifier using dnspython and httpx (``pip install pyevp[all]``).
 
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
         if "resolver" not in kwargs:
-            from evp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
+            from pyevp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
 
             kwargs["resolver"] = AsyncDnsPythonResolver()
         if "fetcher" not in kwargs:
-            from evp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
+            from pyevp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
 
             kwargs["fetcher"] = AsyncHttpxFetcher()
         return cls(audience=audience, **kwargs)

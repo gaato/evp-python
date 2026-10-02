@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Protocol
 
-from evp.ports import Clock, system_clock
+from pyevp.ports import Clock, system_clock
 
 __all__ = ["Cache", "CacheEntry", "InMemoryCache", "NullCache"]
 

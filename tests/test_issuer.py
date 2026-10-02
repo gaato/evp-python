@@ -8,10 +8,10 @@ import anyio
 import pytest
 from joserfc.jwk import ECKey, OKPKey
 
-from evp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, discovery
-from evp._jose import decode_json_segment
-from evp.diagnostics import discover
-from evp.issuer import (
+from pyevp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, discovery
+from pyevp._jose import decode_json_segment
+from pyevp.diagnostics import discover
+from pyevp.issuer import (
     IssuanceError,
     IssuanceErrorCode,
     IssuanceEvent,
@@ -23,7 +23,7 @@ from evp.issuer import (
     is_valid_email,
     web_identity_document,
 )
-from evp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
+from pyevp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
 
 ISSUER = "https://issuer.example"
 ENDPOINT = "https://accounts.issuer.example/email-verification/issuance"

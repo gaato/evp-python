@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from importlib.metadata import version as _version
 
-project = "evp"
+project = "pyevp"
 author = "Gakuto Furuya"
 copyright = f"2026, {author}"
-release = _version("evp")
+release = _version("pyevp")
 version = ".".join(release.split(".")[:2])
 
 extensions = [
@@ -33,9 +33,9 @@ autodoc_preserve_defaults = True
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
 html_theme = "furo"
-html_title = f"evp {release}"
+html_title = f"pyevp {release}"
 html_theme_options = {
-    "source_repository": "https://github.com/gaato/evp-python/",
+    "source_repository": "https://github.com/gaato/pyevp/",
     "source_branch": "main",
     "source_directory": "docs/",
 }

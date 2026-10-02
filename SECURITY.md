@@ -7,12 +7,12 @@ Security fixes are made for the latest minor release only.
 ## Reporting a vulnerability
 
 Please report vulnerabilities privately through GitHub's
-[private vulnerability reporting](https://github.com/gaato/evp-python/security/advisories/new).
+[private vulnerability reporting](https://github.com/gaato/pyevp/security/advisories/new).
 Do not open a public issue.
 
 Include the affected version, a description of the issue and, if possible, a
 token or test case that reproduces it. Do not include real users' tokens: they
-contain email addresses. `evp.testing.FakeIssuer` can build reproducers.
+contain email addresses. `pyevp.testing.FakeIssuer` can build reproducers.
 
 You should receive an acknowledgement within a week.
 

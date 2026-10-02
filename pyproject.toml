@@ -1,5 +1,5 @@
 [project]
-name = "evp"
+name = "pyevp"
 version = "0.1.0"
 description = "Relying-party verification for the Email Verification Protocol (EVP)"
 readme = "README.md"
@@ -39,20 +39,20 @@ httpx2 = [
     "httpx2>=2.13",
 ]
 all = [
-    "evp[dns,httpx]",
+    "pyevp[dns,httpx]",
 ]
 cli = [
-    "evp[dns,httpx2]",
+    "pyevp[dns,httpx2]",
     "typer>=0.27",
 ]
 
 [project.scripts]
-evp = "evp.__main__:main"
+pyevp = "pyevp.__main__:main"
 
 [project.urls]
-Documentation = "https://evp.readthedocs.io/"
-Changelog = "https://evp.readthedocs.io/en/latest/changelog.html"
-Repository = "https://github.com/gaato/evp-python"
+Documentation = "https://pyevp.readthedocs.io/"
+Changelog = "https://pyevp.readthedocs.io/en/latest/changelog.html"
+Repository = "https://github.com/gaato/pyevp"
 
 [build-system]
 requires = ["uv_build>=0.12.21,<0.13.0"]
@@ -90,7 +90,7 @@ ignore = ["PLR0913", "PLR2004", "PLR0911", "PLR0912"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["PLR"]
 # Typer maps CLI options to parameters; commands are closures inside make_app().
-"src/evp/cli/**" = ["PLR0915", "PLR0917"]
+"src/pyevp/cli/**" = ["PLR0915", "PLR0917"]
 
 [tool.uv.workspace]
 members = ["examples/*"]

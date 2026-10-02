@@ -10,14 +10,14 @@
   codes.
 - Supported Pythons: 3.11 and newer. A version is dropped only after its upstream end of life.
 
-## Depending on evp from a library
+## Depending on pyevp from a library
 
 Libraries that still support Python 3.10 can offer EVP as an optional extra by gating it with an
 environment marker:
 
 ```toml
 [project.optional-dependencies]
-evp = ["evp>=1,<2; python_version >= '3.11'"]
+pyevp = ["pyevp>=1,<2; python_version >= '3.11'"]
 ```
 
 [Semantic Versioning]: https://semver.org/

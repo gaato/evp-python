@@ -22,7 +22,7 @@ import threading
 from datetime import datetime
 from typing import Protocol, runtime_checkable
 
-from evp.ports import Clock, system_clock
+from pyevp.ports import Clock, system_clock
 
 __all__ = ["AsyncReplayGuard", "InMemoryReplayGuard", "ReplayGuard"]
 

@@ -29,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 from starlette.middleware.sessions import SessionMiddleware
 
-from evp import AsyncVerifier, EVPError, InMemoryReplayGuard, generate_nonce
+from pyevp import AsyncVerifier, EVPError, InMemoryReplayGuard, generate_nonce
 
 ORIGIN = os.environ.get("EVP_ORIGIN", "http://localhost:8000")
 # A random development secret: sessions and logins do not survive restarts.

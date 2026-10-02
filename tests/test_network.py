@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from evp import DEFAULT_PROFILE, TxtResolver
-from evp.adapters import doh
-from evp.adapters.dnspython import DnsPythonResolver
-from evp.adapters.httpx import HttpxFetcher
-from evp.diagnostics import discover
+from pyevp import DEFAULT_PROFILE, TxtResolver
+from pyevp.adapters import doh
+from pyevp.adapters.dnspython import DnsPythonResolver
+from pyevp.adapters.httpx import HttpxFetcher
+from pyevp.diagnostics import discover
 
 pytestmark = pytest.mark.network
 

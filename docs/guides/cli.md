@@ -1,40 +1,40 @@
 # Command line
 
-The `evp` command is for relying-party developers and operators, and for issuer operators
+The `pyevp` command is for relying-party developers and operators, and for issuer operators
 checking their own setup. It needs the `cli` extra. You can run it without installing anything
 into your project:
 
 ```sh
-uvx --from "evp[cli]" evp --help
+uvx --from "pyevp[cli]" pyevp --help
 ```
 
-## `evp discover`
+## `pyevp discover`
 
 Check a domain's issuer the way a relying party sees it: the DNS record, the metadata, the keys,
 and whether they work under a profile.
 
 ```sh
-evp discover gmail.com
-evp discover alice@example.com --profile draft-hardt-02
-evp discover example.com --doh            # resolve over DNS-over-HTTPS
+pyevp discover gmail.com
+pyevp discover alice@example.com --profile draft-hardt-02
+pyevp discover example.com --doh            # resolve over DNS-over-HTTPS
 ```
 
-## `evp inspect`
+## `pyevp inspect`
 
 Decode a token offline. It shows the headers, the claims, how long ago each part was issued,
 whether `sd_hash` matches and the holder key thumbprint. **Signatures are not verified.**
 
 ```sh
-pbpaste | evp inspect
-evp inspect "$TOKEN" --json
+pbpaste | pyevp inspect
+pyevp inspect "$TOKEN" --json
 ```
 
-## `evp verify`
+## `pyevp verify`
 
 Run the full verification, as your server would:
 
 ```sh
-evp verify "$TOKEN" --audience https://example.com --nonce "$NONCE" --email alice@example.com
+pyevp verify "$TOKEN" --audience https://example.com --nonce "$NONCE" --email alice@example.com
 ```
 
 ## Output and exit status

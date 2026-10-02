@@ -3,8 +3,8 @@ from __future__ import annotations
 import threading
 from datetime import datetime, timedelta
 
-from evp import CacheEntry, InMemoryCache
-from evp.testing import FixedClock
+from pyevp import CacheEntry, InMemoryCache
+from pyevp.testing import FixedClock
 
 TTL = timedelta(minutes=10)
 

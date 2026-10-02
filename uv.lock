@@ -8,12 +8,12 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "evp",
-    "evp-example-authx",
-    "evp-example-django-allauth",
-    "evp-example-fastapi",
-    "evp-example-fastapi-users",
-    "evp-example-issuer-fastapi",
+    "pyevp",
+    "pyevp-example-authx",
+    "pyevp-example-django-allauth",
+    "pyevp-example-fastapi",
+    "pyevp-example-fastapi-users",
+    "pyevp-example-issuer-fastapi",
 ]
 
 [[package]]
@@ -613,243 +613,6 @@ wheels = [
 ]
 
 [[package]]
-name = "evp"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "idna" },
-    { name = "joserfc" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "dnspython" },
-    { name = "httpx" },
-]
-cli = [
-    { name = "dnspython" },
-    { name = "httpx2" },
-    { name = "typer" },
-]
-dns = [
-    { name = "dnspython" },
-]
-httpx = [
-    { name = "httpx" },
-]
-httpx2 = [
-    { name = "httpx2" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "anyio" },
-    { name = "httpx2" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-docs = [
-    { name = "furo" },
-    { name = "myst-parser" },
-    { name = "sphinx" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dnspython", marker = "extra == 'dns'", specifier = ">=2.7" },
-    { name = "evp", extras = ["dns", "httpx"], marker = "extra == 'all'" },
-    { name = "evp", extras = ["dns", "httpx2"], marker = "extra == 'cli'" },
-    { name = "httpx", marker = "extra == 'httpx'", specifier = ">=0.28" },
-    { name = "httpx2", marker = "extra == 'httpx2'", specifier = ">=2.13" },
-    { name = "idna", specifier = ">=3.7" },
-    { name = "joserfc", specifier = ">=1.7" },
-    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.27" },
-]
-provides-extras = ["dns", "httpx", "httpx2", "all", "cli"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "anyio", specifier = ">=4.15.1" },
-    { name = "httpx2", specifier = ">=2.13" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "ruff", specifier = ">=0.16.9" },
-    { name = "ty", specifier = ">=0.0.84" },
-]
-docs = [
-    { name = "furo", specifier = ">=2025.12.19" },
-    { name = "myst-parser", specifier = ">=5.1" },
-    { name = "sphinx", specifier = ">=9.1" },
-]
-
-[[package]]
-name = "evp-example-authx"
-version = "0"
-source = { virtual = "examples/authx" }
-dependencies = [
-    { name = "authx" },
-    { name = "evp", extra = ["all"] },
-    { name = "fastapi" },
-    { name = "itsdangerous" },
-    { name = "python-multipart" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx2" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "authx", specifier = ">=1.7" },
-    { name = "evp", extras = ["all"], editable = "." },
-    { name = "fastapi", specifier = ">=0.142" },
-    { name = "itsdangerous", specifier = ">=2.2" },
-    { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "uvicorn", specifier = ">=0.54" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx2", specifier = ">=2.13" },
-    { name = "pytest", specifier = ">=9.1" },
-]
-
-[[package]]
-name = "evp-example-django-allauth"
-version = "0"
-source = { virtual = "examples/django_allauth" }
-dependencies = [
-    { name = "django" },
-    { name = "django-allauth" },
-    { name = "evp", extra = ["all"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-django" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "django", specifier = ">=6.1" },
-    { name = "django-allauth", specifier = ">=65" },
-    { name = "evp", extras = ["all"], editable = "." },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.1" },
-    { name = "pytest-django", specifier = ">=4.11" },
-]
-
-[[package]]
-name = "evp-example-fastapi"
-version = "0"
-source = { virtual = "examples/fastapi" }
-dependencies = [
-    { name = "evp", extra = ["all"] },
-    { name = "fastapi" },
-    { name = "itsdangerous" },
-    { name = "python-multipart" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx2" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "evp", extras = ["all"], editable = "." },
-    { name = "fastapi", specifier = ">=0.142" },
-    { name = "itsdangerous", specifier = ">=2.2" },
-    { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "uvicorn", specifier = ">=0.54" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx2", specifier = ">=2.13" },
-    { name = "pytest", specifier = ">=9.1" },
-]
-
-[[package]]
-name = "evp-example-fastapi-users"
-version = "0"
-source = { virtual = "examples/fastapi_users" }
-dependencies = [
-    { name = "aiosqlite" },
-    { name = "evp", extra = ["all"] },
-    { name = "fastapi" },
-    { name = "fastapi-users", extra = ["sqlalchemy"] },
-    { name = "itsdangerous" },
-    { name = "python-multipart" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx2" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiosqlite", specifier = ">=0.22" },
-    { name = "evp", extras = ["all"], editable = "." },
-    { name = "fastapi", specifier = ">=0.142" },
-    { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=15" },
-    { name = "itsdangerous", specifier = ">=2.2" },
-    { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "uvicorn", specifier = ">=0.54" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx2", specifier = ">=2.13" },
-    { name = "pytest", specifier = ">=9.1" },
-]
-
-[[package]]
-name = "evp-example-issuer-fastapi"
-version = "0"
-source = { virtual = "examples/issuer_fastapi" }
-dependencies = [
-    { name = "evp" },
-    { name = "fastapi" },
-    { name = "itsdangerous" },
-    { name = "python-multipart" },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx2" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "evp", editable = "." },
-    { name = "fastapi", specifier = ">=0.142" },
-    { name = "itsdangerous", specifier = ">=2.2" },
-    { name = "python-multipart", specifier = ">=0.0.32" },
-    { name = "uvicorn", specifier = ">=0.54" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx2", specifier = ">=2.13" },
-    { name = "pytest", specifier = ">=9.1" },
-]
-
-[[package]]
 name = "fastapi"
 version = "0.142.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1400,6 +1163,243 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/68/ca/31c57507b13119d7d3cfa1576dad2911a4861e3be07b579395f4e9d393f9/pydantic_settings-2.15.0.tar.gz", hash = "sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117", size = 261253, upload-time = "2026-08-07T09:24:57.419Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/30/a4/2bffa9f8e804325a09867f0e9d30795c80ea9f8d62560bd1b6ad6220eb2f/pydantic_settings-2.15.0-py3-none-any.whl", hash = "sha256:0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42", size = 69413, upload-time = "2026-08-07T09:24:55.839Z" },
+]
+
+[[package]]
+name = "pyevp"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "idna" },
+    { name = "joserfc" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "dnspython" },
+    { name = "httpx" },
+]
+cli = [
+    { name = "dnspython" },
+    { name = "httpx2" },
+    { name = "typer" },
+]
+dns = [
+    { name = "dnspython" },
+]
+httpx = [
+    { name = "httpx" },
+]
+httpx2 = [
+    { name = "httpx2" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "anyio" },
+    { name = "httpx2" },
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "ty" },
+]
+docs = [
+    { name = "furo" },
+    { name = "myst-parser" },
+    { name = "sphinx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dnspython", marker = "extra == 'dns'", specifier = ">=2.7" },
+    { name = "httpx", marker = "extra == 'httpx'", specifier = ">=0.28" },
+    { name = "httpx2", marker = "extra == 'httpx2'", specifier = ">=2.13" },
+    { name = "idna", specifier = ">=3.7" },
+    { name = "joserfc", specifier = ">=1.7" },
+    { name = "pyevp", extras = ["dns", "httpx"], marker = "extra == 'all'" },
+    { name = "pyevp", extras = ["dns", "httpx2"], marker = "extra == 'cli'" },
+    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.27" },
+]
+provides-extras = ["dns", "httpx", "httpx2", "all", "cli"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "anyio", specifier = ">=4.15.1" },
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "ruff", specifier = ">=0.16.9" },
+    { name = "ty", specifier = ">=0.0.84" },
+]
+docs = [
+    { name = "furo", specifier = ">=2025.12.19" },
+    { name = "myst-parser", specifier = ">=5.1" },
+    { name = "sphinx", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-authx"
+version = "0"
+source = { virtual = "examples/authx" }
+dependencies = [
+    { name = "authx" },
+    { name = "fastapi" },
+    { name = "itsdangerous" },
+    { name = "pyevp", extra = ["all"] },
+    { name = "python-multipart" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "authx", specifier = ">=1.7" },
+    { name = "fastapi", specifier = ">=0.142" },
+    { name = "itsdangerous", specifier = ">=2.2" },
+    { name = "pyevp", extras = ["all"], editable = "." },
+    { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-django-allauth"
+version = "0"
+source = { virtual = "examples/django_allauth" }
+dependencies = [
+    { name = "django" },
+    { name = "django-allauth" },
+    { name = "pyevp", extra = ["all"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-django" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "django", specifier = ">=6.1" },
+    { name = "django-allauth", specifier = ">=65" },
+    { name = "pyevp", extras = ["all"], editable = "." },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1" },
+    { name = "pytest-django", specifier = ">=4.11" },
+]
+
+[[package]]
+name = "pyevp-example-fastapi"
+version = "0"
+source = { virtual = "examples/fastapi" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "itsdangerous" },
+    { name = "pyevp", extra = ["all"] },
+    { name = "python-multipart" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.142" },
+    { name = "itsdangerous", specifier = ">=2.2" },
+    { name = "pyevp", extras = ["all"], editable = "." },
+    { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-fastapi-users"
+version = "0"
+source = { virtual = "examples/fastapi_users" }
+dependencies = [
+    { name = "aiosqlite" },
+    { name = "fastapi" },
+    { name = "fastapi-users", extra = ["sqlalchemy"] },
+    { name = "itsdangerous" },
+    { name = "pyevp", extra = ["all"] },
+    { name = "python-multipart" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiosqlite", specifier = ">=0.22" },
+    { name = "fastapi", specifier = ">=0.142" },
+    { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=15" },
+    { name = "itsdangerous", specifier = ">=2.2" },
+    { name = "pyevp", extras = ["all"], editable = "." },
+    { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-issuer-fastapi"
+version = "0"
+source = { virtual = "examples/issuer_fastapi" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "itsdangerous" },
+    { name = "pyevp" },
+    { name = "python-multipart" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.142" },
+    { name = "itsdangerous", specifier = ">=2.2" },
+    { name = "pyevp", editable = "." },
+    { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
 ]
 
 [[package]]

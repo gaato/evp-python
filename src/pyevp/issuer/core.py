@@ -25,14 +25,14 @@ from datetime import datetime, timedelta
 from typing import Any, TypeAlias, cast
 from urllib.parse import urlsplit
 
-from evp import _httpsig, _jose, discovery
-from evp._httpsig import Headers
-from evp.issuer.errors import IssuanceError, IssuanceErrorCode, IssuanceResponse
-from evp.issuer.keys import SIGNING_ALGORITHMS, Signer, public_jwk
-from evp.issuer.profile import DEFAULT_ISSUANCE_PROFILE, IssuanceProfile
-from evp.ports import Clock, system_clock
-from evp.profile import IssuerFormat
-from evp.replay import AsyncReplayGuard, ReplayGuard
+from pyevp import _httpsig, _jose, discovery
+from pyevp._httpsig import Headers
+from pyevp.issuer.errors import IssuanceError, IssuanceErrorCode, IssuanceResponse
+from pyevp.issuer.keys import SIGNING_ALGORITHMS, Signer, public_jwk
+from pyevp.issuer.profile import DEFAULT_ISSUANCE_PROFILE, IssuanceProfile
+from pyevp.ports import Clock, system_clock
+from pyevp.profile import IssuerFormat
+from pyevp.replay import AsyncReplayGuard, ReplayGuard
 
 __all__ = [
     "IssuanceEvent",
@@ -42,7 +42,7 @@ __all__ = [
     "is_valid_email",
 ]
 
-_logger = logging.getLogger("evp")
+_logger = logging.getLogger("pyevp")
 
 # WHATWG HTML "valid email address".
 _VALID_EMAIL = re.compile(

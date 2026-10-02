@@ -1,10 +1,10 @@
 [project]
-name = "evp-example-django-allauth"
+name = "pyevp-example-django-allauth"
 version = "0"
 description = "django-allauth signup that trusts EVP tokens"
 requires-python = ">=3.12"
 dependencies = [
-    "evp[all]",
+    "pyevp[all]",
     "django>=6.1",
     "django-allauth>=65",
 ]
@@ -16,7 +16,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-evp = { workspace = true }
+pyevp = { workspace = true }
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "settings"

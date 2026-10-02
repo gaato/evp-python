@@ -8,8 +8,8 @@ import pytest
 from app import app, get_verifier
 from fastapi.testclient import TestClient
 
-from evp import InMemoryReplayGuard
-from evp.testing import FakeBrowser, FakeIssuer, make_async_verifier
+from pyevp import InMemoryReplayGuard
+from pyevp.testing import FakeBrowser, FakeIssuer, make_async_verifier
 
 ORIGIN = "http://testserver"
 EMAIL = "alice@example.com"

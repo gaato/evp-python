@@ -12,7 +12,7 @@ second use with `ErrorCode.TOKEN_REPLAYED`. Replay protection is off by default;
 passing a guard:
 
 ```python
-from evp import AsyncVerifier, InMemoryReplayGuard
+from pyevp import AsyncVerifier, InMemoryReplayGuard
 
 verifier = AsyncVerifier.default(audience="https://example.com", replay_guard=InMemoryReplayGuard())
 ```
@@ -29,8 +29,8 @@ gone, and a replay would not find it.
 
 ## Shared stores
 
-{class}`~evp.InMemoryReplayGuard` only protects a single process. With several workers,
-implement {class}`~evp.ReplayGuard` or {class}`~evp.AsyncReplayGuard` as an atomic "add if
+{class}`~pyevp.InMemoryReplayGuard` only protects a single process. With several workers,
+implement {class}`~pyevp.ReplayGuard` or {class}`~pyevp.AsyncReplayGuard` as an atomic "add if
 absent":
 
 ```python

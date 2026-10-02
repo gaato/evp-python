@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from evp._jose import algorithms_compatible, key_supports
+from pyevp._jose import algorithms_compatible, key_supports
 
 
 @pytest.mark.parametrize(

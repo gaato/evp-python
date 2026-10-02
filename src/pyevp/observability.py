@@ -20,9 +20,9 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import TypeAlias
 
-from evp import discovery
-from evp.errors import ErrorCode
-from evp.token import parse_token
+from pyevp import discovery
+from pyevp.errors import ErrorCode
+from pyevp.token import parse_token
 
 __all__ = ["LoggingObserver", "Observer", "VerificationEvent", "claimed_email_domain"]
 
@@ -31,7 +31,7 @@ __all__ = ["LoggingObserver", "Observer", "VerificationEvent", "claimed_email_do
 class VerificationEvent:
     ok: bool
     code: ErrorCode | None
-    """Set when verification failed with an :class:`~evp.EVPError`."""
+    """Set when verification failed with an :class:`~pyevp.EVPError`."""
     issuer: str | None
     """Canonical issuer; only known after a successful verification."""
     email_domain: str | None
@@ -55,10 +55,10 @@ def claimed_email_domain(token: str) -> str | None:
 
 
 class LoggingObserver:
-    """Log one line per verification to the ``evp`` logger (or ``logger``)."""
+    """Log one line per verification to the ``pyevp`` logger (or ``logger``)."""
 
     def __init__(self, logger: logging.Logger | None = None, *, level: int = logging.INFO) -> None:
-        self._logger = logger or logging.getLogger("evp")
+        self._logger = logger or logging.getLogger("pyevp")
         self._level = level
 
     def __call__(self, event: VerificationEvent) -> None:

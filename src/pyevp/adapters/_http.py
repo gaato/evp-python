@@ -21,7 +21,7 @@ def _load() -> ModuleType:
         except ImportError:
             continue
     raise ImportError(
-        "evp's HTTP adapters need httpx2 or httpx: pip install 'evp[httpx2]' or 'evp[httpx]'"
+        "pyevp's HTTP adapters need httpx2 or httpx: pip install 'pyevp[httpx2]' or 'pyevp[httpx]'"
     )
 
 

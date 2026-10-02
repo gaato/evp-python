@@ -1,7 +1,7 @@
 """Presentation token codec: ``<EVT>~[<disclosure>~...]<KB-JWT>``.
 
 Parsing only splits and decodes; it performs no signature checks.  The build
-helpers are used by :mod:`evp.testing` and are kept here so a future issuer
+helpers are used by :mod:`pyevp.testing` and are kept here so a future issuer
 implementation can reuse them.
 """
 
@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from evp import _jose
-from evp.errors import ErrorCode, TokenError
-from evp.types import JSONObject
+from pyevp import _jose
+from pyevp.errors import ErrorCode, TokenError
+from pyevp.types import JSONObject
 
 __all__ = [
     "CompactJWT",

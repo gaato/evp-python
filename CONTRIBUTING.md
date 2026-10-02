@@ -44,6 +44,8 @@ The library supports Python 3.11, so type aliases use `TypeAlias` instead of `ty
 
 ## Releases
 
-Bump `version` in `pyproject.toml`, move the `Unreleased` changelog entries under the new
-version, and push a `vX.Y.Z` tag. `.github/workflows/release.yml` checks that the tag matches
-the version and publishes to PyPI through trusted publishing.
+Bump `version` in `pyproject.toml` and push a `vX.Y.Z` tag. `.github/workflows/release.yml`
+checks that the tag matches the version and publishes to PyPI through trusted publishing.
+
+There is no changelog before the first release. Start `CHANGELOG.md` with it (and link it from
+`pyproject.toml`, the docs and the compatibility policy), then record changes from there on.

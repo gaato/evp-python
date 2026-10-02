@@ -97,7 +97,7 @@ See the [CLI guide](https://pyevp.readthedocs.io/en/latest/guides/cli.html) for 
 - [DNS, HTTP and caching](https://pyevp.readthedocs.io/en/latest/guides/transport.html): DNS over HTTPS, a standard-library-only setup, private networks
 - [Profiles](https://pyevp.readthedocs.io/en/latest/concepts.html#profiles): how pyevp follows a protocol that is still changing
 - [Running an issuer](https://pyevp.readthedocs.io/en/latest/guides/issuer-operations.html) for your own mail domains (experimental)
-- [Compatibility policy](https://pyevp.readthedocs.io/en/latest/compatibility.html) and [changelog](https://github.com/gaato/pyevp/blob/main/CHANGELOG.md)
+- [Compatibility policy](https://pyevp.readthedocs.io/en/latest/compatibility.html)
 
 ## Examples
 

@@ -1,7 +1,7 @@
 # Compatibility policy
 
-- Before 1.0, minor releases may contain breaking changes. They are listed in the
-  {doc}`changelog`. From 1.0 on, the project follows [Semantic Versioning].
+- Before 1.0, minor releases may contain breaking changes. From 1.0 on, the project follows
+  [Semantic Versioning].
 - Profile presets are only ever added. An existing preset never changes behaviour; following the
   protocol means adding a new one.
 - Switching `DEFAULT_PROFILE` to a newer preset is a breaking change, so after 1.0 it only happens

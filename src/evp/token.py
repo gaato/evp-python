@@ -113,8 +113,11 @@ def build_kb(
     typ: str = "kb+jwt",
     disclosures: tuple[str, ...] = (),
 ) -> str:
-    """Append a key-binding JWT to an EVT, producing the presentation token."""
-    prefix = "~".join((evt, *disclosures)) + "~"
+    """Append a key-binding JWT to an EVT, producing the presentation token.
+
+    ``evt`` may carry the SD-JWT ``~`` that issuers append (``issuance_token``) or not.
+    """
+    prefix = "~".join((evt.removesuffix("~"), *disclosures)) + "~"
     kb = sign_jwt(
         {"alg": alg, "typ": typ},
         {

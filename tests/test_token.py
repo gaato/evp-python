@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from evp import ErrorCode, TokenError, _jose
+from evp.testing import FakeBrowser, FakeIssuer
 from evp.token import compute_sd_hash, parse_token
 
 
@@ -61,3 +62,13 @@ def test_disclosures_allowed(token: str) -> None:
     parsed = parse_token(f"{evt}~WyJzYWx0Il0~{kb}", allow_disclosures=True)
     assert parsed.disclosures == ("WyJzYWx0Il0",)
     assert parsed.sd_hash_input == f"{evt}~WyJzYWx0Il0~"
+
+
+def test_presenting_an_issuance_token_with_its_tilde(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str
+) -> None:
+    evt = issuer.issue("alice@example.com", browser.public_jwk)
+    with_tilde = browser.present(evt + "~", audience="https://rp.example", nonce=nonce)
+    without = browser.present(evt, audience="https://rp.example", nonce=nonce)
+    assert with_tilde == without
+    assert parse_token(with_tilde).disclosures == ()

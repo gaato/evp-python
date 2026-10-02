@@ -68,6 +68,35 @@ async def test_async_fetch_json(mod: ModuleType) -> None:
             await fetcher.fetch_json("https://issuer.example/redirect")
 
 
+def _following(mod: ModuleType, seen: list[str], *, is_async: bool = False) -> Any:
+    """A client configured to follow redirects, as an application might pass in."""
+
+    def handle(request: Any) -> Any:
+        seen.append(request.url.host)
+        if request.url.host == "issuer.example":
+            return mod.Response(302, headers={"Location": "https://elsewhere.example/"})
+        return mod.Response(200, json={})
+
+    cls = mod.AsyncClient if is_async else mod.Client
+    return cls(transport=mod.MockTransport(handle), follow_redirects=True)
+
+
+def test_injected_client_does_not_follow_redirects(mod: ModuleType) -> None:
+    seen: list[str] = []
+    with HttpxFetcher(_following(mod, seen)) as fetcher, pytest.raises(FetchError):
+        fetcher.fetch_json(URL)
+    assert seen == ["issuer.example"]
+
+
+@pytest.mark.anyio
+async def test_async_injected_client_does_not_follow_redirects(mod: ModuleType) -> None:
+    seen: list[str] = []
+    async with AsyncHttpxFetcher(_following(mod, seen, is_async=True)) as fetcher:
+        with pytest.raises(FetchError):
+            await fetcher.fetch_json(URL)
+    assert seen == ["issuer.example"]
+
+
 def test_prefers_httpx2() -> None:
     expected = "httpx2" if importlib.util.find_spec("httpx2") else "httpx"
     assert _http.http.__name__ == expected

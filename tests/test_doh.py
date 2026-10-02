@@ -64,10 +64,15 @@ def _client(kind: str, seen: list[Any] | None = None, *, is_async: bool = False)
             seen.append(request)
         if kind == "http500":
             return http.Response(500)
+        if kind == "redirect" and request.url.host != "elsewhere.example":
+            return http.Response(302, headers={"Location": "https://elsewhere.example/"})
+        if kind == "redirect":
+            return http.Response(200, json=RESPONSES["google"])
         return http.Response(200, json=RESPONSES[kind])
 
     cls = http.AsyncClient if is_async else http.Client
-    return cls(transport=http.MockTransport(handle))
+    # Applications may pass a client that follows redirects; the resolver must not.
+    return cls(transport=http.MockTransport(handle), follow_redirects=True)
 
 
 @pytest.mark.parametrize(
@@ -116,3 +121,19 @@ def test_require_dnssec() -> None:
 async def test_async_resolve() -> None:
     async with AsyncDohResolver(GOOGLE, client=_client("google", is_async=True)) as resolver:
         assert await resolver.resolve_txt(NAME) == ["iss=accounts.google.com"]
+
+
+def test_injected_client_does_not_follow_redirects() -> None:
+    seen: list[Any] = []
+    with DohResolver(client=_client("redirect", seen)) as resolver, pytest.raises(DohError):
+        resolver.resolve_txt(NAME)
+    assert [r.url.host for r in seen] == ["dns.google"]
+
+
+@pytest.mark.anyio
+async def test_async_injected_client_does_not_follow_redirects() -> None:
+    seen: list[Any] = []
+    async with AsyncDohResolver(client=_client("redirect", seen, is_async=True)) as resolver:
+        with pytest.raises(DohError):
+            await resolver.resolve_txt(NAME)
+    assert [r.url.host for r in seen] == ["dns.google"]

@@ -44,7 +44,7 @@ class HttpxFetcher:
         self._client: Client = client or http.Client(timeout=timeout, follow_redirects=False)
 
     def fetch_json(self, url: str) -> object:
-        with self._client.stream("GET", url, headers=_HEADERS) as response:
+        with self._client.stream("GET", url, headers=_HEADERS, follow_redirects=False) as response:
             _check(response)
             body = bytearray()
             for chunk in response.iter_bytes():
@@ -75,7 +75,9 @@ class AsyncHttpxFetcher:
         )
 
     async def fetch_json(self, url: str) -> object:
-        async with self._client.stream("GET", url, headers=_HEADERS) as response:
+        async with self._client.stream(
+            "GET", url, headers=_HEADERS, follow_redirects=False
+        ) as response:
             _check(response)
             body = bytearray()
             async for chunk in response.aiter_bytes():

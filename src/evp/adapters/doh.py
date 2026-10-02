@@ -136,7 +136,9 @@ class DohResolver:
         self._require_dnssec = require_dnssec
 
     def resolve_txt(self, name: str) -> list[str]:
-        response = self._client.get(self.endpoint, params=_params(name), headers=_HEADERS)
+        response = self._client.get(
+            self.endpoint, params=_params(name), headers=_HEADERS, follow_redirects=False
+        )
         return _records(_check(response, name), name, self._require_dnssec)
 
     def close(self) -> None:
@@ -170,7 +172,9 @@ class AsyncDohResolver:
         self._require_dnssec = require_dnssec
 
     async def resolve_txt(self, name: str) -> list[str]:
-        response = await self._client.get(self.endpoint, params=_params(name), headers=_HEADERS)
+        response = await self._client.get(
+            self.endpoint, params=_params(name), headers=_HEADERS, follow_redirects=False
+        )
         return _records(_check(response, name), name, self._require_dnssec)
 
     async def aclose(self) -> None:

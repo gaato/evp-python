@@ -3,15 +3,18 @@
 - ``evp discover``: check a domain's issuer as a relying party would see it.
 - ``evp inspect``: decode a presentation token offline (signatures not checked).
 - ``evp verify``: run the full verification of a token.
+- ``evp issuer keygen`` / ``evp issuer documents``: set up an issuer (experimental).
 """
 
 from __future__ import annotations
 
 import json
+import os
 import sys
 from collections.abc import Callable
 from dataclasses import asdict
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated, Any
 
 import typer
@@ -21,6 +24,7 @@ from rich.table import Table
 
 from evp.diagnostics import IssuerReport, discover
 from evp.errors import EVPError
+from evp.issuer import SIGNING_ALGORITHMS, Issuer, SigningKey
 from evp.ports import JsonFetcher, TxtResolver
 from evp.profile import DEFAULT_PROFILE, PROFILES, Profile
 from evp.token import ParsedToken, compute_sd_hash, parse_token
@@ -175,7 +179,90 @@ def make_app(
         else:
             out.print(f"[green]verified[/green] {result.email} (issuer {result.issuer})")
 
+    app.add_typer(_issuer_app(), name="issuer")
     return app
+
+
+def _issuer_app() -> typer.Typer:
+    app = typer.Typer(
+        help="Set up an issuer for your own email domains (experimental).", no_args_is_help=True
+    )
+
+    @app.command("keygen")
+    def keygen_cmd(
+        kid: Annotated[str, typer.Option(help="Key id, e.g. the date: 2026-10.")],
+        out_path: Annotated[
+            Path, typer.Option("--out", help="Private JWK file to create (mode 0600).")
+        ],
+        alg: Annotated[str, typer.Option(help="Ed25519 or ES256.")] = "Ed25519",
+    ) -> None:
+        """Generate a signing key.  Prints the public JWK; the private one goes to --out."""
+        if alg not in SIGNING_ALGORITHMS:
+            choices = ", ".join(sorted(SIGNING_ALGORITHMS))
+            raise typer.BadParameter(f"--alg must be one of {choices}")
+        try:
+            key = SigningKey.generate(alg, kid=kid)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from None
+        try:
+            fd = os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            raise typer.BadParameter(f"{out_path} exists; refusing to overwrite a key") from None
+        with os.fdopen(fd, "w") as file:
+            json.dump(key.private_jwk(), file, indent=2)
+            file.write("\n")
+        _json(dict(key.public_jwk))
+
+    @app.command("documents")
+    def documents_cmd(
+        issuer: Annotated[str, typer.Option(help="Issuer identifier, https://host.")],
+        issuance_endpoint: Annotated[str, typer.Option(help="URL browsers POST requests to.")],
+        jwks_uri: Annotated[str, typer.Option(help="URL the JWKS is served at.")],
+        key: Annotated[Path, typer.Option(help="Private JWK file of the active key.")],
+        domain: Annotated[list[str], typer.Option(help="Email domain served (repeatable).")],
+        publish: Annotated[
+            list[Path] | None,
+            typer.Option(help="Extra JWK file to publish: next or retired key (repeatable)."),
+        ] = None,
+    ) -> None:
+        """Print the metadata document, JWKS and DNS records to publish, as JSON."""
+        try:
+            signer = SigningKey.from_jwk(_read_json(key))
+            extra = [_public_part(_read_json(p)) for p in publish or ()]
+            built = Issuer(
+                issuer=issuer,
+                issuance_endpoint=issuance_endpoint,
+                jwks_uri=jwks_uri,
+                signer=signer,
+                email_domains=domain,
+                published_keys=extra,
+            )
+        except (OSError, ValueError) as exc:
+            raise typer.BadParameter(str(exc)) from None
+        _json(
+            {
+                "metadata_url": f"{built.issuer}/.well-known/email-verification",
+                "metadata": built.metadata_document(),
+                "jwks_uri": built.jwks_uri,
+                "jwks": built.jwks_document(),
+                "dns_txt": built.dns_txt_records(),
+            }
+        )
+
+    return app
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_text())
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} does not hold a JSON object")
+    return value
+
+
+def _public_part(jwk_: dict[str, Any]) -> dict[str, Any]:
+    if "d" in jwk_:
+        return dict(SigningKey.from_jwk(jwk_).public_jwk)
+    return jwk_
 
 
 def _close(*resources: object) -> None:

@@ -144,3 +144,84 @@ def test_missing_extra_message(
         entry.main()
     assert exc.value.code == entry.MISSING_EXTRA
     assert 'uvx --from "evp[cli]"' in capsys.readouterr().err
+
+
+def test_issuer_keygen_and_documents(app: Typer, tmp_path: Any) -> None:
+    key_path = tmp_path / "key.json"
+    result = runner.invoke(app, ["issuer", "keygen", "--kid", "2026-10", "--out", str(key_path)])
+    assert result.exit_code == 0, result.output
+    public = json.loads(result.output)
+    assert public["kid"] == "2026-10"
+    assert "d" not in public
+    assert key_path.stat().st_mode & 0o777 == 0o600
+    assert json.loads(key_path.read_text())["d"]
+
+    again = runner.invoke(app, ["issuer", "keygen", "--kid", "x", "--out", str(key_path)])
+    assert again.exit_code == 2
+
+    retired_path = tmp_path / "retired.json"
+    runner.invoke(
+        app, ["issuer", "keygen", "--kid", "2026-04", "--alg", "ES256", "--out", str(retired_path)]
+    )
+    result = runner.invoke(
+        app,
+        [
+            "issuer",
+            "documents",
+            "--issuer",
+            "https://issuer.example",
+            "--issuance-endpoint",
+            "https://issuer.example/evp/issue",
+            "--jwks-uri",
+            "https://issuer.example/evp/jwks",
+            "--key",
+            str(key_path),
+            "--domain",
+            "example.com",
+            "--domain",
+            "example.org",
+            "--publish",
+            str(retired_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    documents = json.loads(result.output)
+    assert documents["metadata"]["issuer"] == "https://issuer.example"
+    assert [k["kid"] for k in documents["jwks"]["keys"]] == ["2026-10", "2026-04"]
+    assert all("d" not in k for k in documents["jwks"]["keys"])
+    assert documents["dns_txt"] == {
+        "_email-verification.example.com": "iss=issuer.example",
+        "_email-verification.example.org": "iss=issuer.example",
+    }
+
+
+def test_issuer_keygen_rejects_unknown_alg(app: Typer, tmp_path: Any) -> None:
+    path = tmp_path / "key.json"
+    result = runner.invoke(
+        app, ["issuer", "keygen", "--kid", "k", "--alg", "EdDSA", "--out", str(path)]
+    )
+    assert result.exit_code == 2
+    assert not path.exists()
+
+
+def test_issuer_documents_bad_config(app: Typer, tmp_path: Any) -> None:
+    path = tmp_path / "key.json"
+    runner.invoke(app, ["issuer", "keygen", "--kid", "k", "--out", str(path)])
+    result = runner.invoke(
+        app,
+        [
+            "issuer",
+            "documents",
+            "--issuer",
+            "https://issuer.example/",
+            "--issuance-endpoint",
+            "https://issuer.example/evp/issue",
+            "--jwks-uri",
+            "https://issuer.example/evp/jwks",
+            "--key",
+            str(path),
+            "--domain",
+            "example.com",
+        ],
+    )
+    assert result.exit_code == 2

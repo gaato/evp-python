@@ -1,98 +1,196 @@
 {% extends "base.html" %}
-{% block title %}Try EVP — pyevp{% endblock %}
+{% from "_icons.html" import icon %}
+{% set page_title = "Try EVP in Chrome — pyevp demo" %}
+{% set page_description = "Verify an email address with the Email Verification Protocol in Chrome, step by step, and see every check pyevp runs on the token." %}
+{% set canonical_url = site_url ~ "/demo" %}
+{% set nav_current = "demo" %}
+{% set main_width = "max-w-3xl" %}
+{% set step_number = "flex size-8 shrink-0 items-center justify-center rounded-full bg-base-300 font-semibold" %}
+{% block head %}
+  {% if origin_trial_token %}<meta http-equiv="origin-trial" content="{{ origin_trial_token }}">{% endif %}
+{% endblock %}
 {% block content %}
 <section id="demo" class="demo" aria-labelledby="demo-heading">
-  <h1 id="demo-heading">Try EVP</h1>
-  <ol id="demo-steps" class="demo-steps">
-    <li id="demo-browser" class="demo-step">
-      <h2>Use Chrome with EVP</h2>
-      <p>Use desktop Chrome or Chromium 150 or newer. Enable
-        <code>chrome://flags/#email-verification-protocol</code> and relaunch the browser.</p>
-      <p id="browser-hint" class="demo-notice" hidden></p>
-      <p>Browser hints are approximate. This page cannot detect whether EVP is enabled.</p>
-    </li>
-    <li id="demo-provider" class="demo-step">
-      <h2>Sign in at an email provider</h2>
-      <p>Start with the <a href="{{ provider_url }}">demo email provider</a>:
-        sign in as <code>{{ email }}</code>, then return here.</p>
-      <p>Alternatively, use a Gmail address. Be signed in to its Google account in this
-        Chrome profile.</p>
-      <p>The demo account is open to anyone; it proves only that someone clicked Sign in.</p>
-    </li>
-    <li id="demo-verify" class="demo-step">
-      <h2>Verify</h2>
-      {% if not result_kind %}
-      <form id="verify-form" class="demo-form" method="post" action="/verify">
-        <label for="email">Your email address</label>
-        <input type="email" id="email" name="email" autocomplete="email" value="{{ email }}" required>
-        <input type="hidden" id="evt" name="evt" autocomplete="email-verification-token" nonce="{{ nonce }}">
-        <button type="submit" id="verify-button">Verify</button>
-        <p id="token-status" class="token-status" role="status" aria-live="polite"></p>
-      </form>
-      {% else %}
-      <p>This submission has consumed its nonce. Start over to get a new form.</p>
-      {% endif %}
-    </li>
-  </ol>
+  <h1 id="demo-heading" class="text-3xl font-bold tracking-tight text-balance sm:text-4xl">Try the Email Verification Protocol</h1>
+  <p class="mt-3 text-lg text-base-content/80 text-pretty">Verify an email address in three steps, then see each check pyevp ran on the token.</p>
+
   <section id="demo-result" class="demo-result" role="status" aria-live="polite" aria-label="Verification result">
+    {% if result_kind %}
+    <div class="mt-8 space-y-6">
     {% if result_kind == "verified" %}
-    <h2>Verified</h2>
-    <dl>{% for label, value in rows.items() %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+      <div class="alert alert-success alert-soft text-base-content items-start">
+        {{ icon("success", "size-6 text-success") }}
+        <div>
+          <h2 class="text-lg font-semibold">Verified</h2>
+          <p>The issuer vouched for this address and every check passed.</p>
+        </div>
+      </div>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-1 rounded-box border border-base-300 p-4 sm:grid-cols-[auto_1fr] sm:gap-y-2 [&>dd]:mb-2 [&>dd]:break-words sm:[&>dd]:mb-0 [&>dt]:text-sm [&>dt]:font-medium [&>dt]:text-base-content/70 sm:[&>dt]:text-base">
+        {% for label, value in rows.items() %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}
+      </dl>
     {% elif result_kind == "failed" %}
-    <h2>Verification failed</h2>
-    <dl><dt>Code</dt><dd><code>{{ code }}</code></dd><dt>Detail</dt><dd>{{ detail }}</dd></dl>
+      <div class="alert alert-error alert-soft text-base-content items-start">
+        {{ icon("error", "size-6 text-error") }}
+        <div class="min-w-0">
+          <h2 class="text-lg font-semibold">Verification failed</h2>
+          <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 [&>dd]:min-w-0 [&>dd]:break-words [&>dt]:font-medium">
+            <dt>Code</dt><dd><code>{{ code }}</code></dd>
+            <dt>Detail</dt><dd>{{ detail }}</dd>
+          </dl>
+        </div>
+      </div>
     {% elif result_kind == "expired" %}
-    <h2>Session expired</h2>
-    <p>The form's session is missing or has already been used.</p>
+      <div class="alert alert-warning alert-soft text-base-content items-start">
+        {{ icon("warning", "size-6 text-warning") }}
+        <div>
+          <h2 class="text-lg font-semibold">Session expired</h2>
+          <p>The form's session is missing or has already been used.</p>
+        </div>
+      </div>
     {% elif result_kind == "no-token" %}
-    <h2>No token received</h2>
-    <p>The browser submitted the form without an EVP token. Likely causes:</p>
-    <ul>
-      <li>You are not signed in at the email provider in this browser profile.</li>
-      <li>The form was submitted before the token arrived.</li>
-      <li>EVP is not enabled, or this browser or provider does not support it.</li>
-    </ul>
+      <div class="alert alert-warning alert-soft text-base-content items-start">
+        {{ icon("warning", "size-6 text-warning") }}
+        <div>
+          <h2 class="text-lg font-semibold">No token received</h2>
+          <p>The browser submitted the form without an EVP token. Likely causes:</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5">
+            <li>You are not signed in at the email provider in this browser profile.</li>
+            <li>The form was submitted before the token arrived.</li>
+            <li>EVP is not enabled, or this browser or provider does not support it.</li>
+          </ul>
+        </div>
+      </div>
     {% endif %}
     {% if trace_steps %}
-    <section id="verification-trace" class="verification-trace" aria-labelledby="trace-heading">
-      <h3 id="trace-heading">Verification trace</h3>
-      <p id="verification-time">Elapsed: {{ "%.1f" | format(elapsed_ms) }} ms</p>
-      <p>Preliminary EVT claims and the email match are checked before DNS. The issuer
-        signature is checked after JWKS. A passed claims row requires all of these checks.</p>
-      <p>I/O below records lookups made for this request. Cached HTTP documents produce no fetch entry.
-        A successful lookup does not mean its contents passed validation.</p>
-      <ol class="trace-steps">
-        {% for step in trace_steps %}
-        <li id="trace-{{ step.id }}" class="trace-step" data-status="{{ step.status }}">
-          <h4>{{ step.label }}</h4>
-          <p class="trace-status">{{ step.status }}</p>
-          {% if step.io %}
-          <ul class="trace-io">
-            {% for entry in step.io %}
-            <li><code>{{ entry.target }}</code>: {{ entry.outcome }} ({{ "%.1f" | format(entry.elapsed_ms) }} ms)</li>
+      <section id="verification-trace" class="verification-trace card card-border bg-base-100" aria-labelledby="trace-heading">
+        <div class="card-body gap-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 id="trace-heading" class="card-title">Verification trace</h3>
+            <p id="verification-time" class="badge badge-ghost grow-0 font-mono">Elapsed: {{ "%.1f" | format(elapsed_ms) }} ms</p>
+          </div>
+          <ol class="trace-steps steps steps-vertical">
+            {% for step in trace_steps %}
+            <li id="trace-{{ step.id }}" class="trace-step step{% if step.status == 'passed' %} step-success{% elif step.status == 'failed' %} step-error{% endif %}" data-status="{{ step.status }}">
+              <div class="flex w-full flex-wrap items-center gap-x-3 gap-y-1 py-2 text-left">
+                <h4 class="min-w-0 break-words">{{ step.label }}</h4>
+                <span class="trace-status badge badge-sm {% if step.status == 'passed' %}badge-success{% elif step.status == 'failed' %}badge-error{% else %}badge-ghost{% endif %}">{{ step.status }}</span>
+              </div>
+            </li>
             {% endfor %}
-          </ul>
+          </ol>
+          <p class="text-sm text-base-content/70">These rows group the checks for display. Preliminary EVT claims and the
+            email match are checked before DNS. The issuer signature is checked after JWKS. A passed claims row
+            requires all of these checks.</p>
+          {% set io_steps = trace_steps | selectattr("io") | list %}
+          {% if io_steps %}
+          <details id="trace-lookups" class="collapse collapse-arrow border border-base-300 bg-base-100">
+            <summary class="collapse-title font-medium">Recorded lookups</summary>
+            <div class="collapse-content space-y-4 text-sm">
+              <p class="text-base-content/70">I/O below records lookups made for this request. Cached HTTP documents produce no fetch entry.
+                A successful lookup does not mean its contents passed validation.</p>
+              {% for step in io_steps %}
+              <div>
+                <h4 class="font-medium">{{ step.label }}</h4>
+                <ul class="trace-io mt-1 space-y-1">
+                  {% for entry in step.io %}
+                  <li class="break-all"><code>{{ entry.target }}</code>: {{ entry.outcome }} <span class="text-base-content/70">({{ "%.1f" | format(entry.elapsed_ms) }} ms)</span></li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% endfor %}
+            </div>
+          </details>
+          {% else %}
+          <p class="text-sm text-base-content/70">No DNS or HTTP lookups were recorded for this request.</p>
           {% endif %}
-        </li>
-        {% endfor %}
-      </ol>
-    </section>
+        </div>
+      </section>
     {% endif %}
     {% if decoded %}
-    <details id="decoded-claims" class="decoded-claims">
-      <summary>Payload claims — decoded for display</summary>
-      <p>These are decoded values, not independent proof of authenticity. Read the verification result above.</p>
-      {% for label, claims in decoded.items() %}
-      <section class="claims-payload" aria-label="{{ label }} payload claims">
-        <h3>{{ label }} payload claims — decoded for display</h3>
-        <pre><code>{{ claims }}</code></pre>
-      </section>
-      {% endfor %}
-    </details>
+      <details id="decoded-claims" class="decoded-claims collapse collapse-arrow border border-base-300 bg-base-100">
+        <summary class="collapse-title font-medium">Payload claims — decoded for display</summary>
+        <div class="collapse-content space-y-4">
+          <p class="text-sm text-base-content/70">These are decoded values, not independent proof of authenticity. Read the verification result above.</p>
+          {% for label, claims in decoded.items() %}
+          <section class="claims-payload" aria-label="{{ label }} payload claims">
+            <h3 class="mb-2 text-sm font-semibold">{{ label }} payload claims — decoded for display</h3>
+            <pre class="overflow-x-auto rounded-box bg-base-200 p-4 text-sm"><code>{{ claims }}</code></pre>
+          </section>
+          {% endfor %}
+        </div>
+      </details>
     {% endif %}
-    {% if result_kind %}<p><a href="/demo">Start over</a></p>{% endif %}
+      <p><a href="/demo" class="btn btn-primary">Start over</a></p>
+    </div>
+    {% endif %}
   </section>
-  <p class="demo-policy">Accepted issuers: {{ allowed_issuers }}.</p>
+
+  <ol id="demo-steps" class="demo-steps mt-8 space-y-4">
+    <li id="demo-browser" class="demo-step card card-border bg-base-100">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="{{ step_number }}" aria-hidden="true">1</span>
+          <h2 class="card-title">Use Chrome with EVP</h2>
+        </div>
+        {% if origin_trial_token %}
+        <p>Desktop Chrome 150 or later works as is: this page takes part in the EVP origin trial.</p>
+        <p class="text-sm text-base-content/70">If no token arrives, enable
+          <code class="select-all wrap-anywhere">chrome://flags/#email-verification-protocol</code> and relaunch Chrome.</p>
+        {% else %}
+        <p>Use desktop Chrome or Chromium 150 or newer. Open
+          <code class="select-all wrap-anywhere">chrome://flags/#email-verification-protocol</code>
+          in the address bar, set it to Enabled, and relaunch the browser.</p>
+        {% endif %}
+        <div id="browser-hint" class="demo-notice alert alert-warning alert-soft text-base-content" hidden>
+          {{ icon("warning", "size-5 text-warning") }}
+          <span id="browser-hint-text"></span>
+        </div>
+        <p class="text-sm text-base-content/70">Browser hints are approximate. This page cannot detect whether EVP is enabled.</p>
+      </div>
+    </li>
+    <li id="demo-provider" class="demo-step card card-border bg-base-100">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="{{ step_number }}" aria-hidden="true">2</span>
+          <h2 class="card-title">Sign in at an email provider</h2>
+        </div>
+        <p>Start with the <a class="link" href="{{ provider_url }}">demo email provider</a>:
+          sign in as <code>{{ email }}</code>, then return here.</p>
+        <p>Alternatively, use a Gmail address. Be signed in to its Google account in this
+          Chrome profile.</p>
+        <div class="alert alert-info alert-soft text-base-content">
+          {{ icon("info", "size-5 text-info") }}
+          <span>The demo account is open to anyone; it proves only that someone clicked Sign in.</span>
+        </div>
+      </div>
+    </li>
+    <li id="demo-verify" class="demo-step card card-border bg-base-100">
+      <div class="card-body gap-3">
+        <div class="flex items-center gap-3">
+          <span class="{{ step_number }}" aria-hidden="true">3</span>
+          <h2 class="card-title">Verify</h2>
+        </div>
+        {% if not result_kind %}
+        <form id="verify-form" class="demo-form space-y-3" method="post" action="/verify">
+          <label for="email" class="block font-medium">Your email address</label>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <input type="email" id="email" name="email" class="input w-full sm:flex-1" autocomplete="email" value="{{ email }}" required>
+            <input type="hidden" id="evt" name="evt" autocomplete="email-verification-token" nonce="{{ nonce }}">
+            <button type="submit" id="verify-button" class="btn btn-primary group sm:px-8">
+              <span class="loading loading-spinner loading-sm hidden motion-safe:group-aria-busy:inline-block" aria-hidden="true"></span>
+              Verify
+            </button>
+          </div>
+          <p class="text-sm text-base-content/70">Using Gmail? Replace the address with yours.</p>
+          <p id="token-status" class="token-status alert alert-soft text-base-content empty:sr-only data-[state=waiting]:alert-info data-[state=received]:alert-success data-[state=missing]:alert-warning" role="status" aria-live="polite"></p>
+        </form>
+        {% else %}
+        <p>This submission has consumed its nonce. <a class="link" href="/demo">Start over</a> to get a new form.</p>
+        {% endif %}
+      </div>
+    </li>
+  </ol>
+  <p class="demo-policy mt-6 text-sm text-base-content/70">Accepted issuers: {{ allowed_issuers }}.</p>
 </section>
 {% endblock %}
 {% block scripts %}
@@ -105,7 +203,7 @@
   const recentChrome = desktop && Number(chrome?.version ?? uaVersion ?? 0) >= 150;
   const hint = document.getElementById("browser-hint");
   if (!window.isSecureContext || !recentChrome) {
-    hint.textContent = !window.isSecureContext
+    document.getElementById("browser-hint-text").textContent = !window.isSecureContext
       ? "This page is not a secure context. Open it over HTTPS to try EVP."
       : "This browser may not support EVP. Try desktop Chrome or Chromium 150 or newer with EVP enabled.";
     hint.hidden = false;
@@ -122,6 +220,7 @@
     started ??= performance.now();
     if (!token.value && performance.now() - started < 8000) {
       event.preventDefault();
+      status.dataset.state = "waiting";
       status.textContent = "Waiting for your email provider…";
       button.setAttribute("aria-busy", "true");
       const submitter = event.submitter ?? button;
@@ -129,6 +228,7 @@
       return;
     }
     button.removeAttribute("aria-busy");
+    status.dataset.state = token.value ? "received" : "missing";
     status.textContent = token.value ? "Token received, verifying…" : "No token received; submitting for an explanation…";
   });
 })();

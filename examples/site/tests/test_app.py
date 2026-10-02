@@ -842,7 +842,9 @@ def test_result_values_are_escaped(
 
 
 def _statuses(page: str) -> dict[str, str]:
-    return dict(re.findall(r'id="trace-([^" ]+)" class="trace-step" data-status="([^"]+)"', page))
+    return dict(
+        re.findall(r'id="trace-([^" ]+)" class="trace-step [^"]*" data-status="([^"]+)"', page)
+    )
 
 
 def test_error_mapping_is_exhaustive() -> None:
@@ -931,7 +933,7 @@ def test_binding_trace_has_no_io(rp_client: TestClient, rp_issuer: FakeIssuer) -
     evt = _present(rp_issuer, "alice@gmail.example", "wrong")
     page = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt}).text
     assert list(_statuses(page).values()) == ["passed", "failed"] + ["not run"] * 4
-    assert 'class="trace-io"' not in page
+    assert 'class="trace-io ' not in page
 
 
 def test_metadata_failure(
@@ -968,7 +970,7 @@ def test_cached_fetches_and_request_isolation(
         evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
         page = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt}).text
         assert list(_statuses(page).values()) == ["passed"] * 6
-        assert page.count('class="trace-io"') == (3 if attempt == 0 else 1)
+        assert page.count('class="trace-io ') == (3 if attempt == 0 else 1)
     assert rp_http.requests == [rp_issuer.metadata_url, rp_issuer.jwks_uri]
     _nonce(rp_client)
     failed = rp_client.post(
@@ -978,7 +980,7 @@ def test_cached_fetches_and_request_isolation(
             "evt": _present(rp_issuer, "alice@gmail.example", "wrong"),
         },
     ).text
-    assert 'class="trace-io"' not in failed
+    assert 'class="trace-io ' not in failed
 
 
 @pytest.mark.parametrize("claims", [{"email_verified": False}, {"email": "other@gmail.example"}])
@@ -998,7 +1000,7 @@ def test_early_claims_failure_does_not_invent_network_checks(
     assert statuses["claims"] == "failed"
     assert statuses["dns"] == statuses["metadata"] == statuses["jwks"] == "not run"
     assert statuses["binding"] == ("not run" if "email_verified" in claims else "passed")
-    assert 'class="trace-io"' not in page
+    assert 'class="trace-io ' not in page
 
 
 def test_decoded_claims_are_escaped(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
@@ -1047,5 +1049,169 @@ def test_cached_invalid_document_keeps_its_failure_stage(
         assert response.status_code == 400
         assert _statuses(response.text)[stage] == "failed"
         if attempt == 1:
-            assert response.text.count('class="trace-io"') == 1
+            assert response.text.count('class="trace-io ') == 1
     assert rp_http.requests.count(url) == 1
+
+
+def _head_meta(page: str) -> dict[str, str]:
+    head = page.split("</head>", 1)[0]
+    found = dict(re.findall(r'<meta (?:name|property)="([^"]+)" content="([^"]*)"', head))
+    title = re.search(r"<title>([^<]*)</title>", head)
+    canonical = re.search(r'<link rel="canonical" href="([^"]*)"', head)
+    assert title
+    assert canonical
+    return found | {"title": title.group(1), "canonical": canonical.group(1)}
+
+
+def test_seo_metadata(rp_client: TestClient) -> None:
+    pages = {
+        "landing": rp_client.get("/").text,
+        "demo": rp_client.get("/demo").text,
+        "result": rp_client.post("/verify", data={"email": EMAIL}).text,
+        "provider": rp_client.get(MAIL + "/").text,
+    }
+    canonical = {
+        "landing": SITE + "/",
+        "demo": SITE + "/demo",
+        "result": SITE + "/demo",
+        "provider": MAIL + "/",
+    }
+    seen = set()
+    for name, page in pages.items():
+        assert page.startswith('<!doctype html>\n<html lang="en">')
+        meta = _head_meta(page)
+        assert meta["canonical"] == canonical[name]
+        assert meta["og:url"] == canonical[name]
+        assert meta["og:title"] == meta["title"]
+        assert meta["og:description"] == meta["description"]
+        assert len(meta["description"]) >= 50
+        assert meta["og:type"] == "website"
+        assert meta["og:site_name"] == "pyevp"
+        assert meta["twitter:card"] == "summary"
+        seen.add((meta["title"], meta["description"]))
+    assert len(seen) == 3  # The result page shares the demo page's metadata.
+    assert _head_meta(pages["provider"])["robots"] == "noindex"
+    assert "robots" not in _head_meta(pages["landing"])
+    assert "robots" not in _head_meta(pages["demo"])
+
+
+def test_site_robots_and_sitemap(rp_client: TestClient) -> None:
+    robots = rp_client.get("/robots.txt")
+    assert robots.status_code == 200
+    assert robots.headers["content-type"].startswith("text/plain")
+    assert robots.text.splitlines() == [
+        "User-agent: *",
+        "Allow: /",
+        "",
+        "Sitemap: https://pyevp.dev/sitemap.xml",
+    ]
+    assert "x-robots-tag" not in robots.headers
+    sitemap = rp_client.get("/sitemap.xml")
+    assert sitemap.status_code == 200
+    assert sitemap.headers["content-type"].startswith("application/xml")
+    assert sitemap.text.startswith('<?xml version="1.0" encoding="UTF-8"?>')
+    assert 'xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"' in sitemap.text
+    assert re.findall(r"<loc>([^<]+)</loc>", sitemap.text) == [SITE + "/", SITE + "/demo"]
+    assert "set-cookie" not in robots.headers
+    assert "set-cookie" not in sitemap.headers
+    for path in ("/", "/demo", "/.well-known/web-identity"):
+        assert "x-robots-tag" not in rp_client.get(path).headers
+
+
+def test_robots_and_sitemap_follow_site_host(signer: SigningKey, stylesheet: Path) -> None:
+    app = site.create_app(
+        signer=signer, session_secret="test", site_host="site.example", stylesheet_path=stylesheet
+    )
+    with TestClient(app, base_url="https://site.example") as client:
+        assert "Sitemap: https://site.example/sitemap.xml" in client.get("/robots.txt").text
+        assert "<loc>https://site.example/demo</loc>" in client.get("/sitemap.xml").text
+
+
+def test_mail_host_is_not_indexed(client: TestClient) -> None:
+    robots = client.get("/robots.txt")
+    assert robots.status_code == 200
+    assert robots.text.splitlines() == ["User-agent: *", "Disallow: /"]
+    responses = [
+        robots,
+        client.get("/"),
+        client.get("/login"),
+        client.get("/me"),
+        client.get("/healthz"),
+        client.get("/no-such-page"),
+        client.get(site.JWKS_PATH),
+        client.get("/.well-known/email-verification"),
+        client.post("/login"),
+        client.post("/logout"),
+        client.post("/login", headers={"Sec-Fetch-Site": "cross-site"}),
+        client.get("https://mail.pyevp.dev:8443/"),
+    ]
+    for response in responses:
+        assert response.headers["x-robots-tag"] == "noindex"
+    assert responses[5].status_code == 404
+    assert responses[10].status_code == 403
+    assert "x-robots-tag" not in client.get(LEGACY + "/", follow_redirects=False).headers
+
+
+def _origin_trial(page: str) -> list[str]:
+    return re.findall(r'<meta http-equiv="origin-trial" content="([^"]*)">', page)
+
+
+@pytest.mark.parametrize("token", [None, ""])
+def test_no_origin_trial_by_default(
+    signer: SigningKey, stylesheet: Path, token: str | None
+) -> None:
+    app = site.create_app(
+        signer=signer, session_secret="test", stylesheet_path=stylesheet, origin_trial_token=token
+    )
+    with TestClient(app, base_url=SITE) as client:
+        demo = client.get("/demo").text
+        assert not _origin_trial(demo)
+        assert "origin trial" not in demo
+        assert "set it to Enabled" in _page_text(demo)
+        assert "chrome://flags/#email-verification-protocol" in demo
+        assert not _origin_trial(client.post("/verify", data={"email": EMAIL}).text)
+
+
+def test_origin_trial_token(signer: SigningKey, stylesheet: Path) -> None:
+    token = "A+b/c=" + '"<x>'
+    app = site.create_app(
+        signer=signer, session_secret="test", stylesheet_path=stylesheet, origin_trial_token=token
+    )
+    escaped = "A+b/c=&#34;&lt;x&gt;"
+    with TestClient(app, base_url=SITE) as client:
+        demo = client.get("/demo").text
+        assert _origin_trial(demo) == [escaped]
+        assert demo.index("origin-trial") < demo.index("</head>")
+        text = _page_text(demo)
+        assert "Chrome 150 or later works as is" in text
+        assert "chrome://flags/#email-verification-protocol" in text  # The fallback.
+        assert "set it to Enabled" not in text
+        _nonce(client)
+        for data in ({"email": EMAIL}, {"email": EMAIL, "evt": "garbage"}):
+            assert _origin_trial(client.post("/verify", data=data).text) == [escaped]
+        assert not _origin_trial(client.get("/").text)
+        assert not _origin_trial(client.get(MAIL + "/").text)
+
+
+def test_origin_trial_environment(monkeypatch: pytest.MonkeyPatch, stylesheet: Path) -> None:
+    monkeypatch.setenv("EVP_DEV", "1")
+    monkeypatch.delenv("EVP_SIGNING_JWK", raising=False)
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    monkeypatch.setattr(site, "STYLESHEET", stylesheet)
+    monkeypatch.setenv("EVP_ORIGIN_TRIAL_TOKEN", "environment-token")
+    with TestClient(site._from_environment(), base_url=SITE) as client:
+        assert _origin_trial(client.get("/demo").text) == ["environment-token"]
+    monkeypatch.delenv("EVP_ORIGIN_TRIAL_TOKEN")
+    with TestClient(site._from_environment(), base_url=SITE) as client:
+        assert not _origin_trial(client.get("/demo").text)
+
+
+def test_landing_tabs_upgrade_markup(client: TestClient) -> None:
+    page = client.get(SITE + "/").text
+    assert '<div id="example-tabs" class="tabs tabs-border mt-4" hidden></div>' in page
+    for script in ('"tablist"', '"tab"', '"tabpanel"', '"aria-selected"', '"aria-controls"'):
+        assert script in page
+    for key in ('"Home"', '"End"', "tabIndex"):
+        assert key in page
+    assert 'type="radio"' not in page
+    assert page.count('class="example ') == len(site.EXAMPLES)

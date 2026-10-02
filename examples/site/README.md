@@ -49,6 +49,7 @@ request comes from the same connector address.
 | `EVP_ALLOWED_ISSUERS` | `https://accounts.google.com https://<mail host>` | Space-separated issuer origins accepted by the relying party; an empty value accepts none |
 | `EVP_LEGACY_DEMO_HOST` | `demo.pyevp.dev` | Host that permanently redirects to `https://<site host>/demo` |
 | `EVP_EXAMPLES_DIR` | Repository `examples/` | Root containing the three marked framework examples; the image sets this to `/app/examples` |
+| `EVP_ORIGIN_TRIAL_TOKEN` | unset | Chrome origin trial token for EVP. When set, `/demo` and the `POST /verify` result page carry `<meta http-equiv="origin-trial">`, and step 1 says Chrome 150 or later works without the flag |
 | `BUILD_SHA` | `unknown` | Reported by `/me`; the image sets it at build time |
 | `EVP_DEV` | unset | `1` allows a missing key (an ephemeral one is generated) or session secret, and a missing stylesheet. Never set it in production |
 
@@ -69,12 +70,17 @@ The container listens on port 8080.
 | `GET /` | Landing page rendered once at startup; no nonce or session |
 | `GET /demo` | Demo page rendered per request, with a fresh nonce in the form and site session |
 | `POST /verify` | Demo page with the verification result: verified email and issuer, stable error code and explanation (400), expired session (400), or missing-token explanation (200) |
+| `GET /robots.txt` | Allows all crawlers and names `https://<site host>/sitemap.xml` |
+| `GET /sitemap.xml` | `https://<site host>/` and `https://<site host>/demo` |
 | `GET /.well-known/web-identity` | `web_identity_document(accounts_endpoint="https://<mail host>/fedcm/accounts", login_url="https://<mail host>/login")`, `application/json` |
 
 The relying-party session cookie is host-only on the site host, named `pyevp_site_session`,
 with `SameSite=Lax; Secure; HttpOnly`. It is separate from the mail host's cookie. The nonce
 is consumed on submission, whether verification succeeds or fails; "Start over" links to
 `/demo` to get a new nonce. Demo and verification responses use `Cache-Control: no-store`.
+Each page has its own title, description, canonical URL (`https://<site host>/` or
+`https://<site host>/demo`; the result page uses the demo's), Open Graph tags and
+`twitter:card=summary`.
 The landing route does not read or update the site session, even when the browser already
 has a site cookie.
 The verifier's audience is `https://<site host>`.
@@ -91,7 +97,9 @@ attributes that EVP needs to read.
 The page uses semantic HTML and named hooks for its three steps: `#demo-browser`,
 `#demo-provider`, and `#demo-verify`, followed by `#demo-result` (`role="status"`,
 `aria-live="polite"`). Desktop Chrome/Chromium 150 or newer with
-`chrome://flags/#email-verification-protocol` enabled is the suggested browser. A soft
+`chrome://flags/#email-verification-protocol` enabled is the suggested browser. With
+`EVP_ORIGIN_TRIAL_TOKEN` set, the page joins the origin trial, so Chrome 150 or later works
+without the flag; the flag stays as a fallback. A soft
 client-side notice uses the secure context, UA brands/version, and mobile hints; it never
 blocks submission and cannot detect whether EVP is enabled. The provider sign-in state
 is not queried or displayed by the relying party. The demo address is prefilled; visitors
@@ -156,11 +164,15 @@ Paths follow `examples/issuer_fastapi`.
 | `GET /` and `GET /login` | The provider page: what this is, and a single "Sign in as demo@pyevp.dev" (or "Sign out") button. `/login` is the FedCM `login_url` |
 | `POST /login` | No form fields. Starts the session for `demo@pyevp.dev`, answers with the provider page, `Set-Login: logged-in`, and a `navigator.login.setStatus("logged-in")` call |
 | `POST /logout` | Clears the session, answers with the provider page and `Set-Login: logged-out` (plus `setStatus`) |
+| `GET /robots.txt` | Disallows all crawlers |
 | `GET /me` | `{"email": "demo@pyevp.dev" or null, "issued": <tokens issued in this session>, "build_sha": "..."}`, `Cache-Control: no-store` |
 | `GET /.well-known/email-verification` | Issuer metadata |
 | `GET /email-verification/jwks` | JWKS |
 | `GET /fedcm/accounts` | FedCM accounts: requires `Sec-Fetch-Dest: webidentity`; the signed-in address or an empty list; `Cache-Control: no-store`; no CORS headers |
 | `POST /email-verification/issuance` | Issuance, as in `examples/issuer_fastapi`. The email in the request must equal the session's address, compared case-insensitively |
+
+Every response on the mail host, including `/healthz` and errors, carries
+`X-Robots-Tag: noindex`, and the provider page also has `<meta name="robots" content="noindex">`.
 
 `POST /login` and `POST /logout` reject requests whose `Sec-Fetch-Site` is present and not
 `same-origin` with 403.
@@ -209,6 +221,16 @@ scripts/build-css.sh static/site.css   # downloads the pinned Tailwind and daisy
 env EVP_DEV=1 uv run uvicorn app:app --port 8080
 curl -H 'Host: pyevp.dev' localhost:8080/
 uv run pytest
+```
+
+`.dev` is on the HSTS preload list, so Chrome only loads `pyevp.dev` over HTTPS. To look at
+the pages in a local Chrome, serve them with a self-signed certificate and map the hosts:
+
+```fish
+env EVP_DEV=1 uv run uvicorn app:app --port 8443 --ssl-keyfile key.pem --ssl-certfile cert.pem
+google-chrome --ignore-certificate-errors \
+    --host-resolver-rules="MAP pyevp.dev 127.0.0.1:8443, MAP mail.pyevp.dev 127.0.0.1:8443" \
+    https://pyevp.dev/demo
 ```
 
 ### Updating Tailwind and daisyUI

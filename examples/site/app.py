@@ -221,7 +221,9 @@ class SiteSessionMiddleware(SessionMiddleware):
             await super().__call__(scope, receive, send)
 
 
-def _site_app(issuer: Issuer, *, session_secret: str) -> FastAPI:
+def _site_app(
+    issuer: Issuer, *, session_secret: str, site_host: str, origin_trial_token: str | None
+) -> FastAPI:
     site = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     site.add_middleware(
         SiteSessionMiddleware,
@@ -233,7 +235,9 @@ def _site_app(issuer: Issuer, *, session_secret: str) -> FastAPI:
 
     def demo_response(*, status_code: int = 200, **context: object) -> HTMLResponse:
         return HTMLResponse(
-            site.state.demo_template.render(**site.state.page_context, **context),
+            site.state.demo_template.render(
+                **site.state.page_context, origin_trial_token=origin_trial_token, **context
+            ),
             status_code=status_code,
             headers=NO_STORE,
         )
@@ -314,6 +318,24 @@ def _site_app(issuer: Issuer, *, session_secret: str) -> FastAPI:
         }
         return demo_response(result_kind="verified", rows=rows, **display)
 
+    @site.get("/robots.txt")
+    async def robots() -> PlainTextResponse:
+        return PlainTextResponse(
+            f"User-agent: *\nAllow: /\n\nSitemap: https://{site_host}/sitemap.xml\n"
+        )
+
+    @site.get("/sitemap.xml")
+    async def sitemap() -> Response:
+        urls = "".join(
+            f"  <url><loc>https://{site_host}{path}</loc></url>\n" for path in ("/", "/demo")
+        )
+        return Response(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f"{urls}</urlset>\n",
+            media_type="application/xml",
+        )
+
     @site.get("/.well-known/web-identity")
     async def web_identity() -> JSONResponse:
         return JSONResponse(
@@ -382,6 +404,10 @@ def _mail_app(
         request.session.clear()
         return HTMLResponse(pages["logged-out"], headers={**NO_STORE, "Set-Login": "logged-out"})
 
+    @mail.get("/robots.txt")
+    async def robots() -> PlainTextResponse:
+        return PlainTextResponse("User-agent: *\nDisallow: /\n")
+
     @mail.get("/me")
     async def me(request: Request) -> JSONResponse:
         return JSONResponse(
@@ -431,6 +457,7 @@ def create_app(
     stylesheet_path: Path = STYLESHEET,
     dev: bool = False,
     clock: Clock = system_clock,
+    origin_trial_token: str | None = None,
 ) -> Starlette:
     """Explicit settings; only ``_from_environment`` reads environment variables."""
     if signer is None:
@@ -455,7 +482,12 @@ def create_app(
     allowed = frozenset(
         allowed_issuers if allowed_issuers is not None else ("https://accounts.google.com", base)
     )
-    site = _site_app(issuer, session_secret=session_secret)
+    site = _site_app(
+        issuer,
+        session_secret=session_secret,
+        site_host=site_host,
+        origin_trial_token=origin_trial_token or None,
+    )
 
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
@@ -486,6 +518,13 @@ def create_app(
         )
         yield
 
+    async def noindex_mail_host(request: Request, call_next: RequestResponseEndpoint) -> Response:
+        response = await call_next(request)
+        # The same host matching as starlette.routing.Host.
+        if request.headers.get("host", "").split(":")[0] == mail_host:
+            response.headers["X-Robots-Tag"] = "noindex"
+        return response
+
     async def healthz(request: Request) -> PlainTextResponse:
         return PlainTextResponse("ok")
 
@@ -505,7 +544,10 @@ def create_app(
             Host(legacy_demo_host, legacy_redirect),
         ],
         lifespan=lifespan,
-        middleware=[Middleware(BaseHTTPMiddleware, dispatch=_security_headers)],
+        middleware=[
+            Middleware(BaseHTTPMiddleware, dispatch=_security_headers),
+            Middleware(BaseHTTPMiddleware, dispatch=noindex_mail_host),
+        ],
     )
     app.state.issuer = issuer
     app.state.site = site
@@ -530,6 +572,7 @@ def _from_environment() -> Starlette:
         examples_dir=Path(os.environ.get("EVP_EXAMPLES_DIR", EXAMPLES_DIR)),
         stylesheet_path=STYLESHEET,
         dev=os.environ.get("EVP_DEV") == "1",
+        origin_trial_token=os.environ.get("EVP_ORIGIN_TRIAL_TOKEN") or None,
     )
 
 

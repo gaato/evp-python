@@ -10,3 +10,13 @@
 @plugin "../.cache/daisyui.mjs" {
   themes: light --default, dark --prefersdark;
 }
+
+/* Pygments output is generated on the server, so it gets its styles here rather than
+   from classes. `div.highlight` outranks the `.highlight` background that Pygments
+   emits later in the page, so code blocks sit on the theme's own surface. */
+div.highlight {
+  @apply overflow-x-auto rounded-box border border-base-300 bg-base-200 text-sm;
+}
+div.highlight pre {
+  @apply w-max min-w-full p-4 leading-relaxed;
+}

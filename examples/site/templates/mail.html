@@ -1,23 +1,44 @@
 {% extends "base.html" %}
-{% block title %}pyevp mock email provider{% endblock %}
+{% from "_icons.html" import icon %}
+{% set page_title = "Demo email provider — pyevp" %}
+{% set page_description = "A demo email provider that issues Email Verification Protocol tokens for one shared demo address, for the pyevp demo only." %}
+{% set canonical_url = provider_url %}
+{% set main_width = "max-w-xl" %}
+{% block head %}
+  <meta name="robots" content="noindex">
+{% endblock %}
 {% block content %}
-  <h1>pyevp mock email provider</h1>
-  <p>This mock email provider plays the issuer in the pyevp demo. Anyone can sign in
-    as {{ email }} and let the browser request a token for that address.</p>
-  <p>Signing in sets a signed session cookie so this provider can remember your choice
-    when the browser asks for accounts or a token. It also tells the browser that you
-    are logged in, so the browser can offer this account to the demo.</p>
-  <p><strong>{{ email }} is not a mailbox.</strong> A token for it proves nothing:
-    it only means someone pressed the sign-in button. Use it solely to try the demo.</p>
-  {% if signed_in %}
-  <p>You are signed in as {{ email }}.</p>
-  <form method="post" action="/logout"><button type="submit">Sign out</button></form>
-  {% else %}
-  <form method="post" action="/login"><button type="submit">Sign in as {{ email }}</button></form>
-  {% endif %}
-  <nav aria-label="Demo links">
-    <a href="{{ site_url }}/demo">Try the demo relying party</a>
-    <a href="{{ site_url }}">pyevp landing page</a>
+  <div class="card card-border bg-base-100 shadow-sm">
+    <div class="card-body gap-4 sm:p-8">
+      <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">pyevp demo email provider</h1>
+      <p>This provider plays the issuer in the pyevp demo. Anyone can sign in as
+        <code>{{ email }}</code> and let the browser request a token for that address.</p>
+      <p class="text-base-content/80">Signing in sets a signed session cookie so this provider can remember your choice
+        when the browser asks for accounts or a token. It also tells the browser that you
+        are logged in, so the browser can offer this account to the demo.</p>
+      <div class="alert alert-warning alert-soft text-base-content items-start">
+        {{ icon("warning", "size-5 text-warning") }}
+        <p><strong>{{ email }} is not a mailbox.</strong> A token for it proves nothing:
+          it only means someone pressed the sign-in button. Use it solely to try the demo.</p>
+      </div>
+      {% if signed_in %}
+      <div class="alert alert-success alert-soft text-base-content">
+        {{ icon("success", "size-5 text-success") }}
+        <p>You are signed in as {{ email }}.</p>
+      </div>
+      <div class="card-actions flex-col gap-3 sm:flex-row">
+        <a href="{{ site_url }}/demo" class="btn btn-primary btn-lg w-full sm:flex-1">Back to the demo</a>
+        <form method="post" action="/logout" class="w-full sm:w-auto"><button type="submit" class="btn btn-lg w-full">Sign out</button></form>
+      </div>
+      {% else %}
+      <p class="text-base-content/80">You are signed out.</p>
+      <form method="post" action="/login"><button type="submit" class="btn btn-primary btn-lg w-full">Sign in as {{ email }}</button></form>
+      {% endif %}
+    </div>
+  </div>
+  <nav aria-label="Demo links" class="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+    {% if not signed_in %}<a class="link" href="{{ site_url }}/demo">Try the demo relying party</a>{% endif %}
+    <a class="link" href="{{ site_url }}">pyevp landing page</a>
   </nav>
 {% endblock %}
 {% block scripts %}

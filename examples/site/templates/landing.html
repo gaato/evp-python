@@ -1,48 +1,109 @@
 {% extends "base.html" %}
-{% block title %}pyevp — email verification for Python{% endblock %}
+{% set page_title = "pyevp — Email Verification Protocol for Python" %}
+{% set page_description = "pyevp is a Python relying-party library for the Email Verification Protocol (EVP): confirm a user's email address with a token signed by their email provider, without sending a confirmation email." %}
+{% set canonical_url = site_url ~ "/" %}
 {% block content %}
-  <section id="landing-intro" class="landing-intro">
-    <h1>pyevp</h1>
-    <p>Verify email addresses in Python with a token from the user's email provider.</p>
-    <p><a href="/demo">Try the demo</a></p>
+  <section id="landing-intro" class="landing-intro hero py-6 sm:py-12">
+    <div class="hero-content max-w-2xl flex-col px-0 text-center">
+      <p class="badge badge-ghost">Email Verification Protocol · Python</p>
+      <h1 class="text-4xl font-bold tracking-tight text-balance sm:text-5xl">Verify email addresses without sending an email</h1>
+      <p class="text-lg text-base-content/80 text-pretty">With the Email Verification Protocol, the browser brings a token signed by the user's
+        email provider. pyevp verifies it on your Python server: no confirmation email, no code to copy.</p>
+      <div class="mt-2 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+        <a href="/demo" class="btn btn-primary btn-lg">Try the demo</a>
+        <a href="https://pyevp.readthedocs.io/" class="btn btn-lg">Read the docs</a>
+      </div>
+    </div>
   </section>
-  <section aria-labelledby="how-it-works">
-    <h2 id="how-it-works">How it works</h2>
-    <ol>
-      <li>The browser asks the user's email provider for a token.</li>
-      <li>The provider vouches for the email address by signing the token.</li>
-      <li>Your server verifies the token with pyevp.</li>
+
+  <section class="mt-12" aria-labelledby="how-it-works">
+    <h2 id="how-it-works" class="text-2xl font-bold tracking-tight">How it works</h2>
+    <ol class="mt-6 grid gap-4 md:grid-cols-3">
+      <li class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-base-300 font-semibold" aria-hidden="true">1</span>
+            <h3 class="card-title text-base">The browser asks</h3>
+          </div>
+          <p class="text-base-content/80">The browser asks the user's email provider for a token.</p>
+        </div>
+      </li>
+      <li class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-base-300 font-semibold" aria-hidden="true">2</span>
+            <h3 class="card-title text-base">The provider vouches</h3>
+          </div>
+          <p class="text-base-content/80">The provider vouches for the email address by signing the token.</p>
+        </div>
+      </li>
+      <li class="card card-border bg-base-100">
+        <div class="card-body">
+          <div class="flex items-center gap-3">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-base-300 font-semibold" aria-hidden="true">3</span>
+            <h3 class="card-title text-base">Your server verifies</h3>
+          </div>
+          <p class="text-base-content/80">Your server verifies the token with pyevp.</p>
+        </div>
+      </li>
     </ol>
-    <p>See the <a href="https://pyevp.readthedocs.io/en/latest/compatibility.html">compatibility guide</a>
+    <p class="mt-4 text-base-content/80">See the <a class="link" href="https://pyevp.readthedocs.io/en/latest/compatibility.html">compatibility guide</a>
       for browser support and deployment requirements.</p>
   </section>
-  <section aria-labelledby="getting-started">
-    <h2 id="getting-started">Getting started</h2>
-    <pre><code>pip install "pyevp[all]"</code></pre>
-    <h2 id="framework-examples">Framework examples</h2>
-    <div id="example-tabs"></div>
+
+  <section class="mt-14" aria-labelledby="getting-started">
+    <h2 id="getting-started" class="text-2xl font-bold tracking-tight">Getting started</h2>
+    <div class="relative mt-6">
+      <div class="mockup-code w-full"><pre data-prefix="$"><code id="install-command">pip install "pyevp[all]"</code></pre></div>
+      <button type="button" id="copy-install" class="btn btn-sm btn-ghost absolute right-2 top-2 text-neutral-content" hidden>Copy</button>
+      <span id="copy-status" class="sr-only" role="status"></span>
+    </div>
+
+    <h2 id="framework-examples" class="mt-12 text-2xl font-bold tracking-tight">Framework examples</h2>
+    <p class="mt-2 text-base-content/80">Each snippet is cut from the example code in the repository, so it stays in sync with what is tested.</p>
+    <div id="example-tabs" class="tabs tabs-border mt-4" hidden></div>
+    <div class="mt-4 space-y-8">
     {% for example in examples %}
-    <section id="example-{{ example.id }}" class="example" aria-labelledby="heading-{{ example.id }}">
-      <h3 id="heading-{{ example.id }}">{{ example.label }}</h3>
+    <section id="example-{{ example.id }}" class="example rounded-box focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-base-content" aria-labelledby="heading-{{ example.id }}">
+      <h3 id="heading-{{ example.id }}" class="mb-3 text-lg font-semibold">{{ example.label }}</h3>
       {{ example.code }}
     </section>
     {% endfor %}
+    </div>
   </section>
 {% endblock %}
 {% block scripts %}
 <script>
 (() => {
+  const copy = document.getElementById("copy-install");
+  if (navigator.clipboard) {
+    const status = document.getElementById("copy-status");
+    copy.hidden = false;
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(document.getElementById("install-command").textContent);
+        copy.textContent = status.textContent = "Copied";
+      } catch {
+        copy.textContent = status.textContent = "Copy failed";
+      }
+      setTimeout(() => { copy.textContent = "Copy"; }, 2000);
+    });
+  }
+
   const panels = [...document.querySelectorAll("section.example")];
   const list = document.getElementById("example-tabs");
   list.setAttribute("role", "tablist");
   list.setAttribute("aria-labelledby", "framework-examples");
   const tabs = panels.map((panel, index) => {
+    const heading = panel.querySelector("h3");
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "tab";
     button.id = `tab-${panel.id}`;
-    button.textContent = panel.querySelector("h3").textContent;
+    button.textContent = heading.textContent;
     button.setAttribute("role", "tab");
     button.setAttribute("aria-controls", panel.id);
+    heading.classList.add("sr-only");
     panel.setAttribute("role", "tabpanel");
     panel.setAttribute("aria-labelledby", button.id);
     panel.tabIndex = 0;
@@ -68,6 +129,7 @@
       panels[i].hidden = i !== index;
     });
   }
+  list.hidden = false;
   select(0);
 })();
 </script>

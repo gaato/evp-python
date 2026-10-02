@@ -17,7 +17,7 @@ RUN uv sync --locked --no-dev --no-editable --package pyevp-example-site
 
 FROM docker.io/library/python:3.14-slim@sha256:0741d101873c12ab927e6f8653feb8862b9bd58771177acb1b885b95141f91b4
 COPY --from=build /src/.venv /src/.venv
-COPY examples/site/app.py /app/app.py
+COPY examples/site/app.py examples/site/verification_trace.py /app/
 COPY examples/site/templates /app/templates
 COPY --from=css /out/site.css /app/static/site.css
 COPY examples/fastapi/app.py /app/examples/fastapi/app.py

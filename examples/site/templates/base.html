@@ -4,25 +4,49 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{% block title %}pyevp{% endblock %}</title>
+  <title>{{ page_title }}</title>
+  <meta name="description" content="{{ page_description }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="pyevp">
+  <meta name="twitter:card" content="summary">
+  {% block head %}{% endblock %}
   <style>{{ stylesheet }}
 {{ pygments_css }}</style>
 </head>
-<body>
-  <header id="site-header" class="site-header">
-    <nav aria-label="Main navigation">
-      <a href="{{ site_url }}/">pyevp</a>
-      <a href="{{ site_url }}/demo">Demo</a>
-      <a href="https://pyevp.readthedocs.io/">Docs</a>
-      <a href="https://github.com/gaato/pyevp">GitHub</a>
+<body class="flex min-h-screen flex-col">
+  <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 btn btn-sm">Skip to content</a>
+  <header id="site-header" class="site-header border-b border-base-300">
+    <nav class="navbar mx-auto max-w-5xl px-2 sm:px-4" aria-label="Main navigation">
+      <div class="navbar-start w-auto">
+        <a href="{{ site_url }}/" class="btn btn-ghost px-2 font-mono text-lg font-semibold tracking-tight">pyevp</a>
+      </div>
+      <ul class="navbar-end menu menu-horizontal ml-auto w-auto flex-nowrap gap-1 px-0">
+        <li><a href="{{ site_url }}/demo" class="aria-[current=page]:bg-base-200 aria-[current=page]:text-base-content aria-[current=page]:font-semibold"{% if nav_current == "demo" %} aria-current="page"{% endif %}>Demo</a></li>
+        <li><a href="https://pyevp.readthedocs.io/">Docs</a></li>
+        <li><a href="https://github.com/gaato/pyevp">GitHub</a></li>
+      </ul>
     </nav>
   </header>
-  <main>{% block content %}{% endblock %}</main>
-  <footer id="site-footer" class="site-footer">
-    <a href="https://pypi.org/project/pyevp/">PyPI</a>
-    <a href="https://github.com/gaato/pyevp/blob/main/LICENSE">License (MIT)</a>
-    <a href="https://pyevp.readthedocs.io/ja/latest/" lang="ja">日本語ドキュメント</a>
-  </footer>
+  <main id="main" class="mx-auto w-full {{ main_width | default('max-w-5xl') }} flex-1 px-4 py-8 sm:py-12">{% block content %}{% endblock %}</main>
+  <div class="bg-base-200">
+    <footer id="site-footer" class="site-footer footer sm:footer-horizontal mx-auto max-w-5xl gap-y-6 px-4 py-8 text-sm text-base-content/80">
+      <nav aria-label="Project links" class="flex flex-wrap gap-x-5 gap-y-2">
+        <a class="link link-hover" href="https://github.com/gaato/pyevp/blob/main/LICENSE">License: MIT</a>
+        <a class="link link-hover" href="https://github.com/gaato/pyevp">GitHub</a>
+        <a class="link link-hover" href="https://pypi.org/project/pyevp/">PyPI</a>
+        <a class="link link-hover" href="https://pyevp.readthedocs.io/ja/latest/" lang="ja">日本語ドキュメント</a>
+      </nav>
+      <div class="sm:justify-self-end">
+        <p>Prior art:
+          <a class="link" href="https://rowan.fyi/made/email-verification/">rowan.fyi</a> and
+          <a class="link" href="https://verifyemails.vercel.app/">verifyemails.vercel.app</a> demos</p>
+      </div>
+    </footer>
+  </div>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 from evp.cache import Cache, CacheEntry, InMemoryCache
 from evp.core import Effect, FetchJson, MarkUsed, ResolveTxt, Steps, verification_steps
-from evp.errors import DiscoveryError, ErrorCode, EVPError
+from evp.errors import DiscoveryError, ErrorCode, EVPError, TokenError
 from evp.observability import Observer, VerificationEvent, claimed_email_domain
 from evp.ports import (
     AsyncJsonFetcher,
@@ -121,6 +121,13 @@ class _Base:
             self._refresh_attempts[effect.url] = now
         return None
 
+    def _check_marked(self, effect: MarkUsed, marked: bool) -> bool:
+        # Freshness was judged when verification started.  If the token expired since,
+        # the record just written may already be gone, and a replay would find nothing.
+        if marked and self._clock() >= effect.expires_at:
+            raise TokenError(ErrorCode.TOKEN_EXPIRED, "token expired during verification")
+        return marked
+
     def _store(self, effect: FetchJson, value: object) -> None:
         self._cache.set(effect.url, CacheEntry(value, self._clock()), self._cache_ttl)
 
@@ -216,7 +223,9 @@ class Verifier(_Base):
         if isinstance(effect, MarkUsed):
             # Failures of the application's own store propagate unchanged.
             assert self._replay_guard is not None
-            return self._replay_guard.mark_used(effect.key, effect.expires_at)
+            return self._check_marked(
+                effect, self._replay_guard.mark_used(effect.key, effect.expires_at)
+            )
         try:
             match effect:
                 case ResolveTxt(name=name):
@@ -308,7 +317,9 @@ class AsyncVerifier(_Base):
         if isinstance(effect, MarkUsed):
             assert self._replay_guard is not None
             marked = self._replay_guard.mark_used(effect.key, effect.expires_at)
-            return await marked if inspect.isawaitable(marked) else marked
+            return self._check_marked(
+                effect, await marked if inspect.isawaitable(marked) else marked
+            )
         try:
             match effect:
                 case ResolveTxt(name=name):

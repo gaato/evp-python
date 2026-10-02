@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 import pytest
 
 from evp import (
+    DEFAULT_PROFILE,
     AsyncReplayGuard,
+    AsyncVerifier,
     ErrorCode,
     EVPError,
     InMemoryReplayGuard,
@@ -15,7 +17,17 @@ from evp import (
 )
 from evp._jose import b64url_decode, b64url_encode
 from evp.core import replay_key
-from evp.testing import FakeBrowser, FakeIssuer, FixedClock, make_async_verifier, make_verifier
+from evp.testing import (
+    AsyncInMemoryDns,
+    AsyncInMemoryHttp,
+    FakeBrowser,
+    FakeIssuer,
+    FixedClock,
+    InMemoryDns,
+    InMemoryHttp,
+    make_async_verifier,
+    make_verifier,
+)
 from evp.token import parse_token
 
 from .conftest import AUDIENCE, EMAIL
@@ -165,4 +177,67 @@ def test_token_expires_when_its_record_does(
     clock.advance(timedelta(microseconds=1))  # the guard has now forgotten the token
     with pytest.raises(EVPError) as exc:
         verifier.verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.TOKEN_EXPIRED
+
+
+# The replay record lives until the token would fail the freshness checks.
+_LIFETIME = DEFAULT_PROFILE.max_token_age + DEFAULT_PROFILE.clock_skew
+
+
+class SlowDns(InMemoryDns):
+    """Lets time pass during the lookup, after freshness has been checked."""
+
+    def __init__(self, records: dict[str, list[str]], clock: FixedClock) -> None:
+        super().__init__(records)
+        self.clock = clock
+
+    def resolve_txt(self, name: str) -> list[str]:
+        self.clock.advance(timedelta(seconds=2))
+        return super().resolve_txt(name)
+
+
+class AsyncSlowDns(AsyncInMemoryDns):
+    def __init__(self, records: dict[str, list[str]], clock: FixedClock) -> None:
+        super().__init__(records)
+        self.clock = clock
+
+    async def resolve_txt(self, name: str) -> list[str]:
+        self.clock.advance(timedelta(seconds=2))
+        return await super().resolve_txt(name)
+
+
+def test_token_expiring_during_verification_is_rejected(
+    issuer: FakeIssuer, token: str, nonce: str, clock: FixedClock
+) -> None:
+    verifier = Verifier(
+        audience=AUDIENCE,
+        resolver=SlowDns(issuer.dns_records(), clock),
+        fetcher=InMemoryHttp(issuer.http_documents()),
+        clock=clock,
+        replay_guard=InMemoryReplayGuard(clock=clock),
+    )
+    start = clock()
+    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    clock.now = start + _LIFETIME - timedelta(seconds=1)
+    with pytest.raises(EVPError) as exc:
+        verifier.verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.TOKEN_EXPIRED
+
+
+@pytest.mark.anyio
+async def test_token_expiring_during_async_verification_is_rejected(
+    issuer: FakeIssuer, token: str, nonce: str, clock: FixedClock
+) -> None:
+    verifier = AsyncVerifier(
+        audience=AUDIENCE,
+        resolver=AsyncSlowDns(issuer.dns_records(), clock),
+        fetcher=AsyncInMemoryHttp(issuer.http_documents()),
+        clock=clock,
+        replay_guard=AsyncGuard(clock),
+    )
+    start = clock()
+    assert (await verifier.verify(token, nonce=nonce)).email == EMAIL
+    clock.now = start + _LIFETIME - timedelta(seconds=1)
+    with pytest.raises(EVPError) as exc:
+        await verifier.verify(token, nonce=nonce)
     assert exc.value.code is ErrorCode.TOKEN_EXPIRED

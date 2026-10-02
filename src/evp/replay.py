@@ -11,6 +11,9 @@ Implementations must make :meth:`ReplayGuard.mark_used` an atomic
 
 - Redis: ``SET evp:<key> 1 NX PXAT <expires_at in ms>``
 - Django's cache: ``cache.add(key, 1, timeout)`` (atomic on Redis / Memcached)
+
+``expires_at`` can already be past when verification took long; guards need not
+handle that specially, because the verifier rejects the token afterwards.
 """
 
 from __future__ import annotations

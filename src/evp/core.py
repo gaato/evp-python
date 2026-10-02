@@ -61,7 +61,10 @@ class MarkUsed:
     """Record that a token has been accepted.  Reply ``True`` if it was not seen before.
 
     ``key`` only needs remembering until ``expires_at``: from that instant on, the
-    token fails the freshness checks anyway.
+    token fails the freshness checks anyway.  Freshness is judged once, before any
+    I/O, so a driver must reject the token (``TOKEN_EXPIRED``) if its clock has
+    reached ``expires_at`` after marking: the record may already be gone, and a
+    replay would not find it.
     """
 
     key: str

@@ -23,6 +23,9 @@ example turning an ECDSA `s` into `n - s`, therefore does not produce a new key.
 
 The guard is only consulted after every other check has passed, so rejected tokens never fill
 the store. Errors raised by the guard itself, such as a store outage, propagate unchanged.
+Freshness is checked before any I/O, so a token that expires while DNS and HTTP are in flight
+is rejected with `ErrorCode.TOKEN_EXPIRED` after it has been marked: its record may already be
+gone, and a replay would not find it.
 
 ## Shared stores
 

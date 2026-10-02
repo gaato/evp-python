@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime, timedelta
 
 import evp_allauth
 import pytest
@@ -79,3 +80,18 @@ def test_signup_page_has_evp_fields(client: Client) -> None:
     assert re.search(r'<input[^>]*name="email"[^>]*autocomplete="email"', html) or re.search(
         r'<input[^>]*autocomplete="email"[^>]*name="email"', html
     )
+
+
+def test_replay_record_outlives_the_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Cache backends keep whole seconds; truncating 359.3 would drop the record early.
+    now = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
+    timeouts: list[object] = []
+
+    def add(key: str, value: object, timeout: object) -> bool:
+        timeouts.append(timeout)
+        return True
+
+    monkeypatch.setattr(evp_allauth.timezone, "now", lambda: now)
+    monkeypatch.setattr(evp_allauth.django_cache, "add", add)
+    evp_allauth.DjangoCacheReplayGuard().mark_used("k", now + timedelta(seconds=359.3))
+    assert timeouts == [360]

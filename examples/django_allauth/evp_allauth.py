@@ -12,6 +12,7 @@ template can use ``{% evp_token_input %}``.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from functools import cache
 
@@ -49,7 +50,8 @@ class DjangoCacheReplayGuard:
     """
 
     def mark_used(self, key: str, expires_at: datetime) -> bool:
-        timeout = max((expires_at - timezone.now()).total_seconds(), 1)
+        # Cache backends keep whole seconds; round up so the record outlives the token.
+        timeout = max(math.ceil((expires_at - timezone.now()).total_seconds()), 1)
         return django_cache.add(f"evp:used:{key}", 1, timeout=timeout)
 
 

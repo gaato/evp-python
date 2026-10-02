@@ -56,4 +56,5 @@ DnsPythonResolver(resolver)
 Issuer metadata and key sets are cached for 10 minutes (`cache_ttl`) in a process-local
 {class}`~evp.InMemoryCache`. Pass any {class}`~evp.Cache` implementation to share it between
 workers; the Django example has one backed by Django's cache. When a signature does not verify,
-the keys are fetched again, at most once per `min_refresh_interval`, to pick up key rotation.
+the keys are fetched again to pick up key rotation, at most once per `min_refresh_interval`
+and URL, even when the fetch fails or verifications run concurrently.

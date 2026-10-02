@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import inspect
 import logging
+import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Self
 from urllib.parse import urlsplit
 
@@ -67,6 +68,8 @@ class _Base:
         self._cache: Cache = cache if cache is not None else InMemoryCache(clock=clock)
         self._cache_ttl = cache_ttl
         self._min_refresh_interval = min_refresh_interval
+        self._refresh_lock = threading.Lock()
+        self._refresh_attempts: dict[str, datetime] = {}
 
     def _steps(self, token: str, nonce: str, email: str | None, audience: str | None) -> Steps:
         return verification_steps(
@@ -100,11 +103,23 @@ class _Base:
 
     def _cached(self, effect: FetchJson) -> CacheEntry | None:
         entry = self._cache.get(effect.url)
-        if entry is None:
-            return None
-        if effect.refresh and self._clock() - entry.stored_at >= self._min_refresh_interval:
-            return None
-        return entry
+        if entry is None or not effect.refresh:
+            return entry
+        # A forced refresh is reserved before fetching, so failed fetches and concurrent
+        # verifications count against min_refresh_interval too.  Within it, keep the cached
+        # value.
+        now = self._clock()
+        with self._refresh_lock:
+            last = max(entry.stored_at, self._refresh_attempts.get(effect.url, entry.stored_at))
+            if now - last < self._min_refresh_interval:
+                return entry
+            self._refresh_attempts = {
+                url: at
+                for url, at in self._refresh_attempts.items()
+                if now - at < self._min_refresh_interval
+            }
+            self._refresh_attempts[effect.url] = now
+        return None
 
     def _store(self, effect: FetchJson, value: object) -> None:
         self._cache.set(effect.url, CacheEntry(value, self._clock()), self._cache_ttl)

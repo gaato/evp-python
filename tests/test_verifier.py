@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+import anyio
 import pytest
 
 from evp import (
+    AsyncVerifier,
     DiscoveryError,
     ErrorCode,
     EVPError,
@@ -14,6 +16,7 @@ from evp import (
     Verifier,
 )
 from evp.testing import (
+    AsyncInMemoryHttp,
     FakeBrowser,
     FakeIssuer,
     FixedClock,
@@ -91,6 +94,86 @@ def test_key_rotation_refreshes_jwks_once_interval_passed(
     clock.advance(timedelta(minutes=2))
     assert verifier.verify(fresh_token(), nonce=nonce).email == EMAIL
     assert _http(verifier).requests.count(issuer.jwks_uri) == 2
+
+
+def test_failed_refreshes_are_rate_limited(
+    issuer: FakeIssuer, browser: FakeBrowser, verifier: Verifier, nonce: str, clock: FixedClock
+) -> None:
+    def fresh_token() -> str:
+        return browser.present(
+            issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
+        )
+
+    verifier.verify(fresh_token(), nonce=nonce)
+    issuer.rotate_key()
+    del _http(verifier).documents[issuer.jwks_uri]
+    clock.advance(timedelta(minutes=2))
+
+    codes = []
+    for _ in range(4):
+        with pytest.raises(EVPError) as exc:
+            verifier.verify(fresh_token(), nonce=nonce)
+        codes.append(exc.value.code)
+    assert codes == [ErrorCode.ISSUER_UNREACHABLE] + [ErrorCode.EVT_SIGNATURE_INVALID] * 3
+    assert _http(verifier).requests.count(issuer.jwks_uri) == 2
+
+    clock.advance(timedelta(minutes=2))
+    with pytest.raises(EVPError):
+        verifier.verify(fresh_token(), nonce=nonce)
+    assert _http(verifier).requests.count(issuer.jwks_uri) == 3
+
+
+class _GatedHttp(AsyncInMemoryHttp):
+    """Holds key set fetches until ``release`` is set."""
+
+    release: anyio.Event | None = None
+
+    async def fetch_json(self, url: str) -> object:
+        if self.release is not None and url.endswith("jwks.json"):
+            await self.release.wait()
+        return await super().fetch_json(url)
+
+
+@pytest.mark.anyio
+async def test_concurrent_refreshes_are_coalesced(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, clock: FixedClock
+) -> None:
+    verifier = make_async_verifier(issuer, audience=AUDIENCE)
+    plain = verifier._fetcher
+    assert isinstance(plain, AsyncInMemoryHttp)
+    http = _GatedHttp(plain.documents)
+    verifier = AsyncVerifier(
+        audience=AUDIENCE, resolver=verifier._resolver, fetcher=http, clock=clock
+    )
+
+    def fresh_token() -> str:
+        return browser.present(
+            issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
+        )
+
+    await verifier.verify(fresh_token(), nonce=nonce)
+    issuer.rotate_key()
+    clock.advance(timedelta(minutes=2))
+    http.release = anyio.Event()
+
+    results: list[ErrorCode | None] = []
+
+    async def verify() -> None:
+        try:
+            await verifier.verify(fresh_token(), nonce=nonce)
+            results.append(None)
+        except EVPError as exc:
+            results.append(exc.code)
+
+    async with anyio.create_task_group() as tg:
+        for _ in range(10):
+            tg.start_soon(verify)
+        await anyio.wait_all_tasks_blocked()
+        http.release.set()
+
+    assert http.requests.count(issuer.jwks_uri) == 2
+    assert results.count(None) == 1
+    assert results.count(ErrorCode.EVT_SIGNATURE_INVALID) == 9
 
 
 def test_gmail_like_issuer(clock: FixedClock, nonce: str) -> None:

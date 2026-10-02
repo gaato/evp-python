@@ -192,6 +192,15 @@ CASES: dict[str, tuple[Build, ErrorCode]] = {
         f"kb iat {value!r}": (_kb_with_iat(value), ErrorCode.MALFORMED_TOKEN)
         for value in (1e100, float("nan"), 10**30)
     },
+    **{
+        f"cnf.jwk {member} not a string": (
+            lambda i, b, n, c, member=member: _present(
+                i, b, n, claims={"cnf": {"jwk": {**b.public_jwk, member: [b.public_jwk[member]]}}}
+            ),
+            ErrorCode.MALFORMED_TOKEN,
+        )
+        for member in ("alg", "crv", "kty")
+    },
     "missing email": (
         lambda i, b, n, c: _present(i, b, n, claims={"email": None}),
         ErrorCode.MALFORMED_TOKEN,

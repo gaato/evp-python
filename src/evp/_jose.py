@@ -47,7 +47,7 @@ def algorithms_compatible(a: str, b: str) -> bool:
 
 def key_supports(alg: str, key: Mapping[str, Any]) -> bool:
     """Whether a public JWK can verify signatures made with ``alg``."""
-    if alg in FORBIDDEN_ALGORITHMS:
+    if alg in FORBIDDEN_ALGORITHMS or not has_valid_members(key):
         return False
     if key.get("use") not in (None, "sig"):
         return False
@@ -64,8 +64,21 @@ def key_supports(alg: str, key: Mapping[str, Any]) -> bool:
     return False
 
 
+_STRING_MEMBERS = ("alg", "crv", "kid", "use")
+
+
+def has_valid_members(key: Mapping[str, Any]) -> bool:
+    """Whether the JWK members this library reads have the types RFC 7517 gives them."""
+    if not isinstance(key.get("kty"), str):
+        return False
+    if any(m in key and not isinstance(key[m], str) for m in _STRING_MEMBERS):
+        return False
+    ops = key.get("key_ops")
+    return ops is None or (isinstance(ops, list) and all(isinstance(o, str) for o in ops))
+
+
 def is_public_jwk(key: Mapping[str, Any]) -> bool:
-    return isinstance(key.get("kty"), str) and not any(p in key for p in ("d", "p", "q", "k"))
+    return has_valid_members(key) and not any(p in key for p in ("d", "p", "q", "k"))
 
 
 def verify_compact(compact: str, key: JSONObject, alg: str) -> bool:

@@ -111,6 +111,23 @@ def test_validate_jwks_drops_private_and_junk() -> None:
     assert validate_jwks({"keys": [public, private, "junk", {}]}) == (public,)
 
 
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"alg": ["Ed25519"]},
+        {"crv": ["Ed25519"]},
+        {"kid": 1},
+        {"use": None},
+        {"key_ops": "verify"},
+        {"key_ops": [1]},
+        {"kty": ["OKP"]},
+    ],
+)
+def test_validate_jwks_drops_badly_typed_members(bad: dict[str, object]) -> None:
+    public = {"kty": "OKP", "crv": "Ed25519", "x": "abc", "alg": "Ed25519"}
+    assert validate_jwks({"keys": [public, {**public, **bad}]}) == (public,)
+
+
 @pytest.mark.parametrize("doc", [{}, {"keys": []}, {"keys": "x"}, [], {"keys": [{"d": "x"}]}])
 def test_validate_jwks_invalid(doc: object) -> None:
     with pytest.raises(DiscoveryError):

@@ -73,6 +73,27 @@ Every failure raises a subclass of {class}`pyevp.EVPError` with a stable {class}
 progressive enhancement: when there is no token, or it is rejected, fall back to your existing
 verification flow.
 
+Whatever the code, the safe default is the fallback. The codes tell you whether the user can
+simply try again and whether something on your side needs attention:
+
+| Code | Usually means | What to do |
+|---|---|---|
+| `nonce_mismatch` | The session expired or the form was submitted twice | Render a fresh form, or fall back |
+| `token_expired` | The user took longer than `max_token_age` to submit | Render a fresh form, or fall back |
+| `token_not_yet_valid` | Clock skew between the browser and your server | Fall back; if frequent, check your server clock |
+| `email_mismatch` | The email field was edited after picking an address | Ask the user to pick the address again |
+| `audience_mismatch` | `audience` differs from the page's origin | Fix your configuration (proxies, hostnames) |
+| `issuer_unreachable` | DNS or HTTPS to the issuer failed; may be transient | Fall back; monitor the rate |
+| `issuer_discovery_failed` | The email domain has no usable `_email-verification` record | Fall back |
+| `metadata_invalid`, `key_not_found` | The issuer's metadata or keys are broken or rotating | Fall back; `pyevp discover <domain>` shows details |
+| `unsupported_alg`, `bad_type` | The issuer signs in a way your profile does not accept | Fall back; compare with `pyevp discover` |
+| `email_not_verified` | The issuer does not vouch for the address | Fall back |
+| `token_replayed` | The token was already accepted once | Reject; this is a resubmission or an attack |
+| `malformed_token` | The field did not contain an EVP token | Fall back; if frequent, check the form markup |
+| `issuer_mismatch`, `evt_signature_invalid`, `kb_signature_invalid`, `sd_hash_mismatch` | Forged or tampered token | Fall back and log; do not trust the address |
+
+Codes may be added in minor releases, so treat unknown codes as "fall back".
+
 ```{important}
 If your sessions are stored client-side, for example with Starlette's `SessionMiddleware`,
 popping the nonce does not make it single-use. Enable {doc}`replay protection <guides/replay>`.

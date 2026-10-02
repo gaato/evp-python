@@ -92,14 +92,21 @@ def is_public_jwk(key: Mapping[str, Any]) -> bool:
     return has_valid_members(key) and not any(p in key for p in ("d", "p", "q", "k"))
 
 
-def verify_compact(compact: str, key: JSONObject, alg: str) -> bool:
-    """Verify a compact JWS signature with a single public JWK."""
-    if not key_supports(alg, key):
-        return False
-    # joserfc enforces the JWK "alg" literally; alias handling is done above.
+def import_public(key: Mapping[str, Any]) -> Any | None:
+    """Import a public JWK, or return ``None`` if its key material is invalid."""
+    # joserfc enforces the JWK "alg" literally; alias handling is done by key_supports.
     material = {k: v for k, v in key.items() if k not in ("alg", "key_ops")}
     try:
-        imported = jwk.import_key(material)
+        return jwk.import_key(material)
+    except (JoseError, ValueError, TypeError):
+        return None
+
+
+def verify_compact(compact: str, key: JSONObject, alg: str) -> bool:
+    """Verify a compact JWS signature with a single public JWK."""
+    if not key_supports(alg, key) or (imported := import_public(key)) is None:
+        return False
+    try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", SecurityWarning)
             jws.deserialize_compact(compact, imported, algorithms=[alg])

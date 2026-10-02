@@ -111,9 +111,12 @@ def discovery_steps(target: str, profile: Profile = DEFAULT_PROFILE) -> ReportSt
             f"issuer signs with {', '.join(advertised)}; profile {profile.name} accepts "
             f"{', '.join(sorted(profile.evt_algorithms))}"
         )
-    usable = [k for k in jwks if any(_jose.key_supports(a, k) for a in accepted)]
+    fitting = [k for k in jwks if any(_jose.key_supports(a, k) for a in accepted)]
+    usable = [k for k in fitting if _jose.import_public(k) is not None]
     if accepted and not usable:
-        problems.append(f"no key in {metadata.jwks_uri} can verify {', '.join(accepted)}")
+        malformed = len(fitting) - len(usable)
+        hint = f" ({malformed} malformed)" if malformed else ""
+        problems.append(f"no key in {metadata.jwks_uri} can verify {', '.join(accepted)}{hint}")
     if profile.require_kid and any(not k.get("kid") for k in usable):
         problems.append(f"profile {profile.name} requires kid, but some keys have none")
 

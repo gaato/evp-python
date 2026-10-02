@@ -175,6 +175,8 @@ def verify_kb(
         cnf_alg != alg if profile.require_cnf_alg else not _jose.algorithms_compatible(cnf_alg, alg)
     ):
         raise TokenError(ErrorCode.UNSUPPORTED_ALG, "KB-JWT alg does not match cnf.jwk alg")
+    if not _jose.key_supports(alg, cnf_jwk):
+        raise TokenError(ErrorCode.UNSUPPORTED_ALG, f"cnf.jwk cannot verify KB-JWT alg {alg}")
     if not _jose.verify_compact(kb.compact, cnf_jwk, alg):
         raise TokenError(ErrorCode.KB_SIGNATURE_INVALID, "KB-JWT signature is invalid")
 

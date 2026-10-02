@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 import pytest
 
@@ -249,6 +249,30 @@ def test_every_error_code_is_exercised() -> None:
         ErrorCode.TOKEN_REPLAYED,  # test_replay
     }
     assert covered == set(ErrorCode)
+
+
+def _cnf_alg_ed448(kb_alg: Literal["Ed25519", "EdDSA"]) -> Build:
+    def build(issuer: FakeIssuer, browser: FakeBrowser, nonce: str, clock: FixedClock) -> str:
+        holder = FakeBrowser(alg=kb_alg, clock=clock)  # an Ed25519 key either way
+        jwk = {**holder.public_jwk, "alg": "Ed448"}
+        evt = issuer.issue(EMAIL, jwk)
+        return holder.present(evt, audience=AUDIENCE, nonce=nonce)
+
+    return build
+
+
+@pytest.mark.parametrize("kb_alg", ["Ed25519", "EdDSA"])
+def test_ed448_cnf_does_not_cover_ed25519(
+    issuer: FakeIssuer,
+    browser: FakeBrowser,
+    nonce: str,
+    clock: FixedClock,
+    verifier: Verifier,
+    kb_alg: Literal["Ed25519", "EdDSA"],
+) -> None:
+    with pytest.raises(EVPError) as exc:
+        verifier.verify(_cnf_alg_ed448(kb_alg)(issuer, browser, nonce, clock), nonce=nonce)
+    assert exc.value.code is ErrorCode.UNSUPPORTED_ALG
 
 
 def test_exp_at_the_end_of_time(issuer: FakeIssuer, browser: FakeBrowser, nonce: str) -> None:

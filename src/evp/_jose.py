@@ -41,8 +41,12 @@ def decode_json_segment(segment: str) -> dict[str, Any]:
 
 
 def algorithms_compatible(a: str, b: str) -> bool:
-    """``EdDSA`` (RFC 8037) and ``Ed25519`` (RFC 9864) name the same thing for Ed25519 keys."""
-    return a == b or (a in _EDDSA_FAMILY and b in _EDDSA_FAMILY)
+    """Whether two ``alg`` values may name the same algorithm.
+
+    The polymorphic ``EdDSA`` (RFC 8037) covers the fully specified ``Ed25519`` and
+    ``Ed448`` (RFC 9864), but those two are different algorithms.
+    """
+    return a == b or ("EdDSA" in (a, b) and a in _EDDSA_FAMILY and b in _EDDSA_FAMILY)
 
 
 def key_supports(alg: str, key: Mapping[str, Any]) -> bool:
@@ -56,7 +60,9 @@ def key_supports(alg: str, key: Mapping[str, Any]) -> bool:
         return False
     kty, crv = key.get("kty"), key.get("crv")
     if alg in _OKP_CURVES:
-        return kty == "OKP" and crv in _OKP_CURVES[alg]
+        # The key's own alg narrows the curve too: "EdDSA" against an Ed448-only key.
+        curves = _OKP_CURVES[alg] & _OKP_CURVES.get(key_alg, _OKP_CURVES[alg])
+        return kty == "OKP" and crv in curves
     if alg in _EC_CURVES:
         return kty == "EC" and crv == _EC_CURVES[alg]
     if alg[:2] in ("RS", "PS"):

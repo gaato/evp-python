@@ -318,3 +318,16 @@ def test_is_private_email(issuer: FakeIssuer, browser: FakeBrowser, nonce: str) 
     verifier = make_verifier(issuer, audience=AUDIENCE)
     token = _present(issuer, browser, nonce, claims={"is_private_email": True})
     assert verifier.verify(token, nonce=nonce).is_private_email
+
+
+def test_idn_domain_is_not_folded_to_another_domain(
+    browser: FakeBrowser, nonce: str, clock: FixedClock
+) -> None:
+    # Delegated for fass.example only; IDNA2003 would also map faß.example there.
+    issuer = FakeIssuer(email_domains=("fass.example",), clock=clock)
+    token = browser.present(
+        issuer.issue("a@faß.example", browser.public_jwk), audience=AUDIENCE, nonce=nonce
+    )
+    with pytest.raises(EVPError) as exc:
+        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.ISSUER_DISCOVERY_FAILED

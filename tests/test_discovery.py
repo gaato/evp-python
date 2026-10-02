@@ -20,6 +20,9 @@ from evp.discovery import (
         ("a@Example.COM.", "example.com"),
         ('"a@b"@example.com', "example.com"),
         ("a@bücher.example", "xn--bcher-kva.example"),
+        # IDNA2008: "ß" is a letter of its own, not "ss" as in IDNA2003.
+        ("a@faß.example", "xn--fa-hia.example"),
+        ("a@BÜCHER.example", "xn--bcher-kva.example"),
     ],
 )
 def test_email_domain(email: str, domain: str) -> None:
@@ -29,6 +32,12 @@ def test_email_domain(email: str, domain: str) -> None:
 @pytest.mark.parametrize("email", ["", "a", "@example.com", "a@"])
 def test_email_domain_invalid(email: str) -> None:
     with pytest.raises(ValueError, match="not an email"):
+        email_domain(email)
+
+
+@pytest.mark.parametrize("email", ["a@-bücher.example", "a@b\u200cü.example"])
+def test_email_domain_invalid_idn(email: str) -> None:
+    with pytest.raises(UnicodeError):
         email_domain(email)
 
 

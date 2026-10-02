@@ -13,7 +13,7 @@ follows the compatibility policy described in the README.
 - Relying-party verification of EVP presentation tokens (`EVT~KB-JWT`) with
   `Verifier` and `AsyncVerifier`, built on a sans-I/O core (`evp.core`).
 - Issuer discovery via DNS (`_email-verification` TXT), metadata and JWKS, with caching and
-  rate-limited key refresh.
+  rate-limited key refresh. Internationalised email domains are mapped with IDNA2008 (UTS #46).
 - Profiles `compat-2026-10` (default; accepts Gmail as deployed) and `draft-hardt-02` (strict).
 - Stable `ErrorCode`s on every failure.
 - dnspython and httpx / httpx2 adapters (`evp[dns]`, `evp[httpx]`, `evp[httpx2]`, `evp[all]`);

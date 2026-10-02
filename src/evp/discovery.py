@@ -6,6 +6,8 @@ from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlsplit
 
+import idna
+
 from evp import _jose
 from evp.errors import DiscoveryError, ErrorCode
 from evp.profile import IssuerFormat, Profile
@@ -25,14 +27,20 @@ _FORBIDDEN_HOST_CHARS = frozenset("/:@?#\\ \t\r\n")
 
 
 def email_domain(email: str) -> str:
-    """Return the DNS (A-label) form of the domain part of ``email``."""
+    """Return the DNS (A-label) form of the domain part of ``email``.
+
+    Internationalised domains are mapped with UTS #46 / IDNA2008, as browsers do.
+    Python's ``"idna"`` codec implements IDNA2003, which maps some names onto other
+    domains (``faß.example`` → ``fass.example``).  Raises :class:`UnicodeError` for
+    invalid internationalised domains.
+    """
     local, sep, domain = email.rpartition("@")
     if not sep or not local or not domain:
         raise ValueError(f"not an email address: {email!r}")
-    domain = domain.rstrip(".").lower()
-    if not domain.isascii():
-        domain = domain.encode("idna").decode("ascii")
-    return domain
+    domain = domain.rstrip(".")
+    if domain.isascii():
+        return domain.lower()
+    return idna.encode(domain, uts46=True).decode("ascii")
 
 
 def txt_name_for(email: str, profile: Profile) -> str:

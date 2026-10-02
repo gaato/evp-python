@@ -616,6 +616,7 @@ name = "evp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "idna" },
     { name = "joserfc" },
 ]
 
@@ -660,6 +661,7 @@ requires-dist = [
     { name = "evp", extras = ["dns", "httpx2"], marker = "extra == 'cli'" },
     { name = "httpx", marker = "extra == 'httpx'", specifier = ">=0.28" },
     { name = "httpx2", marker = "extra == 'httpx2'", specifier = ">=2.13" },
+    { name = "idna", specifier = ">=3.7" },
     { name = "joserfc", specifier = ">=1.7" },
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.27" },
 ]

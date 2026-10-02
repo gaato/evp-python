@@ -60,6 +60,8 @@ def key_supports(alg: str, key: Mapping[str, Any]) -> bool:
         return False
     if key.get("use") not in (None, "sig"):
         return False
+    if "key_ops" in key and "verify" not in key["key_ops"]:
+        return False
     key_alg = key.get("alg")
     if isinstance(key_alg, str) and not algorithms_compatible(alg, key_alg):
         return False
@@ -94,7 +96,8 @@ def is_public_jwk(key: Mapping[str, Any]) -> bool:
 
 def import_public(key: Mapping[str, Any]) -> Any | None:
     """Import a public JWK, or return ``None`` if its key material is invalid."""
-    # joserfc enforces the JWK "alg" literally; alias handling is done by key_supports.
+    # joserfc enforces the JWK "alg" literally; alias handling is done by key_supports,
+    # which also checks "key_ops".
     material = {k: v for k, v in key.items() if k not in ("alg", "key_ops")}
     try:
         return jwk.import_key(material)

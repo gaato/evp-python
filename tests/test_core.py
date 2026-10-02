@@ -331,3 +331,30 @@ def test_idn_domain_is_not_folded_to_another_domain(
     with pytest.raises(EVPError) as exc:
         make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
     assert exc.value.code is ErrorCode.ISSUER_DISCOVERY_FAILED
+
+
+def test_holder_key_without_verify_op_is_refused(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, verifier: Verifier
+) -> None:
+    holder = {**browser.public_jwk, "key_ops": ["encrypt"]}
+    token = browser.present(issuer.issue(EMAIL, holder), audience=AUDIENCE, nonce=nonce)
+    with pytest.raises(EVPError) as exc:
+        verifier.verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.UNSUPPORTED_ALG
+
+
+class _EncryptOnlyIssuer(FakeIssuer):
+    @property
+    def jwks(self) -> dict[str, Any]:
+        return {"keys": [{**k, "key_ops": ["encrypt"]} for k in super().jwks["keys"]]}
+
+
+def test_issuer_key_without_verify_op_is_refused(
+    browser: FakeBrowser, nonce: str, clock: FixedClock
+) -> None:
+    issuer = _EncryptOnlyIssuer(clock=clock)
+    with pytest.raises(EVPError) as exc:
+        make_verifier(issuer, audience=AUDIENCE).verify(
+            _present(issuer, browser, nonce), nonce=nonce
+        )
+    assert exc.value.code is ErrorCode.KEY_NOT_FOUND

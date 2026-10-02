@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import importlib
 import importlib.util
 from collections.abc import Callable, Iterator
@@ -21,6 +22,16 @@ MODULES = [
 ]
 
 
+def _transport(mod: ModuleType, handle: Callable[[Any], Any]) -> Any:
+    """A MockTransport whose responses are unread streams, as on the network."""
+
+    def streamed(request: Any) -> Any:
+        r = handle(request)
+        return mod.Response(r.status_code, headers=r.headers, stream=mod.ByteStream(r.content))
+
+    return mod.MockTransport(streamed)
+
+
 def _handler(mod: ModuleType) -> Callable[[Any], Any]:
     def handle(request: Any) -> Any:
         match request.url.path:
@@ -30,6 +41,9 @@ def _handler(mod: ModuleType) -> Callable[[Any], Any]:
                 return mod.Response(302, headers={"Location": "https://evil.example/"})
             case "/html":
                 return mod.Response(200, text="<html>")
+            case "/gzip":
+                body = gzip.compress(b"[" + b"0," * 8_000_000 + b"0]")
+                return mod.Response(200, content=body, headers={"Content-Encoding": "gzip"})
             case "/huge":
                 return mod.Response(200, content=b"[" + b"0," * 200_000 + b"0]")
             case _:
@@ -45,7 +59,7 @@ def mod(request: pytest.FixtureRequest) -> ModuleType:
 
 @pytest.fixture
 def fetcher(mod: ModuleType) -> Iterator[HttpxFetcher]:
-    with HttpxFetcher(mod.Client(transport=mod.MockTransport(_handler(mod)))) as fetcher:
+    with HttpxFetcher(mod.Client(transport=_transport(mod, _handler(mod)))) as fetcher:
         yield fetcher
 
 
@@ -53,7 +67,7 @@ def test_fetch_json(fetcher: HttpxFetcher) -> None:
     assert fetcher.fetch_json(URL) == {"issuer": "https://issuer.example"}
 
 
-@pytest.mark.parametrize("path", ["/redirect", "/html", "/huge", "/missing"])
+@pytest.mark.parametrize("path", ["/redirect", "/html", "/gzip", "/huge", "/missing"])
 def test_fetch_errors(fetcher: HttpxFetcher, path: str) -> None:
     with pytest.raises(FetchError):
         fetcher.fetch_json(f"https://issuer.example{path}")
@@ -61,11 +75,31 @@ def test_fetch_errors(fetcher: HttpxFetcher, path: str) -> None:
 
 @pytest.mark.anyio
 async def test_async_fetch_json(mod: ModuleType) -> None:
-    client = mod.AsyncClient(transport=mod.MockTransport(_handler(mod)))
+    client = mod.AsyncClient(transport=_transport(mod, _handler(mod)))
     async with AsyncHttpxFetcher(client) as fetcher:
         assert await fetcher.fetch_json(URL) == {"issuer": "https://issuer.example"}
         with pytest.raises(FetchError):
             await fetcher.fetch_json("https://issuer.example/redirect")
+
+
+def test_requests_uncompressed_bodies(mod: ModuleType) -> None:
+    seen: list[str | None] = []
+
+    def handle(request: Any) -> Any:
+        seen.append(request.headers.get("Accept-Encoding"))
+        return mod.Response(200, json={})
+
+    with HttpxFetcher(mod.Client(transport=_transport(mod, handle))) as fetcher:
+        fetcher.fetch_json(URL)
+    assert seen == ["identity"]
+
+
+@pytest.mark.anyio
+async def test_async_refuses_compressed_bodies(mod: ModuleType) -> None:
+    client = mod.AsyncClient(transport=_transport(mod, _handler(mod)))
+    async with AsyncHttpxFetcher(client) as fetcher:
+        with pytest.raises(FetchError, match="compressed"):
+            await fetcher.fetch_json("https://issuer.example/gzip")
 
 
 def _following(mod: ModuleType, seen: list[str], *, is_async: bool = False) -> Any:
@@ -78,7 +112,7 @@ def _following(mod: ModuleType, seen: list[str], *, is_async: bool = False) -> A
         return mod.Response(200, json={})
 
     cls = mod.AsyncClient if is_async else mod.Client
-    return cls(transport=mod.MockTransport(handle), follow_redirects=True)
+    return cls(transport=_transport(mod, handle), follow_redirects=True)
 
 
 def test_injected_client_does_not_follow_redirects(mod: ModuleType) -> None:

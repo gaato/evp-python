@@ -20,7 +20,8 @@ pip install "evp[dns,httpx]"      # same as evp[all]
 
 A client from either library can be passed explicitly, for example to share connection pools
 or set proxies: `HttpxFetcher(httpx2.Client(...))`. Redirects are never followed, even when the
-client was configured to follow them, and responses are size-capped.
+client was configured to follow them. Responses are requested uncompressed, compressed ones
+are refused, and bodies are size-capped.
 
 ## DNS: system resolver
 

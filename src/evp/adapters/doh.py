@@ -39,7 +39,7 @@ CLOUDFLARE = "https://cloudflare-dns.com/dns-query"
 
 _TXT = 16
 _NOERROR, _NXDOMAIN = 0, 3
-_HEADERS = {"Accept": "application/dns-json"}
+_HEADERS = {"Accept": "application/dns-json", "Accept-Encoding": "identity"}
 
 
 class DohError(Exception):

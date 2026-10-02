@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import base64
 import json
+import logging
 import os
+import re
 from collections.abc import Iterator
 from html.parser import HTMLParser
 from http.cookies import SimpleCookie
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx2
 import pytest
@@ -19,10 +22,28 @@ from pygments.styles import get_style_by_name
 from pygments.util import ClassNotFound
 from starlette.applications import Starlette
 from starlette.routing import Host, Route
+from verification_trace import (
+    ERROR_STEPS,
+    RecordingClock,
+    RecordingFetcher,
+    RecordingResolver,
+    TrackingCache,
+)
 
-from pyevp import Verifier
+from pyevp import AsyncVerifier, ErrorCode, EVPError, InMemoryReplayGuard, VerifiedEmail, Verifier
+from pyevp.adapters import httpx as httpx_adapter
+from pyevp.cache import InMemoryCache
 from pyevp.issuer import Issuer, SigningKey
-from pyevp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
+from pyevp.profile import DEFAULT_PROFILE
+from pyevp.testing import (
+    AsyncInMemoryDns,
+    AsyncInMemoryHttp,
+    FakeBrowser,
+    FakeIssuer,
+    FixedClock,
+    InMemoryDns,
+    InMemoryHttp,
+)
 
 # Importing the deployment entry point must be explicit about development mode.
 # The patch ends before any test; factories are tested independently of the environment.
@@ -31,7 +52,9 @@ with patch.dict(os.environ, {"EVP_DEV": "1", "EVP_SIGNING_JWK": "", "SESSION_SEC
 
 SITE = "https://pyevp.dev"
 MAIL = "https://mail.pyevp.dev"
-RP = "https://demo.pyevp.dev"
+RP = SITE
+LEGACY = "https://demo.pyevp.dev"
+SITE_COOKIE = "pyevp_site_session"
 EMAIL = "demo@pyevp.dev"
 COOKIE = "pyevp_mail_session"
 
@@ -95,7 +118,9 @@ def _page_text(page: str) -> str:
     return "".join(parser.parts)
 
 
-@pytest.mark.parametrize("host", ["pyevp.dev", "mail.pyevp.dev", "unknown.example", "127.0.0.1"])
+@pytest.mark.parametrize(
+    "host", ["pyevp.dev", "mail.pyevp.dev", "demo.pyevp.dev", "unknown.example", "127.0.0.1"]
+)
 def test_healthz_on_any_host(client: TestClient, host: str) -> None:
     response = client.get("/healthz", headers={"Host": host})
     assert response.status_code == 200
@@ -111,7 +136,7 @@ def test_routing_order_and_disabled_docs(application: Starlette, client: TestCli
     routes = application.routes
     assert isinstance(routes[0], Route)
     assert routes[0].path == "/healthz"
-    for route, host in zip(routes[1:], ["pyevp.dev", "mail.pyevp.dev"], strict=True):
+    for route, host in zip(routes[1:3], ["pyevp.dev", "mail.pyevp.dev"], strict=True):
         assert isinstance(route, Host)
         assert route.host == host
         assert isinstance(route.app, FastAPI)
@@ -173,7 +198,7 @@ def test_provider_page(client: TestClient, path: str) -> None:
     assert "not a mailbox" in response.text
     assert "proves nothing" in response.text
     assert 'action="/login"' in response.text
-    assert 'href="https://demo.pyevp.dev"' in response.text
+    assert 'href="https://pyevp.dev/demo"' in response.text
     assert 'href="https://pyevp.dev"' in response.text
     assert "/* test stylesheet */" in response.text
     assert "<input" not in response.text
@@ -231,8 +256,14 @@ def test_cookie_attributes_and_host_isolation(client: TestClient) -> None:
     assert cookie["secure"]
     assert cookie["httponly"]
     assert not cookie["domain"]
-    landing = client.get(SITE + "/")
-    assert "set-cookie" not in landing.headers
+    landing = client.get(SITE + "/demo")
+    assert SITE_COOKIE in landing.headers["set-cookie"]
+    # TestClient's stdlib cookie jar sends host-only cookies to subdomains.
+    # Check the stored scope and independent session state instead.
+    stored = next(cookie for cookie in client.cookies.jar if cookie.name == SITE_COOKIE)
+    assert stored.domain == "pyevp.dev"
+    assert not stored.domain_specified
+    assert client.get("/me").json() == {"email": EMAIL, "issued": 0, "build_sha": "test-sha"}
     assert COOKIE not in landing.request.headers.get("cookie", "")
     assert COOKIE in client.get("/me").request.headers["cookie"]
     response = client.post("/logout")
@@ -366,7 +397,7 @@ def test_environment_settings(monkeypatch: pytest.MonkeyPatch, stylesheet: Path)
     monkeypatch.setenv("EVP_SITE_HOST", "site.example")
     monkeypatch.setenv("EVP_MAIL_HOST", "mail.example")
     monkeypatch.setenv("EVP_EMAIL_DOMAIN", "email.example")
-    monkeypatch.setenv("EVP_DEMO_URL", "https://rp.example")
+    monkeypatch.setenv("EVP_LEGACY_DEMO_HOST", "old.example")
     monkeypatch.setenv("BUILD_SHA", "environment-sha")
     custom_examples = stylesheet.parent / "examples"
     for _, _, path in site.EXAMPLES:
@@ -385,7 +416,14 @@ def test_environment_settings(monkeypatch: pytest.MonkeyPatch, stylesheet: Path)
         identity = client.get("https://site.example/.well-known/web-identity").json()
         assert identity["accounts_endpoint"] == "https://mail.example/fedcm/accounts"
         landing = client.get("https://site.example/").text
-        assert 'href="https://rp.example"' in landing
+        assert 'href="/demo"' in landing
+        demo = client.get("https://site.example/demo").text
+        assert 'href="https://mail.example/"' in demo
+        assert "https://accounts.google.com, https://mail.example" in demo
+        assert 'href="https://site.example/demo"' in client.get("/").text
+        redirect = client.get("https://old.example/any/path", follow_redirects=False)
+        assert redirect.status_code == 301
+        assert redirect.headers["location"] == "https://site.example/demo"
         assert "# selected EVP_EXAMPLES_DIR" in _page_text(landing)
         assert client.get(site.JWKS_PATH).json()["keys"][0]["kid"] == "environment-test"
 
@@ -396,7 +434,7 @@ def test_real_markers_and_landing(client: TestClient) -> None:
     text = _page_text(response.text)
     assert 'pip install "pyevp[all]"' in text
     for url in (
-        RP,
+        "/demo",
         "https://pyevp.readthedocs.io/",
         "https://pyevp.readthedocs.io/ja/latest/",
         "https://github.com/gaato/pyevp",
@@ -456,11 +494,22 @@ def test_missing_example_refuses_startup(tmp_path: Path, stylesheet: Path) -> No
         pass
 
 
-def test_landing_is_rendered_once(application: Starlette, stylesheet: Path) -> None:
+def test_expensive_landing_parts_are_computed_once(
+    application: Starlette, stylesheet: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     with TestClient(application, base_url=SITE) as client:
         before = client.get("/").text
         stylesheet.write_text("/* changed after startup */")
-        assert client.get("/").text == before
+
+        def recomputed(*args: object, **kwargs: object) -> None:
+            pytest.fail("expensive landing content recomputed after startup")
+
+        monkeypatch.setattr(site, "extract_example", recomputed)
+        monkeypatch.setattr(site, "highlight", recomputed)
+        monkeypatch.setattr(site, "_formatter", recomputed)
+        monkeypatch.setattr(site.Template, "render", recomputed)
+        after = client.get("/").text
+        assert before == after
 
 
 def test_formatter_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -480,3 +529,523 @@ def test_security_headers(client: TestClient) -> None:
         assert response.headers["x-frame-options"] == "DENY"
         assert response.headers["x-content-type-options"] == "nosniff"
         assert response.headers["referrer-policy"] == "no-referrer"
+        assert "content-security-policy" not in response.headers
+
+
+@pytest.fixture
+def rp_issuer() -> FakeIssuer:
+    return FakeIssuer.gmail_like()
+
+
+@pytest.fixture
+def stranger() -> FakeIssuer:
+    """An issuer the demo does not allow, for a domain an attacker controls."""
+    return FakeIssuer(host="evil.example", email_domains=("evil.example",))
+
+
+@pytest.fixture
+def rp_http(rp_issuer: FakeIssuer, stranger: FakeIssuer) -> AsyncInMemoryHttp:
+    return AsyncInMemoryHttp(rp_issuer.http_documents() | stranger.http_documents())
+
+
+@pytest.fixture
+def rp_client(
+    rp_issuer: FakeIssuer,
+    stranger: FakeIssuer,
+    rp_http: AsyncInMemoryHttp,
+    application: Starlette,
+) -> Iterator[TestClient]:
+    dns = AsyncInMemoryDns(rp_issuer.dns_records() | stranger.dns_records())
+    verifier = AsyncVerifier(
+        audience=SITE,
+        resolver=site.AllowedIssuers(RecordingResolver(dns), [rp_issuer.issuer]),
+        fetcher=RecordingFetcher(rp_http),
+        cache=TrackingCache(InMemoryCache(clock=rp_issuer.clock)),
+        clock=RecordingClock(rp_issuer.clock),
+        replay_guard=InMemoryReplayGuard(clock=rp_issuer.clock),
+    )
+    application.state.site.dependency_overrides[site.get_verifier] = lambda: verifier
+    with TestClient(application, base_url=SITE) as rp_client:
+        yield rp_client
+    application.state.site.dependency_overrides.clear()
+
+
+def _nonce(rp_client: TestClient) -> str:
+    match = re.search(r'nonce="([^"]+)"', rp_client.get("/demo").text)
+    assert match
+    return match.group(1)
+
+
+def _present(rp_issuer: FakeIssuer, email: str, nonce: str) -> str:
+    browser = FakeBrowser(clock=rp_issuer.clock)
+    return browser.present(rp_issuer.issue(email, browser.public_jwk), audience=SITE, nonce=nonce)
+
+
+def test_verified(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
+    evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert response.status_code == 200
+    assert "Verified" in response.text
+    assert "alice@gmail.example" in response.text
+    assert rp_issuer.issuer in response.text
+
+
+def test_no_token(rp_client: TestClient) -> None:
+    _nonce(rp_client)
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example"})
+    assert response.status_code == 200
+    assert "No token received" in response.text
+
+
+def test_failure_shows_code(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
+    _nonce(rp_client)
+    evt = _present(rp_issuer, "alice@gmail.example", "stolen")
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert response.status_code == 400
+    assert "nonce_mismatch" in response.text
+
+
+def test_replay(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
+    nonce = _nonce(rp_client)
+    captured = dict(rp_client.cookies)
+    form = {
+        "email": "alice@gmail.example",
+        "evt": _present(rp_issuer, "alice@gmail.example", nonce),
+    }
+    assert rp_client.post("/verify", data=form).status_code == 200
+    rp_client.cookies.clear()
+    rp_client.cookies.update(captured)
+    response = rp_client.post("/verify", data=form)
+    assert response.status_code == 400
+    assert "token_replayed" in response.text
+
+
+def test_unlisted_issuer_is_never_fetched(
+    rp_client: TestClient, stranger: FakeIssuer, rp_http: AsyncInMemoryHttp
+) -> None:
+    evt = _present(stranger, "mallory@evil.example", _nonce(rp_client))
+    response = rp_client.post("/verify", data={"email": "mallory@evil.example", "evt": evt})
+    assert response.status_code == 400
+    assert "issuer_discovery_failed" in response.text
+    assert not any("evil.example" in url for url in rp_http.requests)
+
+
+def test_output_is_escaped(rp_client: TestClient) -> None:
+    _nonce(rp_client)
+    evt = "<script>alert(1)</script>"
+    response = rp_client.post("/verify", data={"email": "a@gmail.example", "evt": evt})
+    assert response.status_code == 400
+    assert "<script>alert(1)" not in response.text
+
+
+def test_healthz_and_headers(rp_client: TestClient) -> None:
+    response = rp_client.get("/healthz")
+    assert response.text == "ok"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert "content-security-policy" not in response.headers
+
+
+def test_nonce_and_site_cookie(application: Starlette) -> None:
+    with TestClient(application, base_url=SITE) as client:
+        response = client.get("/demo")
+        cookie = SimpleCookie(response.headers["set-cookie"])[SITE_COOKIE]
+        assert cookie["path"] == "/"
+        assert cookie["samesite"].lower() == "lax"
+        assert cookie["secure"]
+        assert cookie["httponly"]
+        assert not cookie["domain"]
+        nonce = re.search(r'nonce="([^"]+)"', response.text)
+        assert nonce
+        session = json.loads(base64.b64decode(cookie.value.split(".")[0]))
+        assert session == {site.SESSION_NONCE: nonce.group(1)}
+        assert _nonce(client) != nonce.group(1)
+        assert response.headers["cache-control"] == "no-store"
+        assert 'autocomplete="email-verification-token"' in response.text
+        assert 'autocomplete="email"' in response.text
+        assert 'action="/verify"' in response.text
+        assert '<section id="demo"' in response.text
+        assert 'href="https://mail.pyevp.dev/"' in response.text
+        assert "demo@pyevp.dev" in response.text
+        assert "This page is not a secure context." in response.text
+        assert "window.isSecureContext" in response.text
+        assert "You are signed in" not in response.text
+        stored = next(cookie for cookie in client.cookies.jar if cookie.name == SITE_COOKIE)
+        assert stored.domain == "pyevp.dev"
+        assert not stored.domain_specified
+        assert client.get(MAIL + "/me").json()["email"] is None
+
+
+@pytest.mark.parametrize(
+    ("host", "mail_host", "accepted"),
+    [
+        ("mail.pyevp.dev", "mail.pyevp.dev", True),
+        ("pyevp.dev", "mail.pyevp.dev", False),
+        ("mail.example", "mail.example", True),
+        ("mail.pyevp.dev", "mail.example", False),
+    ],
+)
+def test_default_allowlist(
+    *,
+    host: str,
+    mail_host: str,
+    accepted: bool,
+    signer: SigningKey,
+    stylesheet: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    provider = FakeIssuer(host=host, email_domains=("pyevp.dev",))
+    http = AsyncInMemoryHttp(provider.http_documents())
+    monkeypatch.setattr(
+        site, "AsyncDnsPythonResolver", lambda: AsyncInMemoryDns(provider.dns_records())
+    )
+    monkeypatch.setattr(httpx_adapter, "AsyncHttpxFetcher", lambda: http)
+    application = site.create_app(
+        signer=signer,
+        session_secret="test-session-secret",
+        mail_host=mail_host,
+        clock=provider.clock,
+        stylesheet_path=stylesheet,
+    )
+    with (
+        caplog.at_level(logging.INFO, logger="pyevp"),
+        TestClient(application, base_url=SITE) as client,
+    ):
+        nonce = _nonce(client)
+        captured = dict(client.cookies)
+        evt = _present(provider, EMAIL, nonce)
+        form = {"email": EMAIL, "evt": evt}
+        response = client.post("/verify", data=form)
+        assert response.headers["cache-control"] == "no-store"
+        assert '<section id="demo"' in response.text
+        assert 'href="/demo"' in response.text
+        if accepted:
+            assert response.status_code == 200
+            assert "Verified" in response.text
+            assert f"<dd>{EMAIL}</dd>" in response.text
+            assert f"<dd>{provider.issuer}</dd>" in response.text
+            assert "EVP verification succeeded" in caplog.text
+            client.cookies.clear()
+            client.cookies.update(captured)
+            replay = client.post("/verify", data=form)
+            assert replay.status_code == 400
+            assert "token_replayed" in replay.text
+        else:
+            assert response.status_code == 400
+            assert "issuer_discovery_failed" in response.text
+            assert (
+                list(_statuses(response.text).values())
+                == ["passed", "passed", "failed"] + ["not run"] * 3
+            )
+            assert "_email-verification.pyevp.dev" in response.text
+            assert not http.requests
+            assert "EVP verification failed" in caplog.text
+        assert EMAIL not in caplog.text
+        assert evt not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("allowed", "host", "accepted"),
+    [
+        ("https://custom.example", "custom.example", True),
+        ("https://custom.example", "mail.pyevp.dev", False),
+        ("", "mail.pyevp.dev", False),
+    ],
+)
+def test_environment_allowlist_override(
+    *,
+    allowed: str,
+    host: str,
+    accepted: bool,
+    stylesheet: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("EVP_DEV", "1")
+    monkeypatch.delenv("EVP_SIGNING_JWK", raising=False)
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    monkeypatch.setenv("EVP_ALLOWED_ISSUERS", allowed)
+    monkeypatch.setattr(site, "STYLESHEET", stylesheet)
+    provider = FakeIssuer(
+        host=host, email_domains=("pyevp.dev",), clock=FixedClock(site.system_clock())
+    )
+    http = AsyncInMemoryHttp(provider.http_documents())
+    monkeypatch.setattr(
+        site, "AsyncDnsPythonResolver", lambda: AsyncInMemoryDns(provider.dns_records())
+    )
+    monkeypatch.setattr(httpx_adapter, "AsyncHttpxFetcher", lambda: http)
+    with TestClient(site._from_environment(), base_url=SITE) as client:
+        nonce = _nonce(client)
+        response = client.post(
+            "/verify", data={"email": EMAIL, "evt": _present(provider, EMAIL, nonce)}
+        )
+        if accepted:
+            assert response.status_code == 200
+            assert "Verified" in response.text
+        else:
+            assert response.status_code == 400
+            assert "issuer_discovery_failed" in response.text
+            assert not http.requests
+        assert f"Accepted issuers: {allowed}." in response.text
+
+
+@pytest.mark.parametrize(
+    "method", ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE"]
+)
+@pytest.mark.parametrize("path", ["/", "/verify", "/arbitrary/nested/path?query=value"])
+def test_legacy_host_redirect(client: TestClient, method: str, path: str) -> None:
+    response = client.request(method, LEGACY + path, follow_redirects=False)
+    assert response.status_code == 301
+    assert response.headers["location"] == SITE + "/demo"
+    assert "set-cookie" not in response.headers
+
+
+@pytest.mark.parametrize("outcome", ["verified", "no-token", "failed"])
+def test_nonce_is_consumed(rp_client: TestClient, rp_issuer: FakeIssuer, outcome: str) -> None:
+    nonce = _nonce(rp_client)
+    evt = _present(rp_issuer, "alice@gmail.example", "wrong" if outcome == "failed" else nonce)
+    response = rp_client.post(
+        "/verify",
+        data={"email": "alice@gmail.example", "evt": "" if outcome == "no-token" else evt},
+    )
+    assert response.status_code == (400 if outcome == "failed" else 200)
+    again = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert again.status_code == 400
+    assert "Session expired" in again.text
+
+
+@pytest.mark.parametrize("success", [True, False])
+def test_result_values_are_escaped(
+    application: Starlette, clock: FixedClock, success: bool
+) -> None:
+    payload = '<script>alert("x")</script>'
+    verifier = AsyncMock(spec=AsyncVerifier)
+    verifier.profile = DEFAULT_PROFILE
+    verifier.audience = SITE
+    if success:
+        verifier.verify.return_value = VerifiedEmail(
+            email=payload,
+            issuer=payload,
+            issued_at=clock.now,
+            expires_at=None,
+            is_private_email=False,
+            claims={},
+        )
+    else:
+        verifier.verify.side_effect = EVPError(ErrorCode.MALFORMED_TOKEN, payload)
+    application.state.site.dependency_overrides[site.get_verifier] = lambda: verifier
+    with TestClient(application, base_url=SITE) as client:
+        _nonce(client)
+        response = client.post("/verify", data={"email": EMAIL, "evt": "token"})
+        assert response.status_code == (200 if success else 400)
+        assert payload not in response.text
+        assert "&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt;" in response.text
+
+
+def _statuses(page: str) -> dict[str, str]:
+    return dict(re.findall(r'id="trace-([^" ]+)" class="trace-step" data-status="([^"]+)"', page))
+
+
+def test_error_mapping_is_exhaustive() -> None:
+    assert set(ERROR_STEPS) == set(ErrorCode)
+    assert all(ERROR_STEPS.values())
+
+
+def test_landing_has_no_session_or_nonce(application: Starlette) -> None:
+    with TestClient(application, base_url=SITE) as client:
+        before = client.get("/")
+        assert "set-cookie" not in before.headers
+        assert SITE_COOKIE not in client.cookies
+        assert "nonce=" not in before.text
+        assert 'id="verify-form"' not in before.text
+        _nonce(client)
+        after = client.get("/")
+        assert "set-cookie" not in after.headers
+        assert after.text == before.text
+        assert _nonce(client)
+
+
+def test_demo_flow_and_submit_script(rp_client: TestClient) -> None:
+    page = rp_client.get("/demo").text
+    for hook in (
+        "demo-browser",
+        "demo-provider",
+        "demo-verify",
+        "verify-form",
+        "evt",
+        "verify-button",
+        "token-status",
+        "browser-hint",
+        "demo-result",
+    ):
+        assert f'id="{hook}"' in page
+    assert page.index("Use Chrome with EVP") < page.index("Sign in at an email provider")
+    assert page.index("demo email provider") < page.index("Alternatively, use a Gmail")
+    assert 'value="demo@pyevp.dev"' in page
+    assert 'role="status" aria-live="polite"' in page
+    for script in (
+        'addEventListener("submit"',
+        "event.preventDefault()",
+        "token.value",
+        "form.requestSubmit(submitter)",
+        "8000",
+        "400",
+        '"aria-busy"',
+        "navigator.userAgentData?.brands",
+        "navigator.userAgent",
+        ">= 150",
+        "Waiting for your email provider…",
+        "Token received, verifying…",
+    ):
+        assert script in page
+    assert "form.submit(" not in page
+    assert ".disabled" not in page
+    assert "setInterval" not in page
+    assert "/me" not in page
+    assert "You are signed in" not in page
+
+
+def test_success_trace_and_claims(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
+    nonce = _nonce(rp_client)
+    evt = _present(rp_issuer, "alice@gmail.example", nonce)
+    page = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt}).text
+    assert list(_statuses(page).values()) == ["passed"] * 6
+    assert "_email-verification.gmail.example" in page
+    assert rp_issuer.metadata_url in page
+    assert rp_issuer.jwks_uri in page
+    assert "Elapsed:" in page
+    assert " ms" in page
+    assert '<details id="decoded-claims"' in page
+    text = _page_text(page)
+    assert "EVT payload claims — decoded for display" in text
+    assert "KB-JWT payload claims — decoded for display" in text
+    assert '"email": "alice@gmail.example"' in text
+    assert f'"nonce": "{nonce}"' in text
+    assert '"aud": "https://pyevp.dev"' in text
+    assert '"sd_hash":' in text
+    assert evt not in page
+    assert all(part.rsplit(".", 1)[-1] not in page for part in evt.split("~"))
+
+
+def test_binding_trace_has_no_io(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
+    _nonce(rp_client)
+    evt = _present(rp_issuer, "alice@gmail.example", "wrong")
+    page = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt}).text
+    assert list(_statuses(page).values()) == ["passed", "failed"] + ["not run"] * 4
+    assert 'class="trace-io"' not in page
+
+
+def test_metadata_failure(
+    rp_client: TestClient, rp_issuer: FakeIssuer, rp_http: AsyncInMemoryHttp
+) -> None:
+    rp_http.documents[rp_issuer.metadata_url] = {"issuer": rp_issuer.issuer}
+    evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert response.status_code == 400
+    assert "metadata_invalid" in response.text
+    assert list(_statuses(response.text).values()) == ["passed"] * 3 + [
+        "failed",
+        "not run",
+        "not run",
+    ]
+    assert rp_issuer.metadata_url in response.text
+    assert rp_issuer.jwks_uri not in rp_http.requests
+
+
+def test_jwks_failure(
+    rp_client: TestClient, rp_issuer: FakeIssuer, rp_http: AsyncInMemoryHttp
+) -> None:
+    rp_http.documents[rp_issuer.jwks_uri] = {"keys": []}
+    evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert response.status_code == 400
+    assert list(_statuses(response.text).values()) == ["passed"] * 4 + ["failed", "not run"]
+
+
+def test_cached_fetches_and_request_isolation(
+    rp_client: TestClient, rp_issuer: FakeIssuer, rp_http: AsyncInMemoryHttp
+) -> None:
+    for attempt in range(2):
+        evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
+        page = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt}).text
+        assert list(_statuses(page).values()) == ["passed"] * 6
+        assert page.count('class="trace-io"') == (3 if attempt == 0 else 1)
+    assert rp_http.requests == [rp_issuer.metadata_url, rp_issuer.jwks_uri]
+    _nonce(rp_client)
+    failed = rp_client.post(
+        "/verify",
+        data={
+            "email": "alice@gmail.example",
+            "evt": _present(rp_issuer, "alice@gmail.example", "wrong"),
+        },
+    ).text
+    assert 'class="trace-io"' not in failed
+
+
+@pytest.mark.parametrize("claims", [{"email_verified": False}, {"email": "other@gmail.example"}])
+def test_early_claims_failure_does_not_invent_network_checks(
+    rp_client: TestClient,
+    rp_issuer: FakeIssuer,
+    claims: dict[str, object],
+) -> None:
+    browser = FakeBrowser(clock=rp_issuer.clock)
+    evt = browser.present(
+        rp_issuer.issue("alice@gmail.example", browser.public_jwk, claims=claims),
+        audience=SITE,
+        nonce=_nonce(rp_client),
+    )
+    page = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt}).text
+    statuses = _statuses(page)
+    assert statuses["claims"] == "failed"
+    assert statuses["dns"] == statuses["metadata"] == statuses["jwks"] == "not run"
+    assert statuses["binding"] == ("not run" if "email_verified" in claims else "passed")
+    assert 'class="trace-io"' not in page
+
+
+def test_decoded_claims_are_escaped(rp_client: TestClient, rp_issuer: FakeIssuer) -> None:
+    payload = '<script>alert("claims")</script>'
+    browser = FakeBrowser(clock=rp_issuer.clock)
+    evt = browser.present(
+        rp_issuer.issue("alice@gmail.example", browser.public_jwk, claims={"display": payload}),
+        audience=SITE,
+        nonce=_nonce(rp_client),
+    )
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert response.status_code == 200
+    assert payload not in response.text
+    assert "&lt;script&gt;" in response.text
+    assert json.dumps(payload)[1:-1] in _page_text(response.text)
+
+
+def test_lookup_targets_are_escaped(
+    rp_client: TestClient,
+    rp_issuer: FakeIssuer,
+    rp_http: AsyncInMemoryHttp,
+) -> None:
+    target = rp_issuer.issuer + '/<script>alert("io")</script>'
+    rp_http.documents[rp_issuer.metadata_url] = {**rp_issuer.metadata, "jwks_uri": target}
+    evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
+    response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+    assert response.status_code == 400
+    assert "issuer_unreachable" in response.text
+    assert target not in response.text
+    assert "&lt;script&gt;alert(&#34;io&#34;)&lt;/script&gt;" in response.text
+    assert list(_statuses(response.text).values()) == ["passed"] * 4 + ["failed", "not run"]
+
+
+@pytest.mark.parametrize("stage", ["metadata", "jwks"])
+def test_cached_invalid_document_keeps_its_failure_stage(
+    rp_client: TestClient,
+    rp_issuer: FakeIssuer,
+    rp_http: AsyncInMemoryHttp,
+    stage: str,
+) -> None:
+    url = rp_issuer.metadata_url if stage == "metadata" else rp_issuer.jwks_uri
+    rp_http.documents[url] = {"issuer": rp_issuer.issuer} if stage == "metadata" else {"keys": []}
+    for attempt in range(2):
+        evt = _present(rp_issuer, "alice@gmail.example", _nonce(rp_client))
+        response = rp_client.post("/verify", data={"email": "alice@gmail.example", "evt": evt})
+        assert response.status_code == 400
+        assert _statuses(response.text)[stage] == "failed"
+        if attempt == 1:
+            assert response.text.count('class="trace-io"') == 1
+    assert rp_http.requests.count(url) == 1

@@ -9,7 +9,20 @@
 {{ pygments_css }}</style>
 </head>
 <body>
+  <header id="site-header" class="site-header">
+    <nav aria-label="Main navigation">
+      <a href="{{ site_url }}/">pyevp</a>
+      <a href="{{ site_url }}/demo">Demo</a>
+      <a href="https://pyevp.readthedocs.io/">Docs</a>
+      <a href="https://github.com/gaato/pyevp">GitHub</a>
+    </nav>
+  </header>
   <main>{% block content %}{% endblock %}</main>
+  <footer id="site-footer" class="site-footer">
+    <a href="https://pypi.org/project/pyevp/">PyPI</a>
+    <a href="https://github.com/gaato/pyevp/blob/main/LICENSE">License (MIT)</a>
+    <a href="https://pyevp.readthedocs.io/ja/latest/" lang="ja">日本語ドキュメント</a>
+  </footer>
   {% block scripts %}{% endblock %}
 </body>
 </html>

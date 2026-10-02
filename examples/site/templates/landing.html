@@ -1,18 +1,11 @@
 {% extends "base.html" %}
 {% block title %}pyevp — email verification for Python{% endblock %}
 {% block content %}
-  <header>
+  <section id="landing-intro" class="landing-intro">
     <h1>pyevp</h1>
     <p>Verify email addresses in Python with a token from the user's email provider.</p>
-    <nav aria-label="Project links">
-      <a href="{{ demo_url }}">Try the demo</a>
-      <a href="https://pyevp.readthedocs.io/">Docs</a>
-      <a href="https://pyevp.readthedocs.io/ja/latest/" lang="ja">日本語ドキュメント</a>
-      <a href="https://github.com/gaato/pyevp">GitHub</a>
-      <a href="https://pypi.org/project/pyevp/">PyPI</a>
-      <a href="https://github.com/gaato/pyevp/blob/main/LICENSE">License (MIT)</a>
-    </nav>
-  </header>
+    <p><a href="/demo">Try the demo</a></p>
+  </section>
   <section aria-labelledby="how-it-works">
     <h2 id="how-it-works">How it works</h2>
     <ol>

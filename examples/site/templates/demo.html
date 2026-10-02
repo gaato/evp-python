@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Try EVP — pyevp{% endblock %}
+{% block content %}
+<section id="demo" class="demo" aria-labelledby="demo-heading">
+  <h1 id="demo-heading">Try EVP</h1>
+  <ol id="demo-steps" class="demo-steps">
+    <li id="demo-browser" class="demo-step">
+      <h2>Use Chrome with EVP</h2>
+      <p>Use desktop Chrome or Chromium 150 or newer. Enable
+        <code>chrome://flags/#email-verification-protocol</code> and relaunch the browser.</p>
+      <p id="browser-hint" class="demo-notice" hidden></p>
+      <p>Browser hints are approximate. This page cannot detect whether EVP is enabled.</p>
+    </li>
+    <li id="demo-provider" class="demo-step">
+      <h2>Sign in at an email provider</h2>
+      <p>Start with the <a href="{{ provider_url }}">demo email provider</a>:
+        sign in as <code>{{ email }}</code>, then return here.</p>
+      <p>Alternatively, use a Gmail address. Be signed in to its Google account in this
+        Chrome profile.</p>
+      <p>The demo account is open to anyone; it proves only that someone clicked Sign in.</p>
+    </li>
+    <li id="demo-verify" class="demo-step">
+      <h2>Verify</h2>
+      {% if not result_kind %}
+      <form id="verify-form" class="demo-form" method="post" action="/verify">
+        <label for="email">Your email address</label>
+        <input type="email" id="email" name="email" autocomplete="email" value="{{ email }}" required>
+        <input type="hidden" id="evt" name="evt" autocomplete="email-verification-token" nonce="{{ nonce }}">
+        <button type="submit" id="verify-button">Verify</button>
+        <p id="token-status" class="token-status" role="status" aria-live="polite"></p>
+      </form>
+      {% else %}
+      <p>This submission has consumed its nonce. Start over to get a new form.</p>
+      {% endif %}
+    </li>
+  </ol>
+  <section id="demo-result" class="demo-result" role="status" aria-live="polite" aria-label="Verification result">
+    {% if result_kind == "verified" %}
+    <h2>Verified</h2>
+    <dl>{% for label, value in rows.items() %}<dt>{{ label }}</dt><dd>{{ value }}</dd>{% endfor %}</dl>
+    {% elif result_kind == "failed" %}
+    <h2>Verification failed</h2>
+    <dl><dt>Code</dt><dd><code>{{ code }}</code></dd><dt>Detail</dt><dd>{{ detail }}</dd></dl>
+    {% elif result_kind == "expired" %}
+    <h2>Session expired</h2>
+    <p>The form's session is missing or has already been used.</p>
+    {% elif result_kind == "no-token" %}
+    <h2>No token received</h2>
+    <p>The browser submitted the form without an EVP token. Likely causes:</p>
+    <ul>
+      <li>You are not signed in at the email provider in this browser profile.</li>
+      <li>The form was submitted before the token arrived.</li>
+      <li>EVP is not enabled, or this browser or provider does not support it.</li>
+    </ul>
+    {% endif %}
+    {% if trace_steps %}
+    <section id="verification-trace" class="verification-trace" aria-labelledby="trace-heading">
+      <h3 id="trace-heading">Verification trace</h3>
+      <p id="verification-time">Elapsed: {{ "%.1f" | format(elapsed_ms) }} ms</p>
+      <p>Preliminary EVT claims and the email match are checked before DNS. The issuer
+        signature is checked after JWKS. A passed claims row requires all of these checks.</p>
+      <p>I/O below records lookups made for this request. Cached HTTP documents produce no fetch entry.
+        A successful lookup does not mean its contents passed validation.</p>
+      <ol class="trace-steps">
+        {% for step in trace_steps %}
+        <li id="trace-{{ step.id }}" class="trace-step" data-status="{{ step.status }}">
+          <h4>{{ step.label }}</h4>
+          <p class="trace-status">{{ step.status }}</p>
+          {% if step.io %}
+          <ul class="trace-io">
+            {% for entry in step.io %}
+            <li><code>{{ entry.target }}</code>: {{ entry.outcome }} ({{ "%.1f" | format(entry.elapsed_ms) }} ms)</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+    {% if decoded %}
+    <details id="decoded-claims" class="decoded-claims">
+      <summary>Payload claims — decoded for display</summary>
+      <p>These are decoded values, not independent proof of authenticity. Read the verification result above.</p>
+      {% for label, claims in decoded.items() %}
+      <section class="claims-payload" aria-label="{{ label }} payload claims">
+        <h3>{{ label }} payload claims — decoded for display</h3>
+        <pre><code>{{ claims }}</code></pre>
+      </section>
+      {% endfor %}
+    </details>
+    {% endif %}
+    {% if result_kind %}<p><a href="/demo">Start over</a></p>{% endif %}
+  </section>
+  <p class="demo-policy">Accepted issuers: {{ allowed_issuers }}.</p>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const brands = navigator.userAgentData?.brands;
+  const chrome = brands?.find(({brand}) => /^(Google Chrome|Chromium)$/.test(brand));
+  const uaVersion = navigator.userAgent.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1];
+  const desktop = !navigator.userAgentData?.mobile && !/Android|Mobile|iPhone|iPad/.test(navigator.userAgent);
+  const recentChrome = desktop && Number(chrome?.version ?? uaVersion ?? 0) >= 150;
+  const hint = document.getElementById("browser-hint");
+  if (!window.isSecureContext || !recentChrome) {
+    hint.textContent = !window.isSecureContext
+      ? "This page is not a secure context. Open it over HTTPS to try EVP."
+      : "This browser may not support EVP. Try desktop Chrome or Chromium 150 or newer with EVP enabled.";
+    hint.hidden = false;
+  }
+  const form = document.getElementById("verify-form");
+  if (!form || typeof form.requestSubmit !== "function") return;
+  const token = document.getElementById("evt");
+  const button = document.getElementById("verify-button");
+  const status = document.getElementById("token-status");
+  let started;
+  let timer;
+  form.addEventListener("submit", (event) => {
+    clearTimeout(timer);
+    started ??= performance.now();
+    if (!token.value && performance.now() - started < 8000) {
+      event.preventDefault();
+      status.textContent = "Waiting for your email provider…";
+      button.setAttribute("aria-busy", "true");
+      const submitter = event.submitter ?? button;
+      timer = setTimeout(() => form.requestSubmit(submitter), 400);
+      return;
+    }
+    button.removeAttribute("aria-busy");
+    status.textContent = token.value ? "Token received, verifying…" : "No token received; submitting for an explanation…";
+  });
+})();
+</script>
+{% endblock %}

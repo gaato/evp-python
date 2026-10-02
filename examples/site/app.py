@@ -1,4 +1,10 @@
-"""pyevp.dev and its mock email provider, served by one ASGI app."""
+"""pyevp.dev landing page, relying party and mock provider in one ASGI app.
+
+The issuer allowlist matters for a public deployment: discovery fetches HTTPS URLs
+chosen by whoever controls the email domain in the token, before any issuer
+signature is checked. Rejecting unknown issuers at the DNS step means the demo
+only ever contacts issuers listed here.
+"""
 
 from __future__ import annotations
 
@@ -7,12 +13,14 @@ import logging
 import os
 import secrets
 import textwrap
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Iterable
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from time import perf_counter
+from typing import Annotated, TypedDict
 
-from fastapi import FastAPI, Request
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from fastapi import Depends, FastAPI, Form, Request
+from jinja2 import Environment, FileSystemLoader, Template, select_autoescape
 from markupsafe import Markup
 from pygments import highlight
 from pygments.formatters.html import HtmlFormatter
@@ -23,10 +31,39 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from starlette.responses import (
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 from starlette.routing import Host, Route
+from starlette.types import Receive, Scope, Send
+from verification_trace import (
+    CURRENT_TRACE,
+    RecordingClock,
+    RecordingFetcher,
+    RecordingResolver,
+    Trace,
+    TrackingCache,
+)
 
-from pyevp import Clock
+from pyevp import (
+    AsyncTxtResolver,
+    AsyncVerifier,
+    Clock,
+    DiscoveryError,
+    ErrorCode,
+    EVPError,
+    InMemoryReplayGuard,
+    LoggingObserver,
+    generate_nonce,
+)
+from pyevp.adapters import httpx as httpx_adapter
+from pyevp.adapters.dnspython import AsyncDnsPythonResolver
+from pyevp.cache import InMemoryCache
+from pyevp.discovery import canonical_issuer
 from pyevp.issuer import (
     FEDCM_FETCH_DEST,
     IssuanceError,
@@ -37,6 +74,8 @@ from pyevp.issuer import (
     web_identity_document,
 )
 from pyevp.ports import system_clock
+from pyevp.profile import IssuerFormat
+from pyevp.token import parse_token
 
 ISSUANCE_PATH = "/email-verification/issuance"
 JWKS_PATH = "/email-verification/jwks"
@@ -44,6 +83,7 @@ ACCOUNTS_PATH = "/fedcm/accounts"
 LOGIN_PATH = "/login"
 MAX_BODY = 16 * 1024
 SESSION_USER = "email"
+SESSION_NONCE = "evp_nonce"
 HERE = Path(__file__).resolve().parent
 EXAMPLES_DIR = HERE.parent
 STYLESHEET = HERE / "static" / "site.css"
@@ -53,6 +93,37 @@ EXAMPLES = (
     ("django-allauth", "Django allauth", "django_allauth/evp_allauth.py"),
 )
 NO_STORE = {"Cache-Control": "no-store"}
+
+
+class TraceDisplay(TypedDict):
+    trace_steps: list[dict[str, object]]
+    decoded: dict[str, str] | None
+    elapsed_ms: float
+
+
+class AllowedIssuers:
+    """Resolver wrapper that refuses ``iss=`` records naming an issuer not in ``allowed``."""
+
+    def __init__(self, inner: AsyncTxtResolver, allowed: Iterable[str]) -> None:
+        self._inner = inner
+        self._allowed = frozenset(allowed)
+
+    async def resolve_txt(self, name: str) -> list[str]:
+        records = await self._inner.resolve_txt(name)
+        for record in records:
+            if not record.startswith("iss="):
+                continue
+            issuer = canonical_issuer(record.removeprefix("iss=").strip(), IssuerFormat.ANY)
+            if issuer not in self._allowed:
+                raise DiscoveryError(
+                    ErrorCode.ISSUER_DISCOVERY_FAILED,
+                    f"this demo only accepts tokens from {', '.join(sorted(self._allowed))}",
+                )
+        return records
+
+
+def get_verifier(request: Request) -> AsyncVerifier:
+    return request.app.state.verifier
 
 
 def extract_example(path: Path) -> str:
@@ -78,10 +149,11 @@ def _render_pages(
     examples_dir: Path,
     stylesheet_path: Path,
     dev: bool,
-    demo_url: str,
+    mail_host: str,
+    allowed_issuers: Iterable[str],
     site_host: str,
     email: str,
-) -> dict[str, str]:
+) -> tuple[Template, dict[str, object], dict[str, str]]:
     try:
         stylesheet = stylesheet_path.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -103,7 +175,8 @@ def _render_pages(
     context = {
         "stylesheet": Markup(stylesheet),
         "pygments_css": Markup(pygments_css),
-        "demo_url": demo_url,
+        "provider_url": f"https://{mail_host}/",
+        "allowed_issuers": ", ".join(sorted(allowed_issuers)),
         "site_url": f"https://{site_host}",
         "email": email,
     }
@@ -115,7 +188,8 @@ def _render_pages(
         }
         for ident, label, path in EXAMPLES
     ]
-    pages = {"landing": templates.get_template("landing.html").render(examples=examples, **context)}
+    context["examples"] = examples
+    pages = {}
     mail = templates.get_template("mail.html")
     for name, signed_in, status in (
         ("signed-out", False, None),
@@ -124,23 +198,121 @@ def _render_pages(
         ("logged-out", False, "logged-out"),
     ):
         pages[name] = mail.render(signed_in=signed_in, login_status=status, **context)
-    return pages
+    pages["landing"] = templates.get_template("landing.html").render(**context)
+    return templates.get_template("demo.html"), context, pages
 
 
 async def _security_headers(request: Request, call_next: RequestResponseEndpoint) -> Response:
     response = await call_next(request)
+    # No header-delivered CSP: browsers hide nonce attributes, including EVP's.
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
     return response
 
 
-def _site_app(issuer: Issuer, pages: dict[str, str]) -> FastAPI:
+class SiteSessionMiddleware(SessionMiddleware):
+    """Only the interactive demo routes use the relying-party session."""
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and scope["path"] not in {"/demo", "/verify"}:
+            await self.app(scope, receive, send)
+        else:
+            await super().__call__(scope, receive, send)
+
+
+def _site_app(issuer: Issuer, *, session_secret: str) -> FastAPI:
     site = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    site.add_middleware(
+        SiteSessionMiddleware,
+        secret_key=session_secret,
+        session_cookie="pyevp_site_session",
+        same_site="lax",
+        https_only=True,
+    )
+
+    def demo_response(*, status_code: int = 200, **context: object) -> HTMLResponse:
+        return HTMLResponse(
+            site.state.demo_template.render(**site.state.page_context, **context),
+            status_code=status_code,
+            headers=NO_STORE,
+        )
 
     @site.get("/")
     async def landing() -> HTMLResponse:
-        return HTMLResponse(pages["landing"])
+        return HTMLResponse(site.state.landing_page)
+
+    @site.get("/demo")
+    async def demo(request: Request) -> HTMLResponse:
+        nonce = generate_nonce()
+        request.session[SESSION_NONCE] = nonce
+        return demo_response(nonce=nonce)
+
+    @site.post("/verify")
+    async def verify(
+        request: Request,
+        verifier: Annotated[AsyncVerifier, Depends(get_verifier)],
+        email: Annotated[str, Form()],
+        evt: Annotated[str, Form()] = "",
+    ) -> HTMLResponse:
+        # Single use: the nonce is consumed whether or not verification succeeds.
+        nonce = request.session.pop(SESSION_NONCE, None)
+        if not evt:
+            return demo_response(result_kind="no-token")
+        if nonce is None:
+            return demo_response(result_kind="expired", status_code=400)
+        trace = Trace()
+        started = perf_counter()
+        now = site.state.clock()
+        parsed = None
+        # The verifier supplies the authoritative error below.
+        with suppress(EVPError):
+            parsed = parse_token(evt, allow_disclosures=verifier.profile.allow_disclosures)
+        decoded = (
+            {
+                "EVT": json.dumps(parsed.evt.claims, indent=2),
+                "KB-JWT": json.dumps(parsed.kb.claims, indent=2),
+            }
+            if parsed is not None
+            else None
+        )
+        error = None
+        marker = CURRENT_TRACE.set(trace)
+        try:
+            result = await verifier.verify(evt, nonce=nonce, email=email)
+        except EVPError as exc:
+            error = exc
+        finally:
+            CURRENT_TRACE.reset(marker)
+        display: TraceDisplay = {
+            "trace_steps": trace.steps(
+                error,
+                parsed=parsed,
+                now=trace.checked_at or now,
+                profile=verifier.profile,
+                audience=verifier.audience,
+                nonce=nonce,
+                email=email,
+            ),
+            "decoded": decoded,
+            "elapsed_ms": (perf_counter() - started) * 1000,
+        }
+        if error is not None:
+            return demo_response(
+                result_kind="failed",
+                code=error.code,
+                detail=error.args[0],
+                status_code=400,
+                **display,
+            )
+        rows = {
+            "Email": result.email,
+            "Issuer": result.issuer,
+            "Issued at": result.issued_at.isoformat(),
+            "Expires at": result.expires_at.isoformat() if result.expires_at else "-",
+            "Private relay address": "yes" if result.is_private_email else "no",
+        }
+        return demo_response(result_kind="verified", rows=rows, **display)
 
     @site.get("/.well-known/web-identity")
     async def web_identity() -> JSONResponse:
@@ -252,7 +424,8 @@ def create_app(
     site_host: str = "pyevp.dev",
     mail_host: str = "mail.pyevp.dev",
     email_domain: str = "pyevp.dev",
-    demo_url: str = "https://demo.pyevp.dev",
+    legacy_demo_host: str = "demo.pyevp.dev",
+    allowed_issuers: Iterable[str] | None = None,
     build_sha: str = "unknown",
     examples_dir: Path = EXAMPLES_DIR,
     stylesheet_path: Path = STYLESHEET,
@@ -279,39 +452,63 @@ def create_app(
     )
     email = f"demo@{email_domain}"
     pages: dict[str, str] = {}
+    allowed = frozenset(
+        allowed_issuers if allowed_issuers is not None else ("https://accounts.google.com", base)
+    )
+    site = _site_app(issuer, session_secret=session_secret)
 
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
-        pages.update(
-            _render_pages(
-                examples_dir=examples_dir,
-                stylesheet_path=stylesheet_path,
-                dev=dev,
-                demo_url=demo_url,
-                site_host=site_host,
-                email=email,
-            )
+        logging.basicConfig(level=logging.INFO)
+        template, context, mail_pages = _render_pages(
+            examples_dir=examples_dir,
+            stylesheet_path=stylesheet_path,
+            dev=dev,
+            mail_host=mail_host,
+            allowed_issuers=allowed,
+            site_host=site_host,
+            email=email,
+        )
+        site.state.demo_template = template
+        site.state.page_context = context
+        site.state.landing_page = mail_pages.pop("landing")
+        site.state.clock = clock
+        pages.update(mail_pages)
+        # One process only: the replay guard lives in memory.
+        site.state.verifier = AsyncVerifier.default(
+            audience=f"https://{site_host}",
+            resolver=AllowedIssuers(RecordingResolver(AsyncDnsPythonResolver()), allowed),
+            fetcher=RecordingFetcher(httpx_adapter.AsyncHttpxFetcher()),
+            cache=TrackingCache(InMemoryCache(clock=clock)),
+            replay_guard=InMemoryReplayGuard(clock=clock),
+            observer=LoggingObserver(),
+            clock=RecordingClock(clock),
         )
         yield
 
     async def healthz(request: Request) -> PlainTextResponse:
         return PlainTextResponse("ok")
 
+    async def legacy_redirect(scope: Scope, receive: Receive, send: Send) -> None:
+        await RedirectResponse(f"https://{site_host}/demo", status_code=301)(scope, receive, send)
+
     app = Starlette(
         routes=[
             Route("/healthz", healthz),
-            Host(site_host, _site_app(issuer, pages)),
+            Host(site_host, site),
             Host(
                 mail_host,
                 _mail_app(
                     issuer, pages, email=email, session_secret=session_secret, build_sha=build_sha
                 ),
             ),
+            Host(legacy_demo_host, legacy_redirect),
         ],
         lifespan=lifespan,
         middleware=[Middleware(BaseHTTPMiddleware, dispatch=_security_headers)],
     )
     app.state.issuer = issuer
+    app.state.site = site
     return app
 
 
@@ -323,7 +520,12 @@ def _from_environment() -> Starlette:
         site_host=os.environ.get("EVP_SITE_HOST", "pyevp.dev"),
         mail_host=os.environ.get("EVP_MAIL_HOST", "mail.pyevp.dev"),
         email_domain=os.environ.get("EVP_EMAIL_DOMAIN", "pyevp.dev"),
-        demo_url=os.environ.get("EVP_DEMO_URL", "https://demo.pyevp.dev"),
+        legacy_demo_host=os.environ.get("EVP_LEGACY_DEMO_HOST", "demo.pyevp.dev"),
+        allowed_issuers=(
+            os.environ["EVP_ALLOWED_ISSUERS"].split()
+            if "EVP_ALLOWED_ISSUERS" in os.environ
+            else None
+        ),
         build_sha=os.environ.get("BUILD_SHA", "unknown"),
         examples_dir=Path(os.environ.get("EVP_EXAMPLES_DIR", EXAMPLES_DIR)),
         stylesheet_path=STYLESHEET,

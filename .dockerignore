@@ -1,4 +1,4 @@
-# Build context for examples/demo/Containerfile.
+# Build context for examples/site/Containerfile.
 .git
 .jj
 .venv

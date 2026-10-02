@@ -1,12 +1,13 @@
 [project]
 name = "pyevp-example-site"
 version = "0"
-description = "pyevp.dev landing page and mock email provider"
+description = "pyevp.dev landing page, relying-party demo and mock email provider"
 requires-python = ">=3.12"
 dependencies = [
     "pyevp[all]",
     "fastapi>=0.142",
     "itsdangerous>=2.2",
+    "python-multipart>=0.0.32",
     "jinja2>=3.1",
     "pygments>=2.19",
     "accessible-pygments",

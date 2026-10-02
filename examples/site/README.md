@@ -1,13 +1,19 @@
-# pyevp.dev site and demo provider
+# pyevp.dev site, relying-party demo and demo provider
 
-One container serves two hosts:
+One container serves the landing page, an EVP relying-party demo on its own page,
+and a demo email provider:
 
 | Host | What |
 |---|---|
-| `pyevp.dev` | The landing page and the FedCM `/.well-known/web-identity` for the whole site |
+| `pyevp.dev` | The landing page, `/demo` relying-party demo, and the FedCM `/.well-known/web-identity` for the whole site |
 | `mail.pyevp.dev` | A demo email provider (EVP issuer) with one account, `demo@pyevp.dev` |
+| `demo.pyevp.dev` | Legacy host; permanently redirects to `https://pyevp.dev/demo` |
 
-The relying-party demo at `demo.pyevp.dev` is a separate app (`examples/demo`).
+Visitors start at `https://pyevp.dev/demo`. The default path is to sign in at
+`https://mail.pyevp.dev/` and use `demo@pyevp.dev`; Gmail is an alternative when the
+visitor is signed in to Google in the same Chrome profile.
+The relying party and provider are same-site (both under `pyevp.dev`), unlike most real
+deployments, where they are cross-site.
 
 Chrome reads exactly one `/.well-known/web-identity` per registrable domain, and it names a
 single `accounts_endpoint`. So `pyevp.dev` can host only one issuer, and this is it: the nightly
@@ -21,6 +27,7 @@ pressed the button. Do not accept it anywhere but a demo.
 ```
 pyevp.dev                         -> this container (Cloudflare Tunnel)
 mail.pyevp.dev                    -> this container (Cloudflare Tunnel)
+demo.pyevp.dev                    -> this container (Cloudflare Tunnel; legacy redirect)
 _email-verification.pyevp.dev TXT "iss=mail.pyevp.dev"
 pyevp.dev MX 0 .                  (null MX: the address receives no mail)
 pyevp.dev TXT "v=spf1 -all"
@@ -35,11 +42,12 @@ request comes from the same connector address.
 | Variable | Default | |
 |---|---|---|
 | `EVP_SIGNING_JWK` | required | Private signing key as a JWK JSON string (`pyevp issuer keygen`) |
-| `SESSION_SECRET` | required | Key for the provider's signed session cookie |
+| `SESSION_SECRET` | required | Key for the separate site and provider signed session cookies |
 | `EVP_SITE_HOST` | `pyevp.dev` | Host of the landing page |
 | `EVP_MAIL_HOST` | `mail.pyevp.dev` | Host of the provider; the issuer is `https://<this>` |
 | `EVP_EMAIL_DOMAIN` | `pyevp.dev` | The demo address is `demo@<this>` |
-| `EVP_DEMO_URL` | `https://demo.pyevp.dev` | Linked from both pages |
+| `EVP_ALLOWED_ISSUERS` | `https://accounts.google.com https://<mail host>` | Space-separated issuer origins accepted by the relying party; an empty value accepts none |
+| `EVP_LEGACY_DEMO_HOST` | `demo.pyevp.dev` | Host that permanently redirects to `https://<site host>/demo` |
 | `EVP_EXAMPLES_DIR` | Repository `examples/` | Root containing the three marked framework examples; the image sets this to `/app/examples` |
 | `BUILD_SHA` | `unknown` | Reported by `/me`; the image sets it at build time |
 | `EVP_DEV` | unset | `1` allows a missing key (an ephemeral one is generated) or session secret, and a missing stylesheet. Never set it in production |
@@ -58,8 +66,86 @@ The container listens on port 8080.
 
 | Route | Response |
 |---|---|
-| `GET /` | The landing page |
+| `GET /` | Landing page rendered once at startup; no nonce or session |
+| `GET /demo` | Demo page rendered per request, with a fresh nonce in the form and site session |
+| `POST /verify` | Demo page with the verification result: verified email and issuer, stable error code and explanation (400), expired session (400), or missing-token explanation (200) |
 | `GET /.well-known/web-identity` | `web_identity_document(accounts_endpoint="https://<mail host>/fedcm/accounts", login_url="https://<mail host>/login")`, `application/json` |
+
+The relying-party session cookie is host-only on the site host, named `pyevp_site_session`,
+with `SameSite=Lax; Secure; HttpOnly`. It is separate from the mail host's cookie. The nonce
+is consumed on submission, whether verification succeeds or fails; "Start over" links to
+`/demo` to get a new nonce. Demo and verification responses use `Cache-Control: no-store`.
+The landing route does not read or update the site session, even when the browser already
+has a site cookie.
+The verifier's audience is `https://<site host>`.
+
+Discovery can otherwise fetch HTTPS URLs chosen by whoever controls the email domain in
+the token, before checking the issuer signature. `AllowedIssuers` rejects unlisted issuers
+at the DNS step, before any HTTP fetch. The verifier also uses `InMemoryReplayGuard` and
+`LoggingObserver`. Run one process only: replay protection is in memory. The app sets
+security headers but deliberately omits header-delivered CSP, which hides HTML nonce
+attributes that EVP needs to read.
+
+### Demo flow and token arrival
+
+The page uses semantic HTML and named hooks for its three steps: `#demo-browser`,
+`#demo-provider`, and `#demo-verify`, followed by `#demo-result` (`role="status"`,
+`aria-live="polite"`). Desktop Chrome/Chromium 150 or newer with
+`chrome://flags/#email-verification-protocol` enabled is the suggested browser. A soft
+client-side notice uses the secure context, UA brands/version, and mobile hints; it never
+blocks submission and cannot detect whether EVP is enabled. The provider sign-in state
+is not queried or displayed by the relying party. The demo address is prefilled; visitors
+can replace it with Gmail.
+
+Chrome fills the hidden `autocomplete="email-verification-token"` input on submission,
+before submit handlers run. The inline script checks it at each submit attempt. If empty,
+it prevents submission, says "Waiting for your email provider…", sets `aria-busy` on the
+button, and retries via `form.requestSubmit(submitter)` every 400 ms. A token lets submission
+proceed immediately with "Token received, verifying…". After 8 seconds from the first attempt,
+it submits even without a token so the server can explain likely causes. The button stays
+enabled; repeat clicks share the deadline and replace the pending timer. Without JavaScript
+(or without `requestSubmit`) the ordinary form still submits. This is a bounded workaround
+for [WICG/email-verification issue #42](https://github.com/WICG/email-verification/issues/42),
+not an EVP feature detection API.
+
+### Verification trace
+
+Token verification results include elapsed milliseconds, six trace rows with `passed`,
+`failed`, or `not run`, and an exhaustive `ErrorCode` mapping in `verification_trace.py`:
+
+1. Parse the token.
+2. Key binding: audience, nonce, freshness, `sd_hash`, holder signature.
+3. DNS `_email-verification.<domain>`.
+4. Issuer metadata.
+5. JWKS.
+6. Issuer signature and claims, including the email match and replay protection.
+
+These are grouped display rows. The library actually checks preliminary EVT claims before
+key binding, and the email match before DNS; the holder signature also precedes the other
+key-binding checks. An early claims failure marks the claims row failed and leaves network
+rows not run; key binding is passed only if it ran. All rows pass only after full success.
+Public offline checks disambiguate shared error codes after a failure; recorded port/cache
+activity identifies DNS, metadata, and JWKS failures without parsing exception messages.
+
+DNS and HTTP recording wrappers use the public async ports. The resolver recorder sits
+inside `AllowedIssuers`, so a completed DNS lookup may be recorded as passed while issuer
+policy fails the DNS row. Lookup outcomes describe I/O, not document validation. Each
+lookup includes its name/URL, outcome, and elapsed milliseconds. A request-local contextvar
+isolates records. One long-lived verifier preserves its caches, refresh throttling, replay
+guard, and logging observer. A public cache wrapper tracks stages even for cached documents;
+cache hits produce no HTTP fetch entries. No library internals are accessed.
+
+A `<details>` panel shows only EVT and KB-JWT payload claims from `pyevp.token.parse_token`,
+labeled "decoded for display". Decoding is not verification. Raw tokens, JWT headers, and
+signatures are not displayed. All claims, errors, results, and lookup targets are escaped.
+Missing tokens produce likely causes (provider sign-in, token arrival, EVP enablement) and
+all results offer a "Start over" link to `/demo`.
+
+### Legacy host (`EVP_LEGACY_DEMO_HOST`)
+
+| Route | Response |
+|---|---|
+| Every path and HTTP method, except `GET /healthz` | `301` with `Location: https://<site host>/demo`; original path and query are discarded |
 
 ### `mail.pyevp.dev`
 
@@ -80,14 +166,17 @@ Paths follow `examples/issuer_fastapi`.
 `same-origin` with 403.
 
 The session cookie is host-only on the mail host, `SameSite=None; Secure; HttpOnly`, and lasts
-one hour. Chrome sends it with the FedCM accounts and issuance requests, which are cross-site
-from the relying party.
+one hour. Chrome sends it with the FedCM accounts and issuance requests; `SameSite=None`
+also supports relying parties on other sites.
 
 Error responses carry no request details.
 
 ## Landing page
 
-Templates are Jinja2 (`templates/`), rendered once at startup. The stylesheet is Tailwind CSS v4
+Templates are Jinja2 (`templates/`). `base.html` shares the header/navigation (home, Demo,
+Docs, GitHub) and footer. The landing page, example extraction, Pygments highlighting,
+stylesheet loading and provider-page rendering happen once at startup. `/demo` is rendered
+per request. The stylesheet is Tailwind CSS v4
 with daisyUI 5 (default `light` and `dark` themes, following `prefers-color-scheme`), built
 without Node by `scripts/build-css.sh` and inlined into each page. Code is highlighted with
 Pygments on the server, with a light and a dark style.
@@ -115,9 +204,9 @@ them into WAI-ARIA tabs.
 
 ## Development
 
-```sh
+```fish
 scripts/build-css.sh static/site.css   # downloads the pinned Tailwind and daisyUI once
-EVP_DEV=1 uv run uvicorn app:app --port 8080
+env EVP_DEV=1 uv run uvicorn app:app --port 8080
 curl -H 'Host: pyevp.dev' localhost:8080/
 uv run pytest
 ```

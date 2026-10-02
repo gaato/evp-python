@@ -64,14 +64,15 @@ def test_key_rotation_requests_refresh(
 Build: TypeAlias = Callable[[FakeIssuer, FakeBrowser, str, FixedClock], str]
 
 
-def _kb_with_iat(iat: Any) -> Build:
+def _kb_with(**overrides: Any) -> Build:
     def build(issuer: FakeIssuer, browser: FakeBrowser, nonce: str, clock: FixedClock) -> str:
         evt = issuer.issue(EMAIL, browser.public_jwk)
         claims = {
             "aud": AUDIENCE,
             "nonce": nonce,
-            "iat": iat,
+            "iat": int(clock().timestamp()),
             "sd_hash": compute_sd_hash(evt + "~"),
+            **overrides,
         }
         return f"{evt}~{sign_jwt({'alg': browser.alg, 'typ': 'kb+jwt'}, claims, browser.key)}"
 
@@ -189,7 +190,7 @@ CASES: dict[str, tuple[Build, ErrorCode]] = {
         for value in (1e100, float("nan"), float("-inf"), 10**30)
     },
     **{
-        f"kb iat {value!r}": (_kb_with_iat(value), ErrorCode.MALFORMED_TOKEN)
+        f"kb iat {value!r}": (_kb_with(iat=value), ErrorCode.MALFORMED_TOKEN)
         for value in (1e100, float("nan"), 10**30)
     },
     **{
@@ -201,6 +202,13 @@ CASES: dict[str, tuple[Build, ErrorCode]] = {
         )
         for member in ("alg", "crv", "kty")
     },
+    # Lone surrogates decode from JSON but cannot be encoded as UTF-8.
+    "kb nonce lone surrogate": (_kb_with(nonce="\ud800"), ErrorCode.MALFORMED_TOKEN),
+    "kb sd_hash lone surrogate": (_kb_with(sd_hash="\udfff"), ErrorCode.MALFORMED_TOKEN),
+    "evt email lone surrogate": (
+        lambda i, b, n, c: _present(i, b, n, claims={"email": "alice\ud800@example.com"}),
+        ErrorCode.MALFORMED_TOKEN,
+    ),
     "missing email": (
         lambda i, b, n, c: _present(i, b, n, claims={"email": None}),
         ErrorCode.MALFORMED_TOKEN,

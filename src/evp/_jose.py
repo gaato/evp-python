@@ -37,6 +37,11 @@ def decode_json_segment(segment: str) -> dict[str, Any]:
         raise ValueError("segment is not base64url-encoded JSON") from exc
     if not isinstance(value, dict):
         raise ValueError("segment is not a JSON object")
+    try:
+        # JSON escapes can produce lone surrogates, which no string operation downstream expects.
+        json.dumps(value, ensure_ascii=False).encode()
+    except UnicodeEncodeError as exc:
+        raise ValueError("segment contains invalid Unicode") from exc
     return value
 
 

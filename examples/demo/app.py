@@ -217,9 +217,9 @@ Open it over HTTPS (or localhost); browsers only run EVP in secure contexts.</di
   <p class="muted" id="hint" aria-live="polite"></p>
 </form>
 <div class="card">
-<p><strong>What you need:</strong> Chrome with EVP turned on
-(<code>chrome://flags/#email-verification-protocol</code>), signed in to the Google
-account for the address you enter.</p>
+<p><strong>What you need:</strong> Chrome 154 or later, desktop or Android, with EVP
+turned on (<code>chrome://flags/#email-verification-protocol</code>), signed in to the
+Google account for the address you enter.</p>
 <p><strong>What happens:</strong> when you leave the field, Chrome asks Google for a
 signed token proving you control the address. On submit, this server checks it
 with pyevp: the issuer is found through DNS, the signature against the issuer's
@@ -248,7 +248,8 @@ NO_TOKEN = """<div class="card"><h2 class="bad">No token received</h2>
 <p>The browser submitted the form without a verification token. A normal site would
 now fall back to sending a confirmation email. Common reasons:</p>
 <ul>
-<li>EVP is not enabled in this browser, or the browser does not support it yet.</li>
+<li>EVP is not enabled in this browser, or the browser does not support it yet
+(Chrome 153 and earlier do not).</li>
 <li>The form was submitted before the token arrived. Leave the email field, wait a
 few seconds, then submit.</li>
 <li>Your email provider does not issue EVP tokens (Gmail does).</li>

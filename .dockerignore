@@ -1,0 +1,11 @@
+# Build context for examples/demo/Containerfile.
+.git
+.jj
+.venv
+**/.venv
+**/__pycache__
+**/.pytest_cache
+.ruff_cache
+docs/_build
+final_runs
+dist

@@ -13,6 +13,7 @@ access::
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -20,7 +21,7 @@ from typing import Any, Literal, TypeAlias
 
 from joserfc.jwk import ECKey, OKPKey
 
-from evp import discovery
+from evp import _httpsig, discovery
 from evp.cache import Cache
 from evp.observability import Observer
 from evp.profile import DEFAULT_PROFILE, Profile
@@ -183,6 +184,34 @@ class FakeBrowser:
     @property
     def public_jwk(self) -> dict[str, Any]:
         return {**self.key.as_dict(private=False), "alg": self.alg}
+
+    def issuance_request(
+        self,
+        email: str,
+        *,
+        endpoint: str,
+        include_alg: bool = False,
+        extra: Mapping[str, Any] | None = None,
+        created: datetime | None = None,
+    ) -> dict[str, Any]:
+        """A signed issuance request, as keyword arguments for ``Issuer.parse_request``.
+
+        Like Chrome 153, the ``hwk`` key omits ``alg`` unless ``include_alg`` is set.
+        ``extra`` adds members to the JSON body.
+        """
+        body = json.dumps({"email": email, **(extra or {})}).encode()
+        alg = "Ed25519" if self.alg == "EdDSA" else self.alg
+        headers = _httpsig.sign_request(
+            method="POST",
+            endpoint=endpoint,
+            body=body,
+            private_key=self.key,
+            public_jwk=self.key.as_dict(private=False),
+            alg=alg,
+            created=created or self.clock(),
+            include_alg=include_alg,
+        )
+        return {"method": "POST", "headers": headers, "body": body}
 
     def present(
         self,

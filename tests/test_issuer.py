@@ -484,3 +484,23 @@ def test_request_repr_hides_signature(clock: FixedClock) -> None:
     request = make_issuer(clock).parse_request(**Browser(clock).request())
     assert isinstance(request, IssuanceRequest)
     assert "signature" not in repr(request)
+
+
+@pytest.mark.parametrize("alg", ["Ed25519", "EdDSA", "ES256"])
+def test_fake_browser_issuance_request(clock: FixedClock, alg: Any) -> None:
+    issuer = make_issuer(clock)
+    browser = FakeBrowser(alg=alg, clock=clock)
+    request = issuer.parse_request(**browser.issuance_request("bob@example.com", endpoint=ENDPOINT))
+    evt = issuer.issue(request)
+    token = browser.present(evt, audience=RP, nonce="n-1")
+    assert verifier_for(issuer, clock).verify(token, nonce="n-1").email == "bob@example.com"
+    strict = make_issuer(clock, profile=IssuanceProfile.draft_hardt_02())
+    strict.parse_request(
+        **browser.issuance_request("bob@example.com", endpoint=ENDPOINT, include_alg=True)
+    )
+    with pytest.raises(IssuanceError):
+        issuer.parse_request(
+            **browser.issuance_request(
+                "bob@example.com", endpoint=ENDPOINT, extra={"private_email": True}
+            )
+        )

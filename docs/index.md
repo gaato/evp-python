@@ -18,7 +18,7 @@ changes.
   serve Django and FastAPI alike.
 - **Testable:** `pyevp.testing` ships a fake issuer and a fake browser, so your application's tests
   need no network access.
-- **Small:** the only required dependency is [joserfc]; DNS and HTTP are pluggable.
+- **Small:** the only required dependencies are [joserfc] and idna; DNS and HTTP are pluggable.
 
 ```{toctree}
 :maxdepth: 2

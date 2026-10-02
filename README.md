@@ -1,6 +1,6 @@
 # pyevp
 
-[![Documentation](https://app.readthedocs.org/projects/pyevp/badge/?version=latest)](https://pyevp.readthedocs.io/en/latest/)
+[![Documentation](https://app.readthedocs.org/projects/pyevp/badge/?version=latest)](https://docs.pyevp.dev/en/latest/)
 [![CI](https://github.com/gaato/pyevp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gaato/pyevp/actions/workflows/ci.yml)
 [![Spec drift](https://github.com/gaato/pyevp/actions/workflows/drift.yml/badge.svg)](https://github.com/gaato/pyevp/actions/workflows/drift.yml)
 [![spec: draft-hardt-02](https://img.shields.io/badge/spec-draft--hardt--02-blue)](https://github.com/dickhardt/email-verification)
@@ -15,7 +15,7 @@ Relying-party verification for the **Email Verification Protocol** (EVP): the br
 token from the user's email provider proving they control an address, and your server verifies it,
 with no confirmation email round-trip.
 
-**Documentation: <https://pyevp.readthedocs.io/>**
+**Documentation: <https://docs.pyevp.dev/>**
 
 > **Status: alpha.** The protocol ([draft-hardt-email-verification], [WICG Email Verification API])
 > and browser support (Chrome origin trial) are still changing. This library isolates every
@@ -75,7 +75,7 @@ hosts derived from DNS are ever contacted, never hosts named in the token, and o
 resolve to public addresses.
 
 Every failure carries a stable `ErrorCode`. The safe default is to fall back to your existing
-verification flow; the [error table](https://pyevp.readthedocs.io/en/latest/quickstart.html#handle-failures) tells which codes
+verification flow; the [error table](https://docs.pyevp.dev/en/latest/quickstart.html#handle-failures) tells which codes
 the user can retry and which point at your configuration.
 
 ## Command line
@@ -89,17 +89,17 @@ pbpaste | uvx --from "pyevp[cli]" pyevp inspect            # decode a token offl
 uvx --from "pyevp[cli]" pyevp verify "$TOKEN" --audience https://example.com --nonce "$NONCE"
 ```
 
-See the [CLI guide](https://pyevp.readthedocs.io/en/latest/guides/cli.html) for every command and option.
+See the [CLI guide](https://docs.pyevp.dev/en/latest/guides/cli.html) for every command and option.
 
 ## More
 
-- [Frameworks](https://pyevp.readthedocs.io/en/latest/guides/frameworks.html): FastAPI, Flask, fastapi-users, AuthX and Django
-- [Testing your application](https://pyevp.readthedocs.io/en/latest/guides/testing.html): `FakeIssuer` and `FakeBrowser`, no network needed
-- [Replay protection](https://pyevp.readthedocs.io/en/latest/guides/replay.html), [logging and metrics](https://pyevp.readthedocs.io/en/latest/guides/observability.html)
-- [DNS, HTTP and caching](https://pyevp.readthedocs.io/en/latest/guides/transport.html): DNS over HTTPS, a standard-library-only setup, private networks
-- [Profiles](https://pyevp.readthedocs.io/en/latest/concepts.html#profiles): how pyevp follows a protocol that is still changing
-- [Running an issuer](https://pyevp.readthedocs.io/en/latest/guides/issuer-operations.html) for your own mail domains (experimental)
-- [Compatibility policy](https://pyevp.readthedocs.io/en/latest/compatibility.html)
+- [Frameworks](https://docs.pyevp.dev/en/latest/guides/frameworks.html): FastAPI, Flask, fastapi-users, AuthX and Django
+- [Testing your application](https://docs.pyevp.dev/en/latest/guides/testing.html): `FakeIssuer` and `FakeBrowser`, no network needed
+- [Replay protection](https://docs.pyevp.dev/en/latest/guides/replay.html), [logging and metrics](https://docs.pyevp.dev/en/latest/guides/observability.html)
+- [DNS, HTTP and caching](https://docs.pyevp.dev/en/latest/guides/transport.html): DNS over HTTPS, a standard-library-only setup, private networks
+- [Profiles](https://docs.pyevp.dev/en/latest/concepts.html#profiles): how pyevp follows a protocol that is still changing
+- [Running an issuer](https://docs.pyevp.dev/en/latest/guides/issuer-operations.html) for your own mail domains (experimental)
+- [Compatibility policy](https://docs.pyevp.dev/en/latest/compatibility.html)
 
 ## Examples
 

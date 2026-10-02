@@ -33,7 +33,7 @@ To start your own project from an example, copy it out and replace
 CI runs the network checks weekly (`.github/workflows/drift.yml`) and opens a `spec-drift` issue
 when the deployed ecosystem diverges from the default profile. Behaviour changes go into a new
 profile preset; existing presets are never changed incompatibly (see the
-[compatibility policy](https://pyevp.readthedocs.io/en/latest/compatibility.html)).
+[compatibility policy](https://docs.pyevp.dev/en/latest/compatibility.html)).
 
 ## Translations
 
@@ -64,7 +64,7 @@ uv run sphinx-intl stat -d docs/locales -l ja
 ```
 
 The Read the Docs project `pyevp-ja` builds the same repository with the language set to Japanese.
-It serves <https://pyevp.readthedocs.io/ja/latest/> and is linked to `pyevp` as a translation.
+It serves <https://docs.pyevp.dev/ja/latest/> and is linked to `pyevp` as a translation.
 
 ## Python versions
 

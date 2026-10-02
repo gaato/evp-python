@@ -1,6 +1,6 @@
 # pyevp
 
-[![Documentation](https://app.readthedocs.org/projects/pyevp/badge/?version=latest)](https://pyevp.readthedocs.io/ja/latest/)
+[![Documentation](https://app.readthedocs.org/projects/pyevp/badge/?version=latest)](https://docs.pyevp.dev/ja/latest/)
 [![CI](https://github.com/gaato/pyevp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gaato/pyevp/actions/workflows/ci.yml)
 [![spec: draft-hardt-02](https://img.shields.io/badge/spec-draft--hardt--02-blue)](https://github.com/dickhardt/email-verification)
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange)
@@ -53,8 +53,8 @@ else:
 
 ## ドキュメント
 
-- 日本語: <https://pyevp.readthedocs.io/ja/latest/>（翻訳されていない部分は英語で表示されます）
-- English: <https://pyevp.readthedocs.io/en/latest/>
+- 日本語: <https://docs.pyevp.dev/ja/latest/>（翻訳されていない部分は英語で表示されます）
+- English: <https://docs.pyevp.dev/en/latest/>
 
 ## ライセンス
 

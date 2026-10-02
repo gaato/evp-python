@@ -435,12 +435,12 @@ def test_real_markers_and_landing(client: TestClient) -> None:
     assert 'pip install "pyevp[all]"' in text
     for url in (
         "/demo",
-        "https://pyevp.readthedocs.io/",
-        "https://pyevp.readthedocs.io/ja/latest/",
+        "https://docs.pyevp.dev/",
+        "https://docs.pyevp.dev/ja/latest/",
         "https://github.com/gaato/pyevp",
         "https://pypi.org/project/pyevp/",
         "https://github.com/gaato/pyevp/blob/main/LICENSE",
-        "https://pyevp.readthedocs.io/en/latest/compatibility.html",
+        "https://docs.pyevp.dev/en/latest/compatibility.html",
     ):
         assert f'href="{url}"' in response.text
     for ident, label, path in site.EXAMPLES:

@@ -55,7 +55,7 @@ django = [
 pyevp = "pyevp.__main__:main"
 
 [project.urls]
-Documentation = "https://pyevp.readthedocs.io/"
+Documentation = "https://docs.pyevp.dev/"
 Repository = "https://github.com/gaato/pyevp"
 
 [build-system]

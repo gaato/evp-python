@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from evp import DiscoveryError, ErrorCode, Profile, Verifier
+from evp import DiscoveryError, ErrorCode, EVPError, Profile, Verifier
 from evp.diagnostics import adiscover, discover
 from evp.testing import (
     AsyncInMemoryDns,
@@ -50,8 +50,9 @@ def test_gmail_like_issuer_under_strict_profile() -> None:
         "gmail.example", resolver=resolver, fetcher=fetcher, profile=Profile.draft_hardt_02()
     )
     assert compat.ok
-    assert not strict.ok
-    assert "EdDSA" in strict.problems[0]
+    # "EdDSA" in the metadata is compatible with the profile's "Ed25519"; Gmail's keys
+    # have no kid, though.
+    assert strict.problems == ("profile draft-hardt-02 requires kid, but some keys have none",)
 
 
 def test_kid_required() -> None:
@@ -73,7 +74,7 @@ def test_kid_required() -> None:
             lambda dns, http, i: http.documents.update(
                 {i.jwks_uri: {"keys": [{"kty": "OKP", "crv": "Ed25519", "x": "abc"}]}}
             ),
-            "no key in https://issuer.example/jwks.json can verify Ed25519 (1 malformed)",
+            "no key in https://issuer.example/jwks.json can verify Ed25519, EdDSA (1 malformed)",
         ),
         (
             lambda dns, http, i: http.documents[i.metadata_url].update(jwks_uri="https://["),
@@ -125,3 +126,27 @@ async def test_async(issuer: FakeIssuer) -> None:
         fetcher=AsyncInMemoryHttp(issuer.http_documents()),
     )
     assert report.ok
+
+
+@pytest.mark.parametrize(("advertised", "ok"), [(["EdDSA"], True), (["ES384"], False)])
+def test_algorithm_list_matches_the_verifier(advertised: list[str], ok: bool) -> None:
+    # Like the verifier, an advertised "EdDSA" covers the strict profile's "Ed25519".
+    issuer = FakeIssuer()
+    resolver, fetcher = _ports(issuer)
+    fetcher.documents[issuer.metadata_url] = issuer.metadata | {
+        "signing_alg_values_supported": advertised
+    }
+    strict = Profile.draft_hardt_02()
+    report = discover("example.com", resolver=resolver, fetcher=fetcher, profile=strict)
+    assert report.ok is ok
+
+    browser = FakeBrowser(clock=issuer.clock)
+    token = browser.present(issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce="n")
+    verifier = Verifier(
+        audience=AUDIENCE, resolver=resolver, fetcher=fetcher, profile=strict, clock=issuer.clock
+    )
+    if ok:
+        assert verifier.verify(token, nonce="n").email == EMAIL
+    else:
+        with pytest.raises(EVPError):
+            verifier.verify(token, nonce="n")

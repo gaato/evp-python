@@ -11,7 +11,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any, TypeAlias
 
 from evp import _jose, discovery
-from evp.core import Effect, FetchJson, ResolveTxt
+from evp.core import Effect, FetchJson, ResolveTxt, _signing_alg_advertised
 from evp.errors import DiscoveryError, EVPError
 from evp.ports import AsyncJsonFetcher, AsyncTxtResolver, JsonFetcher, TxtResolver
 from evp.profile import DEFAULT_PROFILE, Profile
@@ -99,14 +99,13 @@ def discovery_steps(target: str, profile: Profile = DEFAULT_PROFILE) -> ReportSt
 
     problems: list[str] = []
     advertised = metadata.signing_alg_values_supported
-    if advertised is None:
-        # Like the verifier: an absent list does not restrict the profile's algorithms.
-        advertised = tuple(sorted(profile.evt_algorithms))
-    accepted = [a for a in advertised if a in profile.evt_algorithms]
-    if not advertised:
+    # The profile's algorithms the verifier would accept from this issuer.  An absent
+    # list does not restrict them, and "EdDSA" covers "Ed25519" and vice versa.
+    accepted = [a for a in sorted(profile.evt_algorithms) if _signing_alg_advertised(a, advertised)]
+    if advertised == ():
         # Unlike an absent list, an empty one makes every token fail verification.
         problems.append("issuer advertises an empty signing_alg_values_supported")
-    elif not accepted:
+    elif advertised is not None and not accepted:
         problems.append(
             f"issuer signs with {', '.join(advertised)}; profile {profile.name} accepts "
             f"{', '.join(sorted(profile.evt_algorithms))}"

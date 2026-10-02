@@ -2,9 +2,19 @@ from __future__ import annotations
 
 import pytest
 
-from evp import DiscoveryError, ErrorCode, Profile
+from evp import DiscoveryError, ErrorCode, Profile, Verifier
 from evp.diagnostics import adiscover, discover
-from evp.testing import AsyncInMemoryDns, AsyncInMemoryHttp, FakeIssuer, InMemoryDns, InMemoryHttp
+from evp.testing import (
+    AsyncInMemoryDns,
+    AsyncInMemoryHttp,
+    FakeBrowser,
+    FakeIssuer,
+    InMemoryDns,
+    InMemoryHttp,
+    SigningAlg,
+)
+
+from .conftest import AUDIENCE, EMAIL
 
 
 def _ports(*issuers: FakeIssuer) -> tuple[InMemoryDns, InMemoryHttp]:
@@ -75,12 +85,19 @@ def test_problems(issuer: FakeIssuer, break_it, problem: str) -> None:
     assert report.problems[0].startswith(problem)
 
 
-def test_absent_algorithm_list_defaults(issuer: FakeIssuer) -> None:
+@pytest.mark.parametrize("alg", ["Ed25519", "ES256"])
+def test_absent_algorithm_list_matches_the_verifier(alg: SigningAlg) -> None:
+    issuer = FakeIssuer(alg=alg)
     resolver, fetcher = _ports(issuer)
     metadata = dict(issuer.metadata)
     del metadata["signing_alg_values_supported"]
     fetcher.documents[issuer.metadata_url] = metadata
     assert discover("example.com", resolver=resolver, fetcher=fetcher).ok
+
+    browser = FakeBrowser(clock=issuer.clock)
+    token = browser.present(issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce="n")
+    verifier = Verifier(audience=AUDIENCE, resolver=resolver, fetcher=fetcher, clock=issuer.clock)
+    assert verifier.verify(token, nonce="n").email == EMAIL
 
 
 def test_transport_failure_raises(issuer: FakeIssuer) -> None:

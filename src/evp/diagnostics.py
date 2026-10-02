@@ -20,9 +20,6 @@ from evp.verifier import _unreachable
 
 __all__ = ["IssuerReport", "KeySummary", "adiscover", "discover", "discovery_steps"]
 
-# The drafts' default when an issuer does not advertise signing algorithms.
-_DEFAULT_ALGS = ("Ed25519",)
-
 
 @dataclass(frozen=True, slots=True)
 class KeySummary:
@@ -103,7 +100,8 @@ def discovery_steps(target: str, profile: Profile = DEFAULT_PROFILE) -> ReportSt
     problems: list[str] = []
     advertised = metadata.signing_alg_values_supported
     if advertised is None:
-        advertised = _DEFAULT_ALGS
+        # Like the verifier: an absent list does not restrict the profile's algorithms.
+        advertised = tuple(sorted(profile.evt_algorithms))
     accepted = [a for a in advertised if a in profile.evt_algorithms]
     if not advertised:
         # Unlike an absent list, an empty one makes every token fail verification.

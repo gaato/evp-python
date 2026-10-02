@@ -47,6 +47,7 @@ def create_app(verifier: Verifier | None = None) -> Flask:
 
     @app.post("/signup")
     def signup() -> tuple[dict[str, object], int] | dict[str, object]:
+        # landing:start
         verifier: Verifier = current_app.extensions["evp_verifier"]
         email = request.form["email"]
         evt = request.form.get("evt", "")
@@ -60,5 +61,6 @@ def create_app(verifier: Verifier | None = None) -> Flask:
         except EVPError as exc:
             return {"error": {"code": exc.code}}, 400
         return {"email": result.email, "verified": True, "issuer": result.issuer}
+        # landing:end
 
     return app

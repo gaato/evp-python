@@ -65,6 +65,7 @@ async def signup(
     email: Annotated[str, Form()],
     evt: Annotated[str, Form()] = "",
 ) -> dict[str, object]:
+    # landing:start
     # Single use: the nonce is consumed whether or not verification succeeds.
     nonce = request.session.pop(SESSION_KEY, None)
     if not evt or nonce is None:
@@ -75,3 +76,4 @@ async def signup(
     except EVPError as exc:
         raise HTTPException(status_code=400, detail={"code": exc.code}) from exc
     return {"email": result.email, "verified": True, "issuer": result.issuer}
+    # landing:end

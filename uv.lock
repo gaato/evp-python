@@ -16,6 +16,7 @@ members = [
     "pyevp-example-fastapi-users",
     "pyevp-example-flask",
     "pyevp-example-issuer-fastapi",
+    "pyevp-example-site",
 ]
 
 [[package]]
@@ -1493,6 +1494,43 @@ requires-dist = [
     { name = "itsdangerous", specifier = ">=2.2" },
     { name = "pyevp", editable = "." },
     { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-site"
+version = "0"
+source = { virtual = "examples/site" }
+dependencies = [
+    { name = "accessible-pygments" },
+    { name = "fastapi" },
+    { name = "itsdangerous" },
+    { name = "jinja2" },
+    { name = "pyevp", extra = ["all"] },
+    { name = "pygments" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "accessible-pygments" },
+    { name = "fastapi", specifier = ">=0.142" },
+    { name = "itsdangerous", specifier = ">=2.2" },
+    { name = "jinja2", specifier = ">=3.1" },
+    { name = "pyevp", extras = ["all"], editable = "." },
+    { name = "pygments", specifier = ">=2.19" },
     { name = "uvicorn", specifier = ">=0.54" },
 ]
 

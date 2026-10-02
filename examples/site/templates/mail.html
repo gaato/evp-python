@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}pyevp mock email provider{% endblock %}
+{% block content %}
+  <h1>pyevp mock email provider</h1>
+  <p>This mock email provider plays the issuer in the pyevp demo. Anyone can sign in
+    as {{ email }} and let the browser request a token for that address.</p>
+  <p>Signing in sets a signed session cookie so this provider can remember your choice
+    when the browser asks for accounts or a token. It also tells the browser that you
+    are logged in, so the browser can offer this account to the demo.</p>
+  <p><strong>{{ email }} is not a mailbox.</strong> A token for it proves nothing:
+    it only means someone pressed the sign-in button. Use it solely to try the demo.</p>
+  {% if signed_in %}
+  <p>You are signed in as {{ email }}.</p>
+  <form method="post" action="/logout"><button type="submit">Sign out</button></form>
+  {% else %}
+  <form method="post" action="/login"><button type="submit">Sign in as {{ email }}</button></form>
+  {% endif %}
+  <nav aria-label="Demo links">
+    <a href="{{ demo_url }}">Try the demo relying party</a>
+    <a href="{{ site_url }}">pyevp landing page</a>
+  </nav>
+{% endblock %}
+{% block scripts %}
+{% if login_status %}
+<script>
+if (navigator.login && typeof navigator.login.setStatus === "function") {
+  navigator.login.setStatus({{ login_status | tojson }}).catch(() => {});
+}
+</script>
+{% endif %}
+{% endblock %}

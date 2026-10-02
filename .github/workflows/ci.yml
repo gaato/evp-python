@@ -108,7 +108,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [fastapi, flask, fastapi_users, authx, django_allauth, issuer_fastapi, demo]
+        example: [fastapi, flask, fastapi_users, authx, django_allauth, issuer_fastapi, demo, site]
     env:
       EXAMPLE: ${{ matrix.example }}
     steps:

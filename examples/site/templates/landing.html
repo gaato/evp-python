@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}pyevp — email verification for Python{% endblock %}
+{% block content %}
+  <header>
+    <h1>pyevp</h1>
+    <p>Verify email addresses in Python with a token from the user's email provider.</p>
+    <nav aria-label="Project links">
+      <a href="{{ demo_url }}">Try the demo</a>
+      <a href="https://pyevp.readthedocs.io/">Docs</a>
+      <a href="https://pyevp.readthedocs.io/ja/latest/" lang="ja">日本語ドキュメント</a>
+      <a href="https://github.com/gaato/pyevp">GitHub</a>
+      <a href="https://pypi.org/project/pyevp/">PyPI</a>
+      <a href="https://github.com/gaato/pyevp/blob/main/LICENSE">License (MIT)</a>
+    </nav>
+  </header>
+  <section aria-labelledby="how-it-works">
+    <h2 id="how-it-works">How it works</h2>
+    <ol>
+      <li>The browser asks the user's email provider for a token.</li>
+      <li>The provider vouches for the email address by signing the token.</li>
+      <li>Your server verifies the token with pyevp.</li>
+    </ol>
+    <p>See the <a href="https://pyevp.readthedocs.io/en/latest/compatibility.html">compatibility guide</a>
+      for browser support and deployment requirements.</p>
+  </section>
+  <section aria-labelledby="getting-started">
+    <h2 id="getting-started">Getting started</h2>
+    <pre><code>pip install "pyevp[all]"</code></pre>
+    <h2 id="framework-examples">Framework examples</h2>
+    <div id="example-tabs"></div>
+    {% for example in examples %}
+    <section id="example-{{ example.id }}" class="example" aria-labelledby="heading-{{ example.id }}">
+      <h3 id="heading-{{ example.id }}">{{ example.label }}</h3>
+      {{ example.code }}
+    </section>
+    {% endfor %}
+  </section>
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const panels = [...document.querySelectorAll("section.example")];
+  const list = document.getElementById("example-tabs");
+  list.setAttribute("role", "tablist");
+  list.setAttribute("aria-labelledby", "framework-examples");
+  const tabs = panels.map((panel, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = `tab-${panel.id}`;
+    button.textContent = panel.querySelector("h3").textContent;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-controls", panel.id);
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", button.id);
+    panel.tabIndex = 0;
+    button.addEventListener("click", () => select(index));
+    button.addEventListener("keydown", (event) => {
+      let next = index;
+      if (event.key === "ArrowRight") next = (index + 1) % panels.length;
+      else if (event.key === "ArrowLeft") next = (index + panels.length - 1) % panels.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = panels.length - 1;
+      else return;
+      event.preventDefault();
+      select(next);
+      tabs[next].focus();
+    });
+    list.append(button);
+    return button;
+  });
+  function select(index) {
+    tabs.forEach((tab, i) => {
+      tab.setAttribute("aria-selected", String(i === index));
+      tab.tabIndex = i === index ? 0 : -1;
+      panels[i].hidden = i !== index;
+    });
+  }
+  select(0);
+})();
+</script>
+{% endblock %}

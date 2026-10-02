@@ -66,6 +66,7 @@ class EVPAccountAdapter(DefaultAccountAdapter):
         return verified[email]
 
     def _verify(self, request: HttpRequest, email: str) -> bool:
+        # landing:start
         token = request.POST.get("evt", "")
         # `session` is added by SessionMiddleware, which Django's types do not model.
         nonce = request.session.pop(SESSION_KEY, None)  # ty: ignore[unresolved-attribute]
@@ -77,3 +78,4 @@ class EVPAccountAdapter(DefaultAccountAdapter):
             logger.info("EVP token rejected: %s", exc.code)
             return False
         return True
+        # landing:end

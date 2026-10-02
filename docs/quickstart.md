@@ -29,6 +29,10 @@ session["evp_nonce"] = nonce
 The `nonce` must be a content attribute in the HTML. Frameworks that set it as a DOM property
 are not picked up by the browser.
 
+Chrome writes the token into the hidden field only when the form is submitted. Before that,
+page scripts read an empty value, so check the token on the server, not in client-side
+validation.
+
 ## 2. Verify on submit
 
 Create the verifier once, with your origin as the audience:

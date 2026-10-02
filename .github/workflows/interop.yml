@@ -1,0 +1,86 @@
+name: Chrome interop
+
+# Runs the full EVP flow in headless Chrome against https://pyevp.dev every night
+# (interop/README.md). A stable failure opens or updates an "interop" issue; beta
+# failures only show up in the run, as an early warning for the next stable.
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # 03:00 JST
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  CLOUDFLARED_VERSION: "2026.9.3"
+  CLOUDFLARED_SHA256: "77e26d8d900e0b8469f416239d14b5f296525fdf79fee6f511ef55609e3fbac2"
+
+jobs:
+  chrome:
+    name: chrome (${{ matrix.channel }})
+    runs-on: ubuntu-latest
+    environment: pyevp-dev
+    # One connector at a time: pyevp.dev is a single tunnel.
+    concurrency:
+      group: pyevp-dev-tunnel
+      cancel-in-progress: false
+    continue-on-error: ${{ matrix.channel == 'beta' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable, beta]
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - run: uv sync --locked --all-packages --group interop
+      - id: chrome
+        uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
+        with:
+          chrome-version: ${{ matrix.channel }}
+          install-dependencies: true
+      - name: Install cloudflared
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
+            "https://github.com/cloudflare/cloudflared/releases/download/$CLOUDFLARED_VERSION/cloudflared-linux-amd64"
+          echo "$CLOUDFLARED_SHA256  $RUNNER_TEMP/cloudflared" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/cloudflared"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Run the interop test
+        env:
+          CHROME: ${{ steps.chrome.outputs.chrome-path }}
+          PYEVP_TUNNEL_TOKEN: ${{ secrets.PYEVP_TUNNEL_TOKEN }}
+          INTEROP_OUT: ${{ runner.temp }}/interop
+        run: .venv/bin/python interop/chrome_evp.py
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: interop-${{ matrix.channel }}
+          path: ${{ runner.temp }}/interop
+          retention-days: 14
+
+  report:
+    needs: chrome
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open or update the interop issue
+        run: |
+          gh label create interop --color 1D76DB \
+            --description "The nightly Chrome interop test failed" --force
+          body="The nightly Chrome interop test failed: $RUN_URL"
+          number=$(gh issue list --label interop --state open --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body "$body"
+          else
+            gh issue create --title "Chrome interop test failed" --label interop --body "$body"
+          fi

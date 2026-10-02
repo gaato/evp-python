@@ -70,6 +70,10 @@ dev = [
     "ruff>=0.16.9",
     "ty>=0.0.84",
 ]
+# The nightly Chrome interop test (interop/chrome_evp.py).
+interop = [
+    "websockets>=17.1",
+]
 docs = [
     "furo>=2025.12.19",
     "myst-parser>=5.1",

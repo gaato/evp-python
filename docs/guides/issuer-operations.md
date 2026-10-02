@@ -3,8 +3,10 @@
 ```{warning}
 **Experimental.** `pyevp.issuer` follows draft-hardt-email-verification-02 and the request format
 Chrome sends from version 153 on. It was tested end to end with Chrome 154.0.8037.92 (the
-`#email-verification-protocol` flag). Chrome and the draft are still changing, so expect the
-`chrome-153` issuance profile to follow them.
+`#email-verification-protocol` flag, or `--enable-features=EmailVerificationProtocol`), and a
+nightly job runs the example issuer against current Chrome stable and beta
+([`interop/`](https://github.com/gaato/pyevp/tree/main/interop)). Chrome and the draft are
+still changing, so expect the `chrome-153` issuance profile to follow them.
 ```
 
 `pyevp.issuer` provides building blocks for issuing EVTs for email domains you control. It does

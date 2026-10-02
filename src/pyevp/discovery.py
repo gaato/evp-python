@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlsplit
@@ -16,6 +17,7 @@ from pyevp.types import IssuerMetadata, JSONObject
 __all__ = [
     "canonical_issuer",
     "email_domain",
+    "is_public_hostname",
     "metadata_url",
     "parse_txt_records",
     "txt_name_for",
@@ -24,6 +26,29 @@ __all__ = [
 ]
 
 _FORBIDDEN_HOST_CHARS = frozenset("/:@?#\\ \t\r\n")
+# Special-use names (RFC 6761, RFC 6762, RFC 8375) and the name ICANN reserved for
+# private use; none of them can be a public issuer.
+_PRIVATE_SUFFIXES = ("localhost", "local", "home.arpa", "internal")
+
+
+def is_public_hostname(host: str) -> bool:
+    """Whether ``host`` may name a public issuer host.
+
+    Rejects IP literals, single-label names and special-use names such as
+    ``localhost``, so that a DNS record or metadata document chosen by an attacker
+    cannot point the verifier at the relying party's own network.  The addresses a
+    public name resolves to are checked by the HTTP adapters before connecting.
+    """
+    name = host.removeprefix("[").removesuffix("]").rstrip(".").lower()
+    try:
+        ipaddress.ip_address(name)
+    except ValueError:
+        pass
+    else:
+        return False
+    if "." not in name:
+        return False
+    return not any(name == s or name.endswith("." + s) for s in _PRIVATE_SUFFIXES)
 
 
 def email_domain(email: str) -> str:
@@ -63,6 +88,8 @@ def canonical_issuer(value: str, accepted: IssuerFormat) -> str | None:
         host = value
     if not host or any(c in _FORBIDDEN_HOST_CHARS for c in host) or not host.isascii():
         return None
+    if not is_public_hostname(host):
+        return None
     return f"https://{host}"
 
 
@@ -89,11 +116,17 @@ def _require_https_url(value: Any, field: str) -> str:
         raise DiscoveryError(ErrorCode.METADATA_INVALID, f"{field} is missing")
     try:
         parts = urlsplit(value)
-        ok = parts.scheme == "https" and bool(parts.hostname)
+        ok = (
+            parts.scheme == "https"
+            and bool(parts.hostname)
+            and is_public_hostname(parts.hostname or "")
+        )
     except ValueError:  # e.g. "https://[": urlsplit itself rejects some inputs
         ok = False
     if not ok:
-        raise DiscoveryError(ErrorCode.METADATA_INVALID, f"{field} is not an https URL")
+        raise DiscoveryError(
+            ErrorCode.METADATA_INVALID, f"{field} is not an https URL on a public host"
+        )
     return value
 
 

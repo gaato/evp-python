@@ -6,6 +6,7 @@ from pyevp import DEFAULT_PROFILE, DiscoveryError, ErrorCode, IssuerFormat
 from pyevp.discovery import (
     canonical_issuer,
     email_domain,
+    is_public_hostname,
     parse_txt_records,
     txt_name_for,
     validate_jwks,
@@ -63,6 +64,42 @@ def test_canonical_issuer(value: str, accepted: IssuerFormat, expected: str | No
     assert canonical_issuer(value, accepted) == expected
 
 
+@pytest.mark.parametrize(
+    "host",
+    ["accounts.google.com", "issuer.example", "xn--bcher-kva.example", "a.localhost.example"],
+)
+def test_is_public_hostname(host: str) -> None:
+    assert is_public_hostname(host)
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "127.0.0.1",
+        "10.0.0.1",
+        "8.8.8.8",
+        "[::1]",
+        "::1",
+        "intranet",
+        "localhost",
+        "LOCALHOST.",
+        "api.localhost",
+        "printer.local",
+        "nas.home.arpa",
+        "svc.internal",
+    ],
+)
+def test_is_public_hostname_rejects(host: str) -> None:
+    assert not is_public_hostname(host)
+
+
+@pytest.mark.parametrize("record", ["iss=127.0.0.1", "iss=localhost", "iss=https://svc.internal"])
+def test_parse_txt_records_refuses_private_issuers(record: str) -> None:
+    with pytest.raises(DiscoveryError) as exc:
+        parse_txt_records([record])
+    assert exc.value.code is ErrorCode.ISSUER_DISCOVERY_FAILED
+
+
 def test_parse_txt_records() -> None:
     assert parse_txt_records(["v=spf1 -all", "iss=accounts.google.com"]) == (
         "https://accounts.google.com"
@@ -102,6 +139,9 @@ def test_validate_metadata() -> None:
         ({"jwks_uri": None}, ErrorCode.METADATA_INVALID),
         ({"jwks_uri": "https://["}, ErrorCode.METADATA_INVALID),
         ({"issuance_endpoint": "https://[::1/issue"}, ErrorCode.METADATA_INVALID),
+        ({"jwks_uri": "https://169.254.169.254/latest"}, ErrorCode.METADATA_INVALID),
+        ({"jwks_uri": "https://localhost/jwks"}, ErrorCode.METADATA_INVALID),
+        ({"issuance_endpoint": "https://[::1]/issue"}, ErrorCode.METADATA_INVALID),
         ({"signing_alg_values_supported": "EdDSA"}, ErrorCode.METADATA_INVALID),
     ],
 )

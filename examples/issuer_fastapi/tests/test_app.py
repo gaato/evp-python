@@ -13,7 +13,7 @@ from pyevp import Verifier
 from pyevp.issuer import Issuer, SigningKey
 from pyevp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
 
-PUBLIC_URL = "https://testserver"
+PUBLIC_URL = "https://issuer.example"
 RP = "https://rp.example"
 
 

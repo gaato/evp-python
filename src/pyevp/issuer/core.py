@@ -158,7 +158,7 @@ class Issuer:
         clock: Clock = system_clock,
     ) -> None:
         if discovery.canonical_issuer(issuer, IssuerFormat.ORIGIN) != issuer:
-            raise ValueError(f"issuer must be https:// + host, got {issuer!r}")
+            raise ValueError(f"issuer must be https:// + a public host, got {issuer!r}")
         self.issuer = issuer
         self.host = issuer.removeprefix("https://")
         self.issuance_endpoint = _require_https_url(issuance_endpoint, "issuance_endpoint")

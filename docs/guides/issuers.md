@@ -1,7 +1,7 @@
 # For issuer operators
 
 If you run an email service and issue EVP tokens, you can check what relying parties using this
-library will see.
+library will see. To build an issuer with this library, see {doc}`issuer-operations`.
 
 ```sh
 uvx --from "evp[cli]" evp discover your-domain.example
@@ -27,4 +27,5 @@ assert report.ok, report.problems
 ```
 
 To test token issuance end to end, combine your issuer with {class}`evp.testing.FakeBrowser`. It
-holds a key-binding key and builds the presentation token from your EVT.
+holds a key-binding key, signs issuance requests the way Chrome does
+(`FakeBrowser.issuance_request`), and builds the presentation token from your EVT.

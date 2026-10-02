@@ -52,6 +52,14 @@ Everything most applications need is importable from the top-level package.
 .. automodule:: evp.adapters.doh
 ```
 
+## Issuer (experimental)
+
+```{eval-rst}
+.. automodule:: evp.issuer
+   :members:
+   :imported-members:
+```
+
 ## Testing
 
 ```{eval-rst}

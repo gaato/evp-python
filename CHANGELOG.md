@@ -6,6 +6,22 @@ follows the compatibility policy described in the README.
 
 ## [Unreleased]
 
+### Added
+
+- Experimental issuer side, `evp.issuer`: validate the browser's signed issuance request
+  (RFC 9421 HTTP Message Signatures with an `hwk` Signature-Key, `Content-Digest`), mint EVTs,
+  and produce the metadata, JWKS and DNS records to publish. Issuance profiles `chrome-153`
+  (default) and `draft-hardt-02`; `Signer` protocol for KMS / HSM keys; optional replay guard
+  and observer. Private email is not supported yet.
+- `evp issuer keygen` and `evp issuer documents` CLI commands.
+- `FakeBrowser.issuance_request()` for testing issuers.
+- `examples/issuer_fastapi`.
+
+### Changed
+
+- `build_kb` / `FakeBrowser.present` accept an EVT that already ends in `~`, as issuers return
+  it in `issuance_token`.
+
 ## [0.1.0]
 
 ### Added

@@ -13,6 +13,7 @@ members = [
     "evp-example-django-allauth",
     "evp-example-fastapi",
     "evp-example-fastapi-users",
+    "evp-example-issuer-fastapi",
 ]
 
 [[package]]
@@ -804,6 +805,39 @@ requires-dist = [
     { name = "evp", extras = ["all"], editable = "." },
     { name = "fastapi", specifier = ">=0.142" },
     { name = "fastapi-users", extras = ["sqlalchemy"], specifier = ">=15" },
+    { name = "itsdangerous", specifier = ">=2.2" },
+    { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "evp-example-issuer-fastapi"
+version = "0"
+source = { virtual = "examples/issuer_fastapi" }
+dependencies = [
+    { name = "evp" },
+    { name = "fastapi" },
+    { name = "itsdangerous" },
+    { name = "python-multipart" },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "evp", editable = "." },
+    { name = "fastapi", specifier = ">=0.142" },
     { name = "itsdangerous", specifier = ">=2.2" },
     { name = "python-multipart", specifier = ">=0.0.32" },
     { name = "uvicorn", specifier = ">=0.54" },

@@ -39,6 +39,7 @@ guides/observability
 guides/transport
 guides/cli
 guides/issuers
+guides/issuer-operations
 ```
 
 ```{toctree}

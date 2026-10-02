@@ -156,6 +156,19 @@ Google's JSON API is the default. `require_dnssec` trusts the provider's `AD` fl
 zones such as gmail.com never pass it. With `dnspython[doh]` installed, an RFC 8484 resolver can
 also be passed to `DnsPythonResolver`.
 
+## Running an issuer (experimental)
+
+If you run mail for your own domains, `evp.issuer` provides the issuer side: it validates the
+browser's signed issuance request (HTTP Message Signatures, as Chrome 153+ sends it), mints EVTs,
+and produces the metadata, JWKS and DNS records to publish. Logging the user in stays with your
+application. It has not been tested against Chrome end to end yet. See the
+[guide](https://evp.readthedocs.io/en/latest/guides/issuer-operations.html) and
+[`examples/issuer_fastapi/`](examples/issuer_fastapi/app.py).
+
+```sh
+uvx --from "evp[cli]" evp issuer keygen --kid 2026-10 --out signing-key.json
+```
+
 ## Design
 
 | Module | Role |
@@ -228,6 +241,8 @@ your own.
 - [`examples/django_allauth/`](examples/django_allauth/evp_allauth.py) shows a django-allauth
   adapter. It marks the new `EmailAddress` verified when the token checks out, and falls back to
   normal email confirmation otherwise.
+- [`examples/issuer_fastapi/`](examples/issuer_fastapi/app.py) is an issuer for your own
+  domains. Its tests drive it with `FakeBrowser` and check the tokens with a `Verifier`.
 
 ```sh
 cd examples/fastapi && uv run uvicorn app:app --port 8000

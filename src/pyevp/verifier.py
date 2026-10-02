@@ -137,6 +137,13 @@ def _unreachable(effect: ResolveTxt | FetchJson, exc: Exception) -> DiscoveryErr
     return err
 
 
+def _missing_extras(cls: type, what: str) -> ImportError:
+    return ImportError(
+        f"{cls.__name__}.default() needs {what}: pip install 'pyevp[all]', or pass resolver= "
+        "and fetcher= yourself (pyevp.adapters.urllib needs no extra dependencies)"
+    )
+
+
 class Verifier(_Base):
     """Synchronous verifier (Django, Flask, scripts).
 
@@ -178,12 +185,16 @@ class Verifier(_Base):
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
         if "resolver" not in kwargs:
-            from pyevp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
-
+            try:
+                from pyevp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
+            except ImportError as exc:
+                raise _missing_extras(cls, "dnspython") from exc
             kwargs["resolver"] = DnsPythonResolver()
         if "fetcher" not in kwargs:
-            from pyevp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
-
+            try:
+                from pyevp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
+            except ImportError as exc:
+                raise _missing_extras(cls, "httpx2 or httpx") from exc
             kwargs["fetcher"] = HttpxFetcher()
         return cls(audience=audience, **kwargs)
 
@@ -279,12 +290,16 @@ class AsyncVerifier(_Base):
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
         if "resolver" not in kwargs:
-            from pyevp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
-
+            try:
+                from pyevp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
+            except ImportError as exc:
+                raise _missing_extras(cls, "dnspython") from exc
             kwargs["resolver"] = AsyncDnsPythonResolver()
         if "fetcher" not in kwargs:
-            from pyevp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
-
+            try:
+                from pyevp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
+            except ImportError as exc:
+                raise _missing_extras(cls, "httpx2 or httpx") from exc
             kwargs["fetcher"] = AsyncHttpxFetcher()
         return cls(audience=audience, **kwargs)
 

@@ -102,8 +102,9 @@ The page uses semantic HTML and named hooks for its three steps: `#demo-browser`
 without the flag; the flag stays as a fallback. A soft
 client-side notice uses the secure context, UA brands/version, and mobile hints; it never
 blocks submission and cannot detect whether EVP is enabled. The provider sign-in state
-is not queried or displayed by the relying party. The demo address is prefilled; visitors
-can replace it with Gmail.
+is not queried or displayed by the relying party. The email field starts empty, with the
+demo address only as a placeholder: Chrome asks the provider for a token only after the
+visitor types an address or picks one from autofill, so a pre-filled value would send none.
 
 Chrome fills the hidden `autocomplete="email-verification-token"` input on submission,
 before submit handlers run. The inline script checks it at each submit attempt. If empty,

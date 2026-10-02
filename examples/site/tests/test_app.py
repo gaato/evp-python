@@ -882,7 +882,9 @@ def test_demo_flow_and_submit_script(rp_client: TestClient) -> None:
         assert f'id="{hook}"' in page
     assert page.index("Use Chrome with EVP") < page.index("Sign in at an email provider")
     assert page.index("demo email provider") < page.index("Alternatively, use a Gmail")
-    assert 'value="demo@pyevp.dev"' in page
+    # Chrome starts EVP only on user input or autofill, so the field must start empty.
+    assert 'placeholder="demo@pyevp.dev"' in page
+    assert 'value="demo@pyevp.dev"' not in page
     assert 'role="status" aria-live="polite"' in page
     for script in (
         'addEventListener("submit"',

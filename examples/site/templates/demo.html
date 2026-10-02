@@ -174,14 +174,16 @@
         <form id="verify-form" class="demo-form space-y-3" method="post" action="/verify">
           <label for="email" class="block font-medium">Your email address</label>
           <div class="flex flex-col gap-3 sm:flex-row">
-            <input type="email" id="email" name="email" class="input w-full sm:flex-1" autocomplete="email" value="{{ email }}" required>
+            <input type="email" id="email" name="email" class="input w-full sm:flex-1" autocomplete="email" placeholder="{{ email }}" required>
             <input type="hidden" id="evt" name="evt" autocomplete="email-verification-token" nonce="{{ nonce }}">
             <button type="submit" id="verify-button" class="btn btn-primary group sm:px-8">
               <span class="loading loading-spinner loading-sm hidden motion-safe:group-aria-busy:inline-block" aria-hidden="true"></span>
               Verify
             </button>
           </div>
-          <p class="text-sm text-base-content/70">Using Gmail? Replace the address with yours.</p>
+          <p class="text-sm text-base-content/70">Type <code>{{ email }}</code> (or your Gmail address), or pick it
+            from autofill. Chrome asks the provider for a token only after you enter the address yourself,
+            so a pre-filled value would send none.</p>
           <p id="token-status" class="token-status alert alert-soft text-base-content empty:sr-only data-[state=waiting]:alert-info data-[state=received]:alert-success data-[state=missing]:alert-warning" role="status" aria-live="polite"></p>
         </form>
         {% else %}

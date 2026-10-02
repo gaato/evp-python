@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import timedelta
 
 import anyio
@@ -327,6 +328,29 @@ def test_localhost_audience_allowed(issuer: FakeIssuer) -> None:
     assert make_verifier(issuer, audience="http://localhost:8000").audience == (
         "http://localhost:8000"
     )
+
+
+@pytest.mark.parametrize("cls", [Verifier, AsyncVerifier])
+@pytest.mark.parametrize(
+    ("missing", "named"),
+    [
+        (("dns", "pyevp.adapters.dnspython"), "dnspython"),
+        (("httpx", "httpx2", "pyevp.adapters._http", "pyevp.adapters.httpx"), "httpx2 or httpx"),
+    ],
+)
+def test_default_names_missing_extras(
+    monkeypatch: pytest.MonkeyPatch,
+    cls: type[Verifier] | type[AsyncVerifier],
+    missing: tuple[str, ...],
+    named: str,
+) -> None:
+    for module in missing:
+        monkeypatch.setitem(sys.modules, module, None)
+    # Without the dns extra installed, the resolver import would fail first.
+    kwargs = {"resolver": InMemoryDns()} if named != "dnspython" else {}
+    with pytest.raises(ImportError, match=named) as exc:
+        cls.default(audience=AUDIENCE, **kwargs)
+    assert "pip install 'pyevp[all]'" in str(exc.value)
 
 
 def test_default_accepts_port_overrides(issuer: FakeIssuer, token: str, nonce: str) -> None:

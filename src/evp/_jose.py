@@ -10,6 +10,7 @@ from typing import Any
 
 from joserfc import jwk, jws
 from joserfc.errors import JoseError, SecurityWarning
+from joserfc.jws import JWSRegistry
 
 from evp.types import JSONObject
 
@@ -123,3 +124,20 @@ def sign_compact(header: JSONObject, claims: JSONObject, private_key: Any) -> st
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", SecurityWarning)
         return jws.serialize_compact(dict(header), payload, private_key, algorithms=[header["alg"]])
+
+
+def verify_raw(message: bytes, signature: bytes, key: JSONObject, alg: str) -> bool:
+    """Verify a bare signature (JWS encoding: raw ``r || s`` for ECDSA) with a public JWK."""
+    if not key_supports(alg, key) or (imported := import_public(key)) is None:
+        return False
+    try:
+        return bool(JWSRegistry.algorithms[alg].verify(message, signature, imported))
+    except (JoseError, ValueError, TypeError):
+        return False
+
+
+def sign_raw(message: bytes, private_key: Any, alg: str) -> bytes:
+    """Sign ``message`` with a joserfc private key, in JWS signature encoding."""
+    if alg in FORBIDDEN_ALGORITHMS:
+        raise ValueError(f"refusing to sign with {alg!r}")
+    return JWSRegistry.algorithms[alg].sign(message, private_key)

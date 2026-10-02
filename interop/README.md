@@ -1,69 +1,89 @@
 # Chrome interop test
 
-`chrome_evp.py` runs the whole Email Verification Protocol flow in a real, headless Chrome:
+`chrome_evp.py` runs the Email Verification Protocol flow in a real, headless Chrome
+against the permanent public demo provider:
 
-1. Starts `examples/issuer_fastapi` as the issuer for `@pyevp.dev`, at `https://pyevp.dev`
-   through the `pyevp-dev` Cloudflare Tunnel (see [pyevp.dev](#pyevpdev) below). Each run
-   uses a fresh signing key and waits until pyevp.dev serves that key, so it knows the
-   tunnel reaches this issuer.
-2. Starts `examples/fastapi` as the relying party on `http://localhost:8001`.
-3. Logs in to the issuer as `test@pyevp.dev`, types the address into the RP's form,
-   submits it, and expects `{"verified": true, "issuer": "https://pyevp.dev"}`.
+1. Before launching Chrome, checks `https://mail.pyevp.dev/healthz`, the JSON
+   `https://pyevp.dev/.well-known/web-identity` (its `accounts_endpoint` must be on
+   `https://mail.pyevp.dev`), and `_email-verification.pyevp.dev` TXT discovery using
+   pyevp's dnspython adapter and discovery parser. The discovered issuer must be
+   `https://mail.pyevp.dev`.
+2. Starts `examples/fastapi` as the relying party at `http://localhost:8001`, waits for
+   it to be ready, and launches Chrome, using the library from this checkout (HEAD).
+   The provider runs the deployed `:latest`
+   image independently of the checkout; the test reports its `/me` `build_sha`.
+3. Logs in as `demo@pyevp.dev` in a fresh Chrome profile by submitting the provider's
+   `POST /login` form without fields.
+4. Records the session's `/me` `issued` count before each flow, types the address into
+   the RP's form, and polls `/me` until that count increases. It then submits and
+   expects `{"verified": true, "issuer": "https://mail.pyevp.dev"}`. The RP also returns
+   `email`, which must equal `demo@pyevp.dev`.
 
-`.github/workflows/interop.yml` runs it every night on Chrome for Testing stable and beta.
+`.github/workflows/interop.yml` runs nightly on Chrome for Testing stable and beta.
+The test also acts as a nightly monitor of the public demo. Preflight failures report
+`PROVIDER UNAVAILABLE` and exit with **2**, rather than being labelled an interop
+regression. HTTP or malformed-response failures from `/me` use the same classification.
+Interop failures report `INTEROP FAILED` and exit with **1**; success exits with **0**.
+The workflow's existing stable-failure issue reporting still applies to either failure,
+so check the run log to distinguish provider availability from a library regression.
 
 ## Running locally
 
+Install Chrome with EVP support and uv, then run from the repository root after the
+public provider has been deployed:
+
 ```fish
-cf tunnels run pyevp-dev &    # serve pyevp.dev from this machine
-uv run --locked --all-packages --group interop python interop/chrome_evp.py
+uv sync --locked --all-packages --all-extras --group interop
+uv run --no-sync python interop/chrome_evp.py
 ```
 
 Set `CHROME` to use another binary, `INTEROP_HEADFUL=1` to watch the browser, and
-`INTEROP_OUT` to keep logs and the final screenshot. Stop the tunnel afterwards: while it
-runs, pyevp.dev requests may reach your machine instead of the nightly job.
+`INTEROP_OUT` to keep process logs and the final RP screenshot:
+
+```fish
+env CHROME=/path/to/chrome INTEROP_HEADFUL=1 INTEROP_OUT=/tmp/pyevp-interop \
+    uv run --no-sync python interop/chrome_evp.py
+```
+
+The test needs ports 8001 (RP) and 9333 (Chrome DevTools). Its browser profile is temporary
+and removed afterwards. No local issuer, signing key, tunnel connector, or tunnel secret
+is needed.
+
+A small self-check uses fake HTTP, DNS, and CDP responses without starting Chrome or
+contacting the provider:
+
+```fish
+uv run --no-sync python -m pytest interop/test_chrome_evp.py
+```
 
 ## How Chrome is driven
 
 - `--enable-features=EmailVerificationProtocol` turns EVP on (the
   `#email-verification-protocol` flag).
 - Before the first issuance for an address, Chrome asks "verify this email automatically?"
-  in a browser popup. DevTools cannot press it (it is not a FedCM dialog, and key events go
-  to the page). The profile therefore starts with the answer Chrome saves after the user
-  accepts: `autofill.email_verification_state` in `Default/Preferences`.
-- Chrome starts the check when the email field loses focus and fills the hidden
-  `email-verification-token` field only on submission. Scripts see it empty before, so the
-  page cannot tell when the token is ready. The test watches the issuer's access log for
-  Chrome's issuance request instead, then submits with a real (DevTools input) click and
-  reads the RP's response. If the RP still got no token, it retries with a fresh form.
-- Chrome sends the issuer's cookies with the FedCM accounts request and the issuance
-  request, so the issuer login has to happen in the same profile first.
+  in a browser popup. DevTools cannot press it, so the profile starts with the answer
+  Chrome saves after acceptance: `autofill.email_verification_state` in
+  `Default/Preferences`.
+- **Headful check required:** `CHROME_ISSUER_SITE` in `chrome_evp.py` defaults to the
+  issuer origin, `https://mail.pyevp.dev`. Confirm whether the `issuer_site` preference
+  instead needs the site, `https://pyevp.dev`, after deployment. Also confirm that the
+  login sets Chrome's FedCM login status and the issuance count increases when the email
+  field loses focus in this profile.
+- Chrome fills the hidden `email-verification-token` field only on a real submission.
+  While that token is pending, the test leaves the RP page in place. For each `/me`
+  poll it retrieves the current cookies for `https://mail.pyevp.dev/me` via CDP
+  `Network.getCookies` and sends them in an HTTP GET from Python. This includes the
+  host-only HttpOnly session cookie and observes updates from issuance. The HTTP
+  transport follows no redirects and does not write response cookies back to Chrome.
+- After `issued` increases, the test waits one second for Chrome's local key binding,
+  submits with a DevTools input click, and reads the RP response. If the RP got no token,
+  it retries with a fresh form, up to three attempts. Each count poll is separated by
+  half a second, with a 60-second issuance timeout and a 10-second HTTP timeout.
+- `build_sha` is logged on the first `/me` read and whenever it changes during the run.
 
 ## pyevp.dev
 
-`pyevp.dev` exists only for this test. It is set up by hand and rarely changes; if the setup
-breaks, the nightly run fails. Keep this section in sync when you change anything.
-
-| What | Value |
-|---|---|
-| DNS | `pyevp.dev CNAME c9e0272a-ee40-4f1a-8490-885d97acfa83.cfargotunnel.com` (proxied) |
-| DNS | `_email-verification.pyevp.dev TXT "iss=pyevp.dev"` |
-| Tunnel | `pyevp-dev` (`c9e0272a-ee40-4f1a-8490-885d97acfa83`), remotely managed |
-| Ingress | `pyevp.dev` → `http://localhost:8000`, everything else 404 |
-
-The issuer is the apex because Chrome fetches `/.well-known/web-identity` at the issuer's
-registrable domain. The issuer app serves that file itself.
-
-To recreate it:
-
-```fish
-cf tunnels create   # name pyevp-dev, config_src cloudflare; then use its id below
-cf tunnels config update <tunnel-id> --body '{"config":{"ingress":[{"hostname":"pyevp.dev","service":"http://localhost:8000"},{"service":"http_status:404"}]}}'
-cf dns records create -z pyevp.dev --body '{"type":"CNAME","name":"pyevp.dev","content":"<tunnel-id>.cfargotunnel.com","proxied":true}'
-cf dns records create -z pyevp.dev --body '{"type":"TXT","name":"_email-verification.pyevp.dev","content":"\"iss=pyevp.dev\""}'
-```
-
-The nightly job runs in the `pyevp-dev` environment (deployable from `main` only) with one
-secret, `PYEVP_TUNNEL_TOKEN`: the tunnel's connector token, from
-`cf tunnels token get <tunnel-id>`. It can run the connector but not change the tunnel or
-anything else in the account.
+The public demo hosts, routes, DNS, configuration, and deployment contract are described
+in [examples/site/README.md](../examples/site/README.md). In particular, the site's
+FedCM web-identity document is on `pyevp.dev`, while the issuer and session are on
+`mail.pyevp.dev`. The only account, `demo@pyevp.dev`, is public and suitable only for demos.

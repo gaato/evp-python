@@ -1,9 +1,10 @@
-"""End-to-end EVP check with a real Chrome against https://pyevp.dev.
+"""End-to-end EVP check against the public https://mail.pyevp.dev demo provider.
 
-Starts the example issuer (``examples/issuer_fastapi``) behind the ``pyevp-dev``
-Cloudflare Tunnel and the example relying party (``examples/fastapi``) on localhost,
-then drives a headless Chrome over the DevTools protocol: log in to the issuer, type
-the address into the RP's form, submit, and check that the RP verified the token.
+Checks the provider before launching Chrome, then starts the example relying party
+(``examples/fastapi``) from this checkout on localhost and drives a fresh Chrome
+profile over DevTools. The provider runs the deployed :latest image, independently
+of the RP library under test. Provider unavailability exits with code 2; interop
+failures exit with code 1.
 
 Run from the repository root::
 
@@ -13,9 +14,6 @@ Environment:
 
 ``CHROME``
     Chrome binary (default ``google-chrome``).
-``PYEVP_TUNNEL_TOKEN``
-    Connector token for the tunnel. When set, ``cloudflared`` is started here (CI);
-    otherwise run ``cf tunnels run pyevp-dev`` yourself first.
 ``INTEROP_OUT``
     Directory for logs and screenshots (default: a temporary directory).
 ``INTEROP_HEADFUL``
@@ -27,9 +25,9 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import http.client
 import json
 import os
-import re
 import secrets
 import shutil
 import subprocess
@@ -38,25 +36,34 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import websockets
+from dns.exception import DNSException
 
-from pyevp.issuer import SigningKey
+from pyevp.adapters.dnspython import DnsPythonResolver
+from pyevp.discovery import parse_txt_records
+from pyevp.errors import DiscoveryError
 
 ROOT = Path(__file__).resolve().parent.parent
-ISSUER = "https://pyevp.dev"
-ISSUER_PORT = 8000  # the tunnel's ingress points here
+ISSUER = "https://mail.pyevp.dev"
+WEB_IDENTITY = "https://pyevp.dev/.well-known/web-identity"
+TXT_NAME = "_email-verification.pyevp.dev"
 RP_PORT = 8001
 RP = f"http://localhost:{RP_PORT}"
-EMAIL = "test@pyevp.dev"
+EMAIL = "demo@pyevp.dev"
+EXPECTED_RESULT = {"verified": True, "issuer": ISSUER}
+PROVIDER_UNAVAILABLE_EXIT = 2
 CDP_PORT = 9333
 ATTEMPTS = 3
 
-# Uvicorn's access log line for Chrome's issuance request.
-ISSUANCE_LOG = re.compile(r'"POST /email-verification/issuance HTTP/[\d.]+" (\d{3})')
+# HEADFUL CHECK REQUIRED: confirm whether issuer_site takes the issuer origin
+# (https://mail.pyevp.dev) or the site (https://pyevp.dev). Default to the origin.
+CHROME_ISSUER_SITE = ISSUER
 
 # Chrome asks once per address before its first issuance ("verify this email
 # automatically?"). The prompt is browser UI that DevTools cannot click, so the
@@ -64,7 +71,11 @@ ISSUANCE_LOG = re.compile(r'"POST /email-verification/issuance HTTP/[\d.]+" (\d{
 PREFERENCES = {
     "autofill": {
         "email_verification_state": {
-            EMAIL: {"allowed": True, "issuer_site": ISSUER, "timestamp": "13435404633497937"}
+            EMAIL: {
+                "allowed": True,
+                "issuer_site": CHROME_ISSUER_SITE,
+                "timestamp": "13435404633497937",
+            }
         }
     },
     # Keep the "save password?" bubble out of the way after the issuer login.
@@ -75,6 +86,105 @@ PREFERENCES = {
 
 class InteropError(Exception):
     pass
+
+
+class ProviderUnavailable(Exception):
+    """The public provider or its discovery setup is unavailable."""
+
+
+@dataclass(frozen=True)
+class HttpResponse:
+    status: int
+    content_type: str
+    body: bytes
+
+
+@dataclass(frozen=True)
+class SessionState:
+    email: str | None
+    issued: int
+    build_sha: str
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    # The standard library defines this callback's positional signature.
+    def redirect_request(self, req, fp, code, msg, headers, newurl) -> None:  # noqa: PLR0917
+        # In particular, never forward the provider's session cookie elsewhere.
+        return None
+
+
+def fetch_response(url: str, *, cookie: str = "") -> HttpResponse:
+    headers = {"User-Agent": "pyevp-interop", "Cache-Control": "no-cache"}
+    if cookie:
+        headers["Cookie"] = cookie
+    request = urllib.request.Request(url, headers=headers)
+    opener = urllib.request.build_opener(NoRedirect())
+    with opener.open(request, timeout=10) as response:
+        return HttpResponse(
+            response.status, response.headers.get("Content-Type", ""), response.read()
+        )
+
+
+def parse_json(response: HttpResponse, description: str) -> Any:
+    if response.status != 200:
+        raise ProviderUnavailable(f"{description}: HTTP {response.status}")
+    if response.content_type.split(";", 1)[0].strip().lower() != "application/json":
+        raise ProviderUnavailable(f"{description}: expected application/json")
+    try:
+        return json.loads(response.body)
+    except (ValueError, UnicodeError) as exc:
+        raise ProviderUnavailable(f"{description}: invalid JSON") from exc
+
+
+def validate_web_identity(document: object) -> None:
+    endpoint = document.get("accounts_endpoint") if isinstance(document, dict) else None
+    try:
+        parts = urlsplit(endpoint) if isinstance(endpoint, str) else None
+        valid = (
+            parts is not None
+            and parts.scheme == "https"
+            and parts.hostname == "mail.pyevp.dev"
+            and parts.port in (None, 443)
+            and parts.username is None
+            and parts.password is None
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ProviderUnavailable(
+            "web-identity: accounts_endpoint must be on https://mail.pyevp.dev"
+        )
+
+
+def parse_me(document: object) -> SessionState:
+    if not isinstance(document, dict):
+        raise ProviderUnavailable("/me: expected a JSON object")
+    email, issued, build_sha = (document.get(key) for key in ("email", "issued", "build_sha"))
+    if "email" not in document or (email is not None and not isinstance(email, str)):
+        raise ProviderUnavailable("/me: invalid email")
+    if not isinstance(issued, int) or isinstance(issued, bool) or issued < 0:
+        raise ProviderUnavailable("/me: issued must be a non-negative integer")
+    if not isinstance(build_sha, str) or not build_sha:
+        raise ProviderUnavailable("/me: invalid build_sha")
+    return SessionState(email, issued, build_sha)
+
+
+def preflight(
+    get: Callable[[str], HttpResponse] = fetch_response,
+    resolve_txt: Callable[[str], Sequence[str]] | None = None,
+) -> None:
+    """Check public infrastructure without starting the RP or Chrome."""
+    try:
+        health = get(f"{ISSUER}/healthz")
+        if health.status != 200:
+            raise ProviderUnavailable(f"healthz: HTTP {health.status}")
+        validate_web_identity(parse_json(get(WEB_IDENTITY), "web-identity"))
+        resolve_txt = resolve_txt or DnsPythonResolver().resolve_txt
+        issuer = parse_txt_records(resolve_txt(TXT_NAME))
+        if issuer != ISSUER:
+            raise ProviderUnavailable(f"{TXT_NAME}: discovered {issuer}, expected {ISSUER}")
+    except (OSError, ValueError, http.client.HTTPException, DNSException, DiscoveryError) as exc:
+        raise ProviderUnavailable(f"preflight: {exc}") from exc
 
 
 def log(message: str) -> None:
@@ -111,43 +221,6 @@ def process(name: str, args: list[str], out: Path, **kwargs: Any) -> Iterator[No
                 proc.wait(10)
             except subprocess.TimeoutExpired:
                 proc.kill()
-
-
-class IssuerLog:
-    """Follows the issuer's access log: the only place a token fetch is visible.
-
-    The page cannot see it: Chrome fills the hidden field only when the form is submitted.
-    """
-
-    def __init__(self, path: Path) -> None:
-        self._path = path
-        self._offset = 0
-
-    def skip_to_end(self) -> None:
-        self._offset = self._path.stat().st_size
-
-    def _new_lines(self) -> list[str]:
-        with self._path.open("rb") as file:
-            file.seek(self._offset)
-            data = file.read()
-        complete = data[: data.rfind(b"\n") + 1]  # leave a partly written line for later
-        self._offset += len(complete)
-        return complete.decode(errors="replace").splitlines()
-
-    async def wait_for_token(self, timeout: float) -> None:
-        """Wait until the issuer has answered Chrome's issuance request."""
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            for line in self._new_lines():
-                if match := ISSUANCE_LOG.search(line):
-                    if match[1] != "200":
-                        raise InteropError(f"issuer answered the issuance request with {match[1]}")
-                    log("issuer issued a token")
-                    # Chrome still binds the token to its key; that is local and quick.
-                    await asyncio.sleep(1)
-                    return
-            await asyncio.sleep(0.5)
-        raise InteropError("Chrome did not request a token from the issuer")
 
 
 class DevTools:
@@ -210,46 +283,90 @@ class DevTools:
         path.write_bytes(base64.b64decode(result["data"]))
 
 
-async def drive(out: Path, password: str, issuer_log: IssuerLog) -> dict[str, Any]:
+class ProviderSession:
+    """Read /me with Chrome's current cookies without moving the RP page.
+
+    Cookies are retrieved again on every poll: issuance can update a signed
+    session cookie. urllib never writes cookies back to Chrome or follows redirects.
+    """
+
+    def __init__(self, tab: DevTools) -> None:
+        self._tab = tab
+        self._build_sha: str | None = None
+
+    async def read(self) -> SessionState:
+        url = f"{ISSUER}/me"
+        result = await self._tab.send("Network.getCookies", urls=[url])
+        cookie = "; ".join(f"{c['name']}={c['value']}" for c in result["cookies"])
+        try:
+            response = await asyncio.to_thread(fetch_response, url, cookie=cookie)
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            raise ProviderUnavailable(f"/me: {exc}") from exc
+        state = parse_me(parse_json(response, "/me"))
+        if state.build_sha != self._build_sha:
+            log(f"provider build_sha={state.build_sha}")
+            self._build_sha = state.build_sha
+        if state.email != EMAIL:
+            raise InteropError(f"provider session is not logged in as {EMAIL}")
+        return state
+
+    async def wait_for_token(self, before: SessionState, timeout: float) -> None:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            state = await self.read()
+            if state.issued > before.issued:
+                log(f"issuer issued a token ({before.issued} -> {state.issued})")
+                # Chrome still binds the token to its key; that is local and quick.
+                await asyncio.sleep(1)
+                return
+            if state.issued < before.issued:
+                raise InteropError("provider session's issued count decreased")
+            await asyncio.sleep(0.5)
+        raise InteropError("Chrome did not obtain a token: /me issued count did not increase")
+
+
+async def drive(out: Path) -> dict[str, Any]:
     targets = fetch_json(f"http://127.0.0.1:{CDP_PORT}/json")
     page = next(t for t in targets if t["type"] == "page")
     async with websockets.connect(page["webSocketDebuggerUrl"], max_size=None) as ws:
         tab = DevTools(ws)
         await tab.send("Page.enable")
+        await tab.send("Network.enable")
+        session = ProviderSession(tab)
         try:
-            log("logging in to the issuer")
+            log(f"logging in to the issuer as {EMAIL}")
             await tab.navigate(f"{ISSUER}/login")
-            await tab.evaluate(
-                "(() => { const f = document.forms[0];"
-                f" f.email.value = {json.dumps(EMAIL)};"
-                f" f.password.value = {json.dumps(password)}; f.submit(); }})()"
+            submitted = await tab.evaluate(
+                "(() => { const f = document.querySelector('form[action=\"/login\"]');"
+                " if (!f || f.method.toLowerCase() !== 'post') return false;"
+                " f.submit(); return true; })()"
             )
+            if not submitted:
+                raise InteropError("provider login page has no POST /login form")
             await asyncio.sleep(1)
             await tab.wait_loaded()
-            text = await tab.evaluate("document.body.innerText")
-            if f"Logged in as {EMAIL}" not in text:
-                raise InteropError(f"issuer login failed: {text!r}")
+            await session.read()  # Check the login and report the deployed build.
 
             for attempt in range(1, ATTEMPTS):
-                result = await submit_form(tab, issuer_log)
+                result = await submit_form(tab, session)
                 if result.get("verified"):
                     return result
                 # The token arrived too late for this submission; try a fresh form.
                 log(f"attempt {attempt} was not verified: {result}")
-            return await submit_form(tab, issuer_log)
+            return await submit_form(tab, session)
         finally:
             with contextlib.suppress(Exception):
                 await tab.screenshot(out / "final.png")
 
 
-async def submit_form(tab: DevTools, issuer_log: IssuerLog) -> dict[str, Any]:
+async def submit_form(tab: DevTools, session: ProviderSession) -> dict[str, Any]:
     log("filling in the relying party's form")
     await tab.navigate(RP)
-    issuer_log.skip_to_end()
+    before = await session.read()
     await tab.evaluate("document.querySelector('input[name=email]').focus()")
     await tab.send("Input.insertText", text=EMAIL)
     await tab.key("Tab", 9)  # Chrome starts the check when the field loses focus
-    await issuer_log.wait_for_token(timeout=60)
+    await session.wait_for_token(before, timeout=60)
 
     log("submitting")
     await tab.click("button")
@@ -257,38 +374,27 @@ async def submit_form(tab: DevTools, issuer_log: IssuerLog) -> dict[str, Any]:
     await tab.wait_loaded()
     text = await tab.evaluate("document.body.innerText")
     try:
-        return json.loads(text)
+        result = json.loads(text)
     except ValueError:
         raise InteropError(f"unexpected RP response: {text!r}") from None
+    if not isinstance(result, dict):
+        raise InteropError(f"unexpected RP response: {text!r}")
+    return result
 
 
 def run(out: Path) -> None:
+    log("checking public demo provider availability")
+    preflight()
+    log("provider preflight passed")
     chrome = os.environ.get("CHROME", "google-chrome")
-    kid = f"interop-{secrets.token_hex(4)}"
-    key = SigningKey.generate("Ed25519", kid=kid)
-    password = secrets.token_urlsafe(16)
 
     tmp = Path(tempfile.mkdtemp(prefix="pyevp-interop-"))
     try:
-        key_file = tmp / "signing-key.json"
-        key_file.write_text(json.dumps(key.private_jwk()))
-        key_file.chmod(0o600)
         profile = tmp / "profile"
         (profile / "Default").mkdir(parents=True)
         (profile / "Default" / "Preferences").write_text(json.dumps(PREFERENCES))
 
-        base_env = {**os.environ}
-        base_env.pop("PYEVP_TUNNEL_TOKEN", None)
-        issuer_env = {
-            **base_env,
-            "EVP_ISSUER": ISSUER,
-            "EVP_PUBLIC_URL": ISSUER,
-            "EVP_EMAIL_DOMAINS": "pyevp.dev",
-            "EVP_SIGNING_KEY": str(key_file),
-            "EVP_DEMO_USERS": json.dumps({EMAIL: password}),
-            "SESSION_SECRET": secrets.token_hex(32),
-        }
-        rp_env = {**base_env, "EVP_ORIGIN": RP, "SESSION_SECRET": secrets.token_hex(32)}
+        rp_env = {**os.environ, "EVP_ORIGIN": RP, "SESSION_SECRET": secrets.token_hex(32)}
         uvicorn_args = [sys.executable, "-m", "uvicorn", "app:app", "--port"]
         chrome_args = [
             chrome,
@@ -306,15 +412,6 @@ def run(out: Path) -> None:
         with contextlib.ExitStack() as stack:
             stack.enter_context(
                 process(
-                    "issuer",
-                    [*uvicorn_args, str(ISSUER_PORT), "--proxy-headers"],
-                    out,
-                    cwd=ROOT / "examples" / "issuer_fastapi",
-                    env=issuer_env,
-                )
-            )
-            stack.enter_context(
-                process(
                     "rp",
                     [*uvicorn_args, str(RP_PORT)],
                     out,
@@ -322,36 +419,16 @@ def run(out: Path) -> None:
                     env=rp_env,
                 )
             )
-            if token := os.environ.get("PYEVP_TUNNEL_TOKEN"):
-                stack.enter_context(
-                    process(
-                        "cloudflared",
-                        ["cloudflared", "tunnel", "--no-autoupdate", "run"],
-                        out,
-                        env={**base_env, "TUNNEL_TOKEN": token},
-                    )
-                )
-
-            # Another connector (a developer's laptop) could be serving pyevp.dev too.
-            # Seeing this run's key id proves the tunnel reaches this issuer.
-            log(f"waiting for {ISSUER} to serve kid {kid}")
-            wait_for(
-                f"{ISSUER} to serve this run's key",
-                lambda: any(
-                    k.get("kid") == kid
-                    for k in fetch_json(f"{ISSUER}/email-verification/jwks")["keys"]
-                ),
-                timeout=90,
-            )
-
+            wait_for("relying party", lambda: fetch_response(RP).status == 200)
             stack.enter_context(process("chrome", chrome_args, out))
             wait_for("Chrome", lambda: fetch_json(f"http://127.0.0.1:{CDP_PORT}/json/version"))
             version = fetch_json(f"http://127.0.0.1:{CDP_PORT}/json/version")["Browser"]
             log(f"driving {version}")
 
-            result = asyncio.run(drive(out, password, IssuerLog(out / "issuer.log")))
+            result = asyncio.run(drive(out))
             log(f"relying party answered {result}")
-            if result != {"email": EMAIL, "verified": True, "issuer": ISSUER}:
+            actual = {key: result.get(key) for key in EXPECTED_RESULT}
+            if actual != EXPECTED_RESULT or result.get("email") != EMAIL:
                 raise InteropError(f"token was not verified: {result}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -362,8 +439,11 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     try:
         run(out)
+    except ProviderUnavailable as exc:
+        log(f"PROVIDER UNAVAILABLE: {exc} (logs in {out})")
+        return PROVIDER_UNAVAILABLE_EXIT
     except (InteropError, urllib.error.URLError) as exc:
-        log(f"FAILED: {exc} (logs in {out})")
+        log(f"INTEROP FAILED: {exc} (logs in {out})")
         return 1
     log("OK")
     return 0

@@ -1,6 +1,6 @@
 name: Chrome interop
 
-# Runs the full EVP flow in headless Chrome against https://pyevp.dev every night
+# Runs the full EVP flow in headless Chrome against https://mail.pyevp.dev every night
 # (interop/README.md). A stable failure opens or updates an "interop" issue; beta
 # failures only show up in the run, as an early warning for the next stable.
 
@@ -11,19 +11,10 @@ on:
 
 permissions: {}
 
-env:
-  CLOUDFLARED_VERSION: "2026.9.3"
-  CLOUDFLARED_SHA256: "77e26d8d900e0b8469f416239d14b5f296525fdf79fee6f511ef55609e3fbac2"
-
 jobs:
   chrome:
     name: chrome (${{ matrix.channel }})
     runs-on: ubuntu-latest
-    environment: pyevp-dev
-    # One connector at a time: pyevp.dev is a single tunnel.
-    concurrency:
-      group: pyevp-dev-tunnel
-      cancel-in-progress: false
     continue-on-error: ${{ matrix.channel == 'beta' }}
     strategy:
       fail-fast: false
@@ -45,17 +36,9 @@ jobs:
       # Ubuntu 24.04 restricts unprivileged user namespaces, which Chrome's sandbox needs.
       - name: Allow Chrome's sandbox
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Install cloudflared
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/cloudflared" \
-            "https://github.com/cloudflare/cloudflared/releases/download/$CLOUDFLARED_VERSION/cloudflared-linux-amd64"
-          echo "$CLOUDFLARED_SHA256  $RUNNER_TEMP/cloudflared" | sha256sum -c -
-          chmod +x "$RUNNER_TEMP/cloudflared"
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Run the interop test
         env:
           CHROME: ${{ steps.chrome.outputs.chrome-path }}
-          PYEVP_TUNNEL_TOKEN: ${{ secrets.PYEVP_TUNNEL_TOKEN }}
           INTEROP_OUT: ${{ runner.temp }}/interop
         run: .venv/bin/python interop/chrome_evp.py
       - if: failure()

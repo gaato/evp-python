@@ -39,7 +39,8 @@ profile preset; existing presets are never changed incompatibly (see the
 ## Translations
 
 The docs have a Japanese translation, kept as gettext catalogs in `docs/locales/ja/LC_MESSAGES/`.
-After changing the English docs, refresh the catalogs and commit the updated `.po` files:
+After changing the English docs or a docstring, refresh the catalogs and commit the updated `.po`
+files:
 
 ```sh
 uv run sphinx-build -b gettext docs docs/_build/gettext
@@ -47,8 +48,12 @@ uv run sphinx-intl update -p docs/_build/gettext -l ja -d docs/locales
 ```
 
 Entries that are untranslated or marked fuzzy (because their English text changed) show in
-English until someone translates or reviews them and removes the `fuzzy` flag. `api.po` holds the
-autodoc docstrings and is left untranslated on purpose, so the API reference stays in English.
+English until someone translates or reviews them and removes the `fuzzy` flag.
+
+`api.po` also holds the autodoc docstrings. Sphinx parses every translation for a page with that
+page's parser, so even docstring entries are MyST there: write roles as ``{class}`Verifier` ``,
+not ``:class:`Verifier` ``, and drop the `::` that introduces a literal block. The field labels
+(Parameters, Raises, Return type) come from Sphinx's own catalog, not from `api.po`.
 
 Link to sections with explicit labels (`(label-name)=` above the heading, then
 `[text](#label-name)`), not with anchors derived from heading text. A heading that starts with a
@@ -82,6 +87,15 @@ keep to the existing translation:
 | discovery | ディスカバリー (noun only) |
 | end-to-end | エンドツーエンド |
 | fake | フェイク |
+| presentation token | 提示用のトークン |
+| key binding (KB-JWT) | 鍵バインディング |
+| holder key | ホルダーの鍵 |
+| canonical (issuer) | 正規化された |
+| claim | クレーム |
+| driver, port, effect | ドライバー、ポート、エフェクト |
+| fetcher, resolver | フェッチャー、リゾルバー |
+| fail closed | 安全側に失敗する |
+| verifier, nonce, disclosure | (untranslated) |
 
 ### Building
 

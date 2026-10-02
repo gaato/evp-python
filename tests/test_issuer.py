@@ -143,7 +143,7 @@ def test_chrome_profile_tokens_fail_the_strict_verifier(clock: FixedClock) -> No
     evt = issuer.issue(issuer.parse_request(**browser.request()))
     with pytest.raises(EVPError):
         verifier_for(issuer, clock, Profile.draft_hardt_02()).verify(
-            present(evt, browser), nonce="n-1"
+            present(evt, browser), nonce="n-1", email=None
         )
 
 
@@ -218,7 +218,7 @@ def test_rotation_old_tokens_still_verify(clock: FixedClock) -> None:
     after = make_issuer(
         clock, signer=SigningKey.generate(kid="new"), published_keys=[old.public_jwk]
     )
-    verifier_for(after, clock).verify(present(evt, browser), nonce="n-1")
+    verifier_for(after, clock).verify(present(evt, browser), nonce="n-1", email=None)
 
 
 @pytest.mark.parametrize(
@@ -594,7 +594,7 @@ def test_issued_token_does_not_verify_for_another_key(clock: FixedClock) -> None
     browser = Browser(clock)
     evt = issuer.issue(issuer.parse_request(**browser.request()))
     with pytest.raises(EVPError):
-        verifier_for(issuer, clock).verify(present(evt, Browser(clock)), nonce="n-1")
+        verifier_for(issuer, clock).verify(present(evt, Browser(clock)), nonce="n-1", email=None)
 
 
 def test_request_repr_hides_signature(clock: FixedClock) -> None:
@@ -610,7 +610,10 @@ def test_fake_browser_issuance_request(clock: FixedClock, alg: Any) -> None:
     request = issuer.parse_request(**browser.issuance_request("bob@example.com", endpoint=ENDPOINT))
     evt = issuer.issue(request)
     token = browser.present(evt, audience=RP, nonce="n-1")
-    assert verifier_for(issuer, clock).verify(token, nonce="n-1").email == "bob@example.com"
+    assert (
+        verifier_for(issuer, clock).verify(token, nonce="n-1", email=None).email
+        == "bob@example.com"
+    )
     strict = make_issuer(clock, profile=IssuanceProfile.draft_hardt_02())
     strict.parse_request(
         **browser.issuance_request("bob@example.com", endpoint=ENDPOINT, include_alg=True)

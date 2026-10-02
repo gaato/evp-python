@@ -108,7 +108,7 @@ def test_absent_algorithm_list_matches_the_verifier(alg: SigningAlg) -> None:
     browser = FakeBrowser(clock=issuer.clock)
     token = browser.present(issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce="n")
     verifier = Verifier(audience=AUDIENCE, resolver=resolver, fetcher=fetcher, clock=issuer.clock)
-    assert verifier.verify(token, nonce="n").email == EMAIL
+    assert verifier.verify(token, nonce="n", email=None).email == EMAIL
 
 
 def test_transport_failure_raises(issuer: FakeIssuer) -> None:
@@ -146,7 +146,7 @@ def test_algorithm_list_matches_the_verifier(advertised: list[str], ok: bool) ->
         audience=AUDIENCE, resolver=resolver, fetcher=fetcher, profile=strict, clock=issuer.clock
     )
     if ok:
-        assert verifier.verify(token, nonce="n").email == EMAIL
+        assert verifier.verify(token, nonce="n", email=None).email == EMAIL
     else:
         with pytest.raises(EVPError):
-            verifier.verify(token, nonce="n")
+            verifier.verify(token, nonce="n", email=None)

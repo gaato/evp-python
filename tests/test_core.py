@@ -23,7 +23,7 @@ def test_steps_request_dns_then_metadata_then_jwks(
     issuer: FakeIssuer, token: str, nonce: str, clock: FixedClock
 ) -> None:
     steps = verification_steps(
-        token, audience=AUDIENCE, nonce=nonce, now=clock(), profile=DEFAULT_PROFILE
+        token, audience=AUDIENCE, nonce=nonce, now=clock(), profile=DEFAULT_PROFILE, email=None
     )
     assert next(steps) == ResolveTxt("_email-verification.example.com")
     assert steps.send(["iss=issuer.example"]) == FetchJson(issuer.metadata_url, "metadata")
@@ -36,7 +36,7 @@ def test_steps_request_dns_then_metadata_then_jwks(
 
 def test_offline_failures_request_no_io(token: str, clock: FixedClock) -> None:
     steps = verification_steps(
-        token, audience=AUDIENCE, nonce="wrong", now=clock(), profile=DEFAULT_PROFILE
+        token, audience=AUDIENCE, nonce="wrong", now=clock(), profile=DEFAULT_PROFILE, email=None
     )
     with pytest.raises(EVPError) as exc:
         next(steps)
@@ -51,7 +51,7 @@ def test_key_rotation_requests_refresh(
     fresh = FakeBrowser(clock=clock)
     token = fresh.present(issuer.issue(EMAIL, fresh.public_jwk), audience=AUDIENCE, nonce=nonce)
     steps = verification_steps(
-        token, audience=AUDIENCE, nonce=nonce, now=clock(), profile=DEFAULT_PROFILE
+        token, audience=AUDIENCE, nonce=nonce, now=clock(), profile=DEFAULT_PROFILE, email=None
     )
     next(steps)
     steps.send(["iss=issuer.example"])
@@ -246,7 +246,7 @@ def test_rejects(
 ) -> None:
     build, code = CASES[case]
     with pytest.raises(EVPError) as exc:
-        verifier.verify(build(issuer, browser, nonce, clock), nonce=nonce)
+        verifier.verify(build(issuer, browser, nonce, clock), nonce=nonce, email=None)
     assert exc.value.code is code
 
 
@@ -280,14 +280,16 @@ def test_ed448_cnf_does_not_cover_ed25519(
     kb_alg: Literal["Ed25519", "EdDSA"],
 ) -> None:
     with pytest.raises(EVPError) as exc:
-        verifier.verify(_cnf_alg_ed448(kb_alg)(issuer, browser, nonce, clock), nonce=nonce)
+        verifier.verify(
+            _cnf_alg_ed448(kb_alg)(issuer, browser, nonce, clock), nonce=nonce, email=None
+        )
     assert exc.value.code is ErrorCode.UNSUPPORTED_ALG
 
 
 def test_exp_at_the_end_of_time(issuer: FakeIssuer, browser: FakeBrowser, nonce: str) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE)
     token = _present(issuer, browser, nonce, claims={"exp": 253402300799})  # 9999-12-31
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
 
 
 def test_email_mismatch(verifier: Verifier, token: str, nonce: str) -> None:
@@ -318,7 +320,7 @@ def test_email_comparison(
 def test_is_private_email(issuer: FakeIssuer, browser: FakeBrowser, nonce: str) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE)
     token = _present(issuer, browser, nonce, claims={"is_private_email": True})
-    assert verifier.verify(token, nonce=nonce).is_private_email
+    assert verifier.verify(token, nonce=nonce, email=None).is_private_email
 
 
 def test_idn_domain_is_not_folded_to_another_domain(
@@ -330,7 +332,7 @@ def test_idn_domain_is_not_folded_to_another_domain(
         issuer.issue("a@faß.example", browser.public_jwk), audience=AUDIENCE, nonce=nonce
     )
     with pytest.raises(EVPError) as exc:
-        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
+        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.ISSUER_DISCOVERY_FAILED
 
 
@@ -340,7 +342,7 @@ def test_holder_key_without_verify_op_is_refused(
     holder = {**browser.public_jwk, "key_ops": ["encrypt"]}
     token = browser.present(issuer.issue(EMAIL, holder), audience=AUDIENCE, nonce=nonce)
     with pytest.raises(EVPError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.UNSUPPORTED_ALG
 
 
@@ -350,12 +352,14 @@ def test_holder_key_with_null_key_ops_is_malformed(
     holder = {**browser.public_jwk, "key_ops": None}
     token = browser.present(issuer.issue(EMAIL, holder), audience=AUDIENCE, nonce=nonce)
     with pytest.raises(EVPError) as exc:
-        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
+        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.MALFORMED_TOKEN
 
     async def main() -> None:
         with pytest.raises(EVPError) as exc:
-            await make_async_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
+            await make_async_verifier(issuer, audience=AUDIENCE).verify(
+                token, nonce=nonce, email=None
+            )
         assert exc.value.code is ErrorCode.MALFORMED_TOKEN
 
     anyio.run(main)
@@ -373,6 +377,6 @@ def test_issuer_key_without_verify_op_is_refused(
     issuer = _EncryptOnlyIssuer(clock=clock)
     with pytest.raises(EVPError) as exc:
         make_verifier(issuer, audience=AUDIENCE).verify(
-            _present(issuer, browser, nonce), nonce=nonce
+            _present(issuer, browser, nonce), nonce=nonce, email=None
         )
     assert exc.value.code is ErrorCode.KEY_NOT_FOUND

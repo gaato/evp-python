@@ -61,9 +61,9 @@ def test_replay_rejected(issuer: FakeIssuer, token: str, nonce: str, clock: Fixe
     verifier = make_verifier(
         issuer, audience=AUDIENCE, replay_guard=InMemoryReplayGuard(clock=clock)
     )
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
     with pytest.raises(EVPError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_REPLAYED
 
 
@@ -74,13 +74,16 @@ def test_malleated_signature_is_still_a_replay(
     token = browser.present(issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce)
     twin = _malleate_es256(token)
     assert twin != token
-    assert make_verifier(issuer, audience=AUDIENCE).verify(twin, nonce=nonce).email == EMAIL
+    assert (
+        make_verifier(issuer, audience=AUDIENCE).verify(twin, nonce=nonce, email=None).email
+        == EMAIL
+    )
     verifier = make_verifier(
         issuer, audience=AUDIENCE, replay_guard=InMemoryReplayGuard(clock=clock)
     )
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
     with pytest.raises(EVPError) as exc:
-        verifier.verify(twin, nonce=nonce)
+        verifier.verify(twin, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_REPLAYED
 
 
@@ -99,8 +102,8 @@ def test_replay_key_accepts_the_raw_token(token: str) -> None:
 
 
 def test_without_guard_replay_is_not_detected(verifier: Verifier, token: str, nonce: str) -> None:
-    verifier.verify(token, nonce=nonce)
-    verifier.verify(token, nonce=nonce)
+    verifier.verify(token, nonce=nonce, email=None)
+    verifier.verify(token, nonce=nonce, email=None)
 
 
 def test_rejected_tokens_are_not_remembered(
@@ -109,8 +112,8 @@ def test_rejected_tokens_are_not_remembered(
     guard = InMemoryReplayGuard(clock=clock)
     verifier = make_verifier(issuer, audience=AUDIENCE, replay_guard=guard)
     with pytest.raises(EVPError):
-        verifier.verify(token, nonce="wrong")
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+        verifier.verify(token, nonce="wrong", email=None)
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
 
 
 @pytest.mark.anyio
@@ -123,16 +126,16 @@ async def test_async_replay(
     guard_factory: Callable[[FixedClock], ReplayGuard | AsyncReplayGuard],
 ) -> None:
     verifier = make_async_verifier(issuer, audience=AUDIENCE, replay_guard=guard_factory(clock))
-    await verifier.verify(token, nonce=nonce)
+    await verifier.verify(token, nonce=nonce, email=None)
     with pytest.raises(EVPError) as exc:
-        await verifier.verify(token, nonce=nonce)
+        await verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_REPLAYED
 
 
 def test_guard_failures_propagate_unchanged(issuer: FakeIssuer, token: str, nonce: str) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE, replay_guard=BrokenGuard())
     with pytest.raises(ConnectionError):
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
 
 
 def test_expiry_matches_token_lifetime(
@@ -147,7 +150,7 @@ def test_expiry_matches_token_lifetime(
 
     verifier = make_verifier(issuer, audience=AUDIENCE, replay_guard=Recorder())
     token = browser.present(issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce)
-    verifier.verify(token, nonce=nonce)
+    verifier.verify(token, nonce=nonce, email=None)
     profile = verifier.profile
     assert seen == [clock() + profile.max_token_age + profile.clock_skew]
 
@@ -166,17 +169,17 @@ def test_token_expires_when_its_record_does(
     verifier = make_verifier(
         issuer, audience=AUDIENCE, replay_guard=InMemoryReplayGuard(clock=clock)
     )
-    verifier.verify(token, nonce=nonce)
+    verifier.verify(token, nonce=nonce, email=None)
     lifetime = verifier.profile.max_token_age + verifier.profile.clock_skew
 
     clock.advance(lifetime - timedelta(microseconds=1))
     with pytest.raises(EVPError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_REPLAYED
 
     clock.advance(timedelta(microseconds=1))  # the guard has now forgotten the token
     with pytest.raises(EVPError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_EXPIRED
 
 
@@ -217,10 +220,10 @@ def test_token_expiring_during_verification_is_rejected(
         replay_guard=InMemoryReplayGuard(clock=clock),
     )
     start = clock()
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
     clock.now = start + _LIFETIME - timedelta(seconds=1)
     with pytest.raises(EVPError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_EXPIRED
 
 
@@ -236,8 +239,8 @@ async def test_token_expiring_during_async_verification_is_rejected(
         replay_guard=AsyncGuard(clock),
     )
     start = clock()
-    assert (await verifier.verify(token, nonce=nonce)).email == EMAIL
+    assert (await verifier.verify(token, nonce=nonce, email=None)).email == EMAIL
     clock.now = start + _LIFETIME - timedelta(seconds=1)
     with pytest.raises(EVPError) as exc:
-        await verifier.verify(token, nonce=nonce)
+        await verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.TOKEN_EXPIRED

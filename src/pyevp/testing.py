@@ -8,7 +8,7 @@ access::
     verifier = make_verifier(issuer, audience="https://rp.example")
     token = browser.present(issuer.issue("alice@example.com", browser.public_jwk),
                             audience="https://rp.example", nonce=nonce)
-    verifier.verify(token, nonce=nonce)
+    verifier.verify(token, nonce=nonce, email="alice@example.com")
 """
 
 from __future__ import annotations

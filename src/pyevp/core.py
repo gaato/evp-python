@@ -265,7 +265,7 @@ def verification_steps(
     nonce: str,
     now: datetime,
     profile: Profile,
-    email: str | None = None,
+    email: str | None,
     replay_protection: bool = False,
 ) -> Steps:
     """Full RP verification.  Yields effects; returns :class:`VerifiedEmail`.

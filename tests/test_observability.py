@@ -14,7 +14,9 @@ from .conftest import AUDIENCE
 
 def test_success_event(issuer: FakeIssuer, token: str, nonce: str) -> None:
     events: list[VerificationEvent] = []
-    make_verifier(issuer, audience=AUDIENCE, observer=events.append).verify(token, nonce=nonce)
+    make_verifier(issuer, audience=AUDIENCE, observer=events.append).verify(
+        token, nonce=nonce, email=None
+    )
     [event] = events
     assert event.ok
     assert event.code is None
@@ -28,7 +30,7 @@ def test_failure_event(issuer: FakeIssuer, token: str) -> None:
     events: list[VerificationEvent] = []
     verifier = make_verifier(issuer, audience=AUDIENCE, observer=events.append)
     with pytest.raises(EVPError):
-        verifier.verify(token, nonce="wrong")
+        verifier.verify(token, nonce="wrong", email=None)
     [event] = events
     assert not event.ok
     assert event.code is ErrorCode.NONCE_MISMATCH
@@ -40,9 +42,9 @@ def test_failure_event(issuer: FakeIssuer, token: str) -> None:
 async def test_async_events(issuer: FakeIssuer, token: str, nonce: str) -> None:
     events: list[VerificationEvent] = []
     verifier = make_async_verifier(issuer, audience=AUDIENCE, observer=events.append)
-    await verifier.verify(token, nonce=nonce)
+    await verifier.verify(token, nonce=nonce, email=None)
     with pytest.raises(EVPError):
-        await verifier.verify("garbage", nonce=nonce)
+        await verifier.verify("garbage", nonce=nonce, email=None)
     assert [(e.ok, e.code, e.email_domain) for e in events] == [
         (True, None, "example.com"),
         (False, ErrorCode.MALFORMED_TOKEN, None),
@@ -57,7 +59,7 @@ def test_observer_errors_do_not_break_verification(
 
     verifier = make_verifier(issuer, audience=AUDIENCE, observer=broken)
     with caplog.at_level(logging.ERROR, logger="pyevp"):
-        assert verifier.verify(token, nonce=nonce).email == "alice@example.com"
+        assert verifier.verify(token, nonce=nonce, email=None).email == "alice@example.com"
     assert "observer raised" in caplog.text
 
 
@@ -66,7 +68,7 @@ def test_logging_observer(
 ) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE, observer=LoggingObserver())
     with caplog.at_level(logging.INFO, logger="pyevp"):
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert "EVP verification succeeded" in caplog.text
     assert "issuer=https://issuer.example" in caplog.text
 

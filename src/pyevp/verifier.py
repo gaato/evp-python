@@ -188,12 +188,13 @@ class Verifier(_Base):
         return cls(audience=audience, **kwargs)
 
     def verify(
-        self, token: str, *, nonce: str, email: str | None = None, audience: str | None = None
+        self, token: str, *, nonce: str, email: str | None, audience: str | None = None
     ) -> VerifiedEmail:
         """Verify a presentation token.
 
         :param nonce: the nonce this server put on the form (from the session).
-        :param email: the address the user submitted; checked against the token.
+        :param email: the address the user submitted; checked against the token.  Pass
+            ``None`` explicitly to skip the check and use the asserted address instead.
         :param audience: override the configured origin (multi-host deployments).
         :raises pyevp.EVPError: on any failure; see ``.code``.
         """
@@ -288,7 +289,7 @@ class AsyncVerifier(_Base):
         return cls(audience=audience, **kwargs)
 
     async def verify(
-        self, token: str, *, nonce: str, email: str | None = None, audience: str | None = None
+        self, token: str, *, nonce: str, email: str | None, audience: str | None = None
     ) -> VerifiedEmail:
         """Async counterpart of :meth:`Verifier.verify`."""
         started, result, error = time.perf_counter(), None, None

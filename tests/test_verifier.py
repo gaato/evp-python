@@ -56,7 +56,7 @@ async def test_async_verify(issuer: FakeIssuer, token: str, nonce: str) -> None:
 async def test_async_error(issuer: FakeIssuer, token: str) -> None:
     verifier = make_async_verifier(issuer, audience=AUDIENCE)
     with pytest.raises(TokenError) as exc:
-        await verifier.verify(token, nonce="nope")
+        await verifier.verify(token, nonce="nope", email=None)
     assert exc.value.code is ErrorCode.NONCE_MISMATCH
 
 
@@ -67,7 +67,7 @@ def test_metadata_and_jwks_are_cached(
         token = browser.present(
             issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
         )
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert _http(verifier).requests == [issuer.metadata_url, issuer.jwks_uri]
 
 
@@ -100,7 +100,7 @@ async def test_async_cache_is_awaited(
         token = browser.present(
             issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
         )
-        assert (await verifier.verify(token, nonce=nonce)).email == EMAIL
+        assert (await verifier.verify(token, nonce=nonce, email=None)).email == EMAIL
     meta, jwks = issuer.metadata_url, issuer.jwks_uri
     assert cache.calls == [
         f"get {meta}",
@@ -126,19 +126,19 @@ async def test_async_cache_refresh_is_rate_limited(
             issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
         )
 
-    await verifier.verify(fresh_token(), nonce=nonce)
+    await verifier.verify(fresh_token(), nonce=nonce, email=None)
     issuer.rotate_key()
     with pytest.raises(EVPError) as exc:
-        await verifier.verify(fresh_token(), nonce=nonce)
+        await verifier.verify(fresh_token(), nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.EVT_SIGNATURE_INVALID
     clock.advance(timedelta(minutes=2))
-    assert (await verifier.verify(fresh_token(), nonce=nonce)).email == EMAIL
+    assert (await verifier.verify(fresh_token(), nonce=nonce, email=None)).email == EMAIL
 
 
 def test_null_cache_fetches_every_time(issuer: FakeIssuer, token: str, nonce: str) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE, cache=NullCache())
-    verifier.verify(token, nonce=nonce)
-    verifier.verify(token, nonce=nonce)
+    verifier.verify(token, nonce=nonce, email=None)
+    verifier.verify(token, nonce=nonce, email=None)
     assert len(_http(verifier).requests) == 4
 
 
@@ -150,16 +150,16 @@ def test_key_rotation_refreshes_jwks_once_interval_passed(
             issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
         )
 
-    verifier.verify(fresh_token(), nonce=nonce)
+    verifier.verify(fresh_token(), nonce=nonce, email=None)
     issuer.rotate_key()
 
     # Within min_refresh_interval the cached (stale) key set is reused.
     with pytest.raises(EVPError) as exc:
-        verifier.verify(fresh_token(), nonce=nonce)
+        verifier.verify(fresh_token(), nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.EVT_SIGNATURE_INVALID
 
     clock.advance(timedelta(minutes=2))
-    assert verifier.verify(fresh_token(), nonce=nonce).email == EMAIL
+    assert verifier.verify(fresh_token(), nonce=nonce, email=None).email == EMAIL
     assert _http(verifier).requests.count(issuer.jwks_uri) == 2
 
 
@@ -171,7 +171,7 @@ def test_failed_refreshes_are_rate_limited(
             issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
         )
 
-    verifier.verify(fresh_token(), nonce=nonce)
+    verifier.verify(fresh_token(), nonce=nonce, email=None)
     issuer.rotate_key()
     del _http(verifier).documents[issuer.jwks_uri]
     clock.advance(timedelta(minutes=2))
@@ -179,14 +179,14 @@ def test_failed_refreshes_are_rate_limited(
     codes = []
     for _ in range(4):
         with pytest.raises(EVPError) as exc:
-            verifier.verify(fresh_token(), nonce=nonce)
+            verifier.verify(fresh_token(), nonce=nonce, email=None)
         codes.append(exc.value.code)
     assert codes == [ErrorCode.ISSUER_UNREACHABLE] + [ErrorCode.EVT_SIGNATURE_INVALID] * 3
     assert _http(verifier).requests.count(issuer.jwks_uri) == 2
 
     clock.advance(timedelta(minutes=2))
     with pytest.raises(EVPError):
-        verifier.verify(fresh_token(), nonce=nonce)
+        verifier.verify(fresh_token(), nonce=nonce, email=None)
     assert _http(verifier).requests.count(issuer.jwks_uri) == 3
 
 
@@ -218,7 +218,7 @@ async def test_concurrent_refreshes_are_coalesced(
             issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
         )
 
-    await verifier.verify(fresh_token(), nonce=nonce)
+    await verifier.verify(fresh_token(), nonce=nonce, email=None)
     issuer.rotate_key()
     clock.advance(timedelta(minutes=2))
     http.release = anyio.Event()
@@ -227,7 +227,7 @@ async def test_concurrent_refreshes_are_coalesced(
 
     async def verify() -> None:
         try:
-            await verifier.verify(fresh_token(), nonce=nonce)
+            await verifier.verify(fresh_token(), nonce=nonce, email=None)
             results.append(None)
         except EVPError as exc:
             results.append(exc.code)
@@ -249,12 +249,12 @@ def test_gmail_like_issuer(clock: FixedClock, nonce: str) -> None:
     token = browser.present(
         gmail.issue("bob@gmail.example", browser.public_jwk), audience=AUDIENCE, nonce=nonce
     )
-    assert make_verifier(gmail, audience=AUDIENCE).verify(token, nonce=nonce).issuer == (
-        "https://accounts.google.example"
-    )
+    assert make_verifier(gmail, audience=AUDIENCE).verify(
+        token, nonce=nonce, email=None
+    ).issuer == ("https://accounts.google.example")
     with pytest.raises(EVPError):
         make_verifier(gmail, audience=AUDIENCE, profile=Profile.draft_hardt_02()).verify(
-            token, nonce=nonce
+            token, nonce=nonce, email=None
         )
 
 
@@ -262,14 +262,17 @@ def test_strict_profile_accepts_conforming_tokens(
     issuer: FakeIssuer, token: str, nonce: str
 ) -> None:
     verifier = make_verifier(issuer, audience=AUDIENCE, profile=Profile.draft_hardt_02())
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
 
 
 def test_es256(clock: FixedClock, nonce: str) -> None:
     issuer = FakeIssuer(alg="ES256", clock=clock)
     browser = FakeBrowser(alg="ES256", clock=clock)
     token = browser.present(issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce)
-    assert make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce).email == EMAIL
+    assert (
+        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce, email=None).email
+        == EMAIL
+    )
 
 
 def test_multiple_issuers(clock: FixedClock, nonce: str) -> None:
@@ -278,11 +281,11 @@ def test_multiple_issuers(clock: FixedClock, nonce: str) -> None:
     browser = FakeBrowser(clock=clock)
     verifier = make_verifier(a, b, audience=AUDIENCE)
     token = browser.present(b.issue("x@b.test", browser.public_jwk), audience=AUDIENCE, nonce=nonce)
-    assert verifier.verify(token, nonce=nonce).issuer == "https://b.example"
+    assert verifier.verify(token, nonce=nonce, email=None).issuer == "https://b.example"
     # a.example cannot vouch for b.test addresses.
     token = browser.present(a.issue("x@b.test", browser.public_jwk), audience=AUDIENCE, nonce=nonce)
     with pytest.raises(DiscoveryError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.ISSUER_MISMATCH
 
 
@@ -296,7 +299,7 @@ def test_transport_failure_is_issuer_unreachable(
         clock=clock,
     )
     with pytest.raises(DiscoveryError) as exc:
-        verifier.verify(token, nonce=nonce)
+        verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.ISSUER_UNREACHABLE
     assert exc.value.__cause__ is not None
 
@@ -306,7 +309,10 @@ def test_audience_override(issuer: FakeIssuer, browser: FakeBrowser, nonce: str)
     token = browser.present(
         issuer.issue(EMAIL, browser.public_jwk), audience="https://other.example", nonce=nonce
     )
-    assert verifier.verify(token, nonce=nonce, audience="https://other.example").email == EMAIL
+    assert (
+        verifier.verify(token, nonce=nonce, audience="https://other.example", email=None).email
+        == EMAIL
+    )
 
 
 @pytest.mark.parametrize(
@@ -330,4 +336,4 @@ def test_default_accepts_port_overrides(issuer: FakeIssuer, token: str, nonce: s
         fetcher=InMemoryHttp(issuer.http_documents()),
         clock=issuer.clock,
     )
-    assert verifier.verify(token, nonce=nonce).email == EMAIL
+    assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL

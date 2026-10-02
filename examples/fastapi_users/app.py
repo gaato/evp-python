@@ -24,6 +24,7 @@ from fastapi.responses import HTMLResponse
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, exceptions, schemas
 from fastapi_users.authentication import AuthenticationBackend, CookieTransport, JWTStrategy
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
+from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from starlette.middleware.sessions import SessionMiddleware
@@ -140,7 +141,7 @@ async def register(
     *,
     verifier: Annotated[AsyncVerifier, Depends(get_verifier)],
     user_manager: Annotated[UserManager, Depends(get_user_manager)],
-    email: Annotated[str, Form()],
+    email: Annotated[EmailStr, Form()],  # an invalid address is a 422, not a 500
     password: Annotated[str, Form()],
     evt: Annotated[str, Form()] = "",
 ) -> User:

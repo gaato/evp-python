@@ -77,3 +77,8 @@ def test_invalid_token_registers_unverified_user(client: TestClient, issuer: Fak
 def test_no_token_registers_unverified_user(client: TestClient, issuer: FakeIssuer) -> None:
     email = _email()
     assert _register(client, issuer, email, "none")["is_verified"] is False
+
+
+def test_invalid_email_is_rejected(client: TestClient) -> None:
+    response = client.post("/register", data={"email": "not-an-email", "password": PASSWORD})
+    assert response.status_code == 422

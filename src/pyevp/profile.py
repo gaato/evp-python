@@ -59,7 +59,10 @@ class Profile:
     clock_skew: timedelta
     require_exp: bool
     allow_disclosures: bool
-    """Accept SD-JWT disclosures between the EVT and the KB-JWT (ignored otherwise)."""
+    """Accept SD-JWT disclosures between the EVT and the KB-JWT (``MALFORMED_TOKEN`` otherwise).
+
+    They are covered by ``sd_hash`` but never decoded, so they add no claims.
+    """
     dns_label: str = "_email-verification"
     metadata_path: str = "/.well-known/email-verification"
 

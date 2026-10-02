@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 07:59+0900\n"
+"POT-Creation-Date: 2026-10-03 08:33+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -199,9 +199,15 @@ msgstr "``cnf.jwk.alg`` があり、KB-JWT の ``alg`` と一致することを�
 
 #: of pyevp.Profile.allow_disclosures:1
 msgid ""
-"Accept SD-JWT disclosures between the EVT and the KB-JWT (ignored "
-"otherwise)."
-msgstr "EVT と KB-JWT の間にある SD-JWT の disclosure を受け付けます（受け付けるだけで、中身は使いません）。"
+"Accept SD-JWT disclosures between the EVT and the KB-JWT "
+"(``MALFORMED_TOKEN`` otherwise)."
+msgstr ""
+"EVT と KB-JWT の間にある SD-JWT の disclosure を受け付けます（受け付けない場合は "
+"``MALFORMED_TOKEN``）。"
+
+#: of pyevp.Profile.allow_disclosures:3
+msgid "They are covered by ``sd_hash`` but never decoded, so they add no claims."
+msgstr "disclosure は ``sd_hash`` の対象にはなりますが、デコードはしないので、クレームが増えることはありません。"
 
 #: of pyevp.profile.Profile.compat_2026_10:1
 msgid "Accept both the -02 draft and what Chrome + Gmail ship as of 2026-10."
@@ -1174,16 +1180,10 @@ msgid "Sign an EVT for ``request``.  Call only after authenticating the user."
 msgstr "``request`` に対する EVT に署名します。ユーザーを認証したあとでのみ呼んでください。"
 
 #: of pyevp.issuer.Signer.alg:1
-msgid "``Ed25519`` or ``ES256``."
-msgstr "``Ed25519`` または ``ES256``。"
-
-#: of pyevp.issuer.Signer.alg
-msgid "type"
-msgstr "型"
-
-#: of pyevp.issuer.Signer.alg:3
-msgid "A fully specified algorithm"
-msgstr ""
+msgid ""
+"``Ed25519`` or ``ES256`` (fully specified, so never the polymorphic "
+"``EdDSA``)."
+msgstr "``Ed25519`` または ``ES256`` です（完全に指定されたアルゴリズムなので、多義的な ``EdDSA`` にはなりません）。"
 
 #: of pyevp.issuer.Signer.public_jwk:1
 msgid "The verification key as published in the JWKS (with ``kid`` and ``alg``)."

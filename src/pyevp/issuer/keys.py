@@ -27,7 +27,7 @@ _PRIVATE_MEMBERS = ("d", "p", "q", "dp", "dq", "qi", "k")
 @runtime_checkable
 class Signer(Protocol):
     alg: str
-    """A fully specified algorithm: ``Ed25519`` or ``ES256``."""
+    """``Ed25519`` or ``ES256`` (fully specified, so never the polymorphic ``EdDSA``)."""
     kid: str
 
     @property

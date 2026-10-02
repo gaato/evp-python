@@ -37,7 +37,7 @@ def _check(response: Response) -> None:
 def _decode(body: bytes, url: str) -> object:
     try:
         return json.loads(body)
-    except ValueError as exc:
+    except (ValueError, RecursionError) as exc:
         raise FetchError(f"GET {url} did not return JSON") from exc
 
 

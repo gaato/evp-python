@@ -112,7 +112,7 @@ def _check(response: Response, name: str) -> object:
         raise DohError(f"DoH lookup of {name} returned HTTP {response.status_code}")
     try:
         return response.json()
-    except ValueError as exc:
+    except (ValueError, RecursionError) as exc:
         raise DohError(f"DoH lookup of {name} did not return JSON") from exc
 
 

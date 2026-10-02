@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+import evp.adapters.httpx
 from evp.adapters import _http
 from evp.adapters.httpx import AsyncHttpxFetcher, FetchError, HttpxFetcher
 
@@ -44,6 +45,8 @@ def _handler(mod: ModuleType) -> Callable[[Any], Any]:
             case "/gzip":
                 body = gzip.compress(b"[" + b"0," * 8_000_000 + b"0]")
                 return mod.Response(200, content=body, headers={"Content-Encoding": "gzip"})
+            case "/deep":
+                return mod.Response(200, content=b"[" * 200_000 + b"]" * 200_000)
             case "/huge":
                 return mod.Response(200, content=b"[" + b"0," * 200_000 + b"0]")
             case _:
@@ -80,6 +83,12 @@ async def test_async_fetch_json(mod: ModuleType) -> None:
         assert await fetcher.fetch_json(URL) == {"issuer": "https://issuer.example"}
         with pytest.raises(FetchError):
             await fetcher.fetch_json("https://issuer.example/redirect")
+
+
+def test_deeply_nested_body(fetcher: HttpxFetcher, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(evp.adapters.httpx, "MAX_DOCUMENT_BYTES", 1024 * 1024)
+    with pytest.raises(FetchError, match="JSON"):
+        fetcher.fetch_json("https://issuer.example/deep")
 
 
 def test_requests_uncompressed_bodies(mod: ModuleType) -> None:

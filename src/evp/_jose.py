@@ -33,7 +33,7 @@ def decode_json_segment(segment: str) -> dict[str, Any]:
     """Decode a base64url JSON object.  Raises ``ValueError`` on any problem."""
     try:
         value = json.loads(b64url_decode(segment))
-    except (ValueError, UnicodeDecodeError) as exc:
+    except (ValueError, UnicodeDecodeError, RecursionError) as exc:
         raise ValueError("segment is not base64url-encoded JSON") from exc
     if not isinstance(value, dict):
         raise ValueError("segment is not a JSON object")

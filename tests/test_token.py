@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from evp import ErrorCode, TokenError
+from evp import ErrorCode, TokenError, _jose
 from evp.token import compute_sd_hash, parse_token
 
 
@@ -35,6 +35,18 @@ def test_surrounding_whitespace_is_ignored(token: str) -> None:
 def test_malformed(value: str) -> None:
     with pytest.raises(TokenError) as exc:
         parse_token(value)
+    assert exc.value.code is ErrorCode.MALFORMED_TOKEN
+
+
+def test_excessive_nesting(token: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Python 3.11 raises RecursionError for ~1000 levels, which fit in a token. Newer versions
+    # only fail far deeper than MAX_TOKEN_LENGTH allows, so simulate the failure.
+    def loads(_: bytes) -> object:
+        raise RecursionError
+
+    monkeypatch.setattr(_jose.json, "loads", loads)
+    with pytest.raises(TokenError) as exc:
+        parse_token(token)
     assert exc.value.code is ErrorCode.MALFORMED_TOKEN
 
 

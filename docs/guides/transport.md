@@ -23,6 +23,32 @@ or set proxies: `HttpxFetcher(httpx2.Client(...))`. Redirects are never followed
 client was configured to follow them. Responses are requested uncompressed, compressed ones
 are refused, and bodies are size-capped.
 
+## Private networks (SSRF)
+
+The issuer host comes from a DNS record that anyone can publish for their own domain, and the
+key set's location from that issuer's metadata. Without care, a crafted token could make your
+server send requests into its own network. pyevp guards against this in two places:
+
+- Discovery refuses issuer hosts and metadata URLs that are IP literals, single-label names or
+  special-use names (`localhost`, `.local`, `.home.arpa`, `.internal`).
+- The fetchers resolve each host before connecting and refuse it unless every address is
+  globally routable (no loopback, private, link-local or unique-local addresses).
+
+The HTTP library resolves the name again when it connects, so a DNS server that answers
+differently the second time (DNS rebinding) is not caught. If that matters to you, send the
+requests through an egress proxy that enforces the policy itself.
+
+Behind such a proxy, or to reach an issuer on a private network during development, turn the
+address check off:
+
+```python
+HttpxFetcher(require_global_addresses=False)
+UrllibFetcher(require_global_addresses=False)
+```
+
+`resolve_host=` replaces the resolver used for the check, for example with one that matches
+your HTTP stack's.
+
 ## DNS: system resolver
 
 {mod}`pyevp.adapters.dnspython` uses the system resolver configuration. With

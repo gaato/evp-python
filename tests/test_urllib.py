@@ -129,7 +129,9 @@ def test_satisfies_protocols() -> None:
 
 
 def test_fetch_json(base: str, requests: list[Any]) -> None:
-    assert UrllibFetcher().fetch_json(f"{base}/json") == {"issuer": "https://issuer.example"}
+    assert UrllibFetcher(require_global_addresses=False).fetch_json(f"{base}/json") == {
+        "issuer": "https://issuer.example"
+    }
     [(_, headers)] = requests
     assert headers["Accept"] == "application/json"
     assert headers["Accept-Encoding"] == "identity"
@@ -141,17 +143,19 @@ def test_fetch_json(base: str, requests: list[Any]) -> None:
 )
 def test_fetch_errors(base: str, path: str) -> None:
     with pytest.raises(FetchError):
-        UrllibFetcher().fetch_json(base + path)
+        UrllibFetcher(require_global_addresses=False).fetch_json(base + path)
 
 
 def test_does_not_follow_redirects(base: str, requests: list[Any]) -> None:
     with pytest.raises(FetchError, match="HTTP 302"):
-        UrllibFetcher().fetch_json(f"{base}/redirect")
+        UrllibFetcher(require_global_addresses=False).fetch_json(f"{base}/redirect")
     assert [path for path, _ in requests] == ["/redirect"]
 
 
 def test_caller_redirect_handler_is_replaced(base: str, requests: list[Any]) -> None:
-    fetcher = UrllibFetcher(handlers=[urllib.request.HTTPRedirectHandler()])
+    fetcher = UrllibFetcher(
+        handlers=[urllib.request.HTTPRedirectHandler()], require_global_addresses=False
+    )
     with pytest.raises(FetchError, match="HTTP 302"):
         fetcher.fetch_json(f"{base}/redirect")
     assert [path for path, _ in requests] == ["/redirect"]
@@ -160,7 +164,7 @@ def test_caller_redirect_handler_is_replaced(base: str, requests: list[Any]) -> 
 def test_connection_errors() -> None:
     # Port 9 (discard) on localhost is closed on any sane test machine.
     with pytest.raises(FetchError, match="failed"):
-        UrllibFetcher(timeout=1).fetch_json("http://127.0.0.1:9/")
+        UrllibFetcher(timeout=1, require_global_addresses=False).fetch_json("http://127.0.0.1:9/")
 
 
 @pytest.mark.parametrize(
@@ -227,3 +231,8 @@ def test_imports_without_httpx() -> None:
         "import pyevp.adapters.urllib\n"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
+
+
+def test_fetcher_refuses_loopback_by_default(base: str) -> None:
+    with pytest.raises(FetchError, match=r"non-global address 127\.0\.0\.1"):
+        UrllibFetcher().fetch_json(f"{base}/json")

@@ -114,15 +114,28 @@ def _with_query(endpoint: str, extra: Mapping[str, str]) -> str:
 
 
 class UrllibFetcher:
-    """Synchronous :class:`~pyevp.JsonFetcher` built on :mod:`urllib.request`."""
+    """Synchronous :class:`~pyevp.JsonFetcher` built on :mod:`urllib.request`.
+
+    Like :class:`~pyevp.adapters.httpx.HttpxFetcher`, it refuses hosts that do not resolve
+    exclusively to globally routable addresses unless ``require_global_addresses=False``.
+    """
 
     def __init__(
-        self, *, timeout: float = 5.0, handlers: Sequence[urllib.request.BaseHandler] = ()
+        self,
+        *,
+        timeout: float = 5.0,
+        handlers: Sequence[urllib.request.BaseHandler] = (),
+        require_global_addresses: bool = True,
+        resolve_host: _fetch.ResolveHost = _fetch.system_resolve_host,
     ) -> None:
         self._timeout = timeout
         self._opener = _opener(handlers)
+        self._require_global = require_global_addresses
+        self._resolve_host = resolve_host
 
     def fetch_json(self, url: str) -> object:
+        if self._require_global:
+            _fetch.require_global(url, self._resolve_host)
         body = _get(self._opener, url, _fetch.HEADERS, self._timeout, FetchError)
         return _fetch.decode(body, url)
 

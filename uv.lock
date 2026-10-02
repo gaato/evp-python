@@ -1204,10 +1204,12 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
+    { name = "anyio" },
     { name = "dnspython" },
     { name = "httpx" },
 ]
 cli = [
+    { name = "anyio" },
     { name = "dnspython" },
     { name = "httpx2" },
     { name = "typer" },
@@ -1219,9 +1221,11 @@ dns = [
     { name = "dnspython" },
 ]
 httpx = [
+    { name = "anyio" },
     { name = "httpx" },
 ]
 httpx2 = [
+    { name = "anyio" },
     { name = "httpx2" },
 ]
 
@@ -1245,6 +1249,8 @@ interop = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", marker = "extra == 'httpx'", specifier = ">=4.5" },
+    { name = "anyio", marker = "extra == 'httpx2'", specifier = ">=4.5" },
     { name = "django", marker = "extra == 'django'", specifier = ">=4.2" },
     { name = "dnspython", marker = "extra == 'dns'", specifier = ">=2.7" },
     { name = "httpx", marker = "extra == 'httpx'", specifier = ">=0.28" },

@@ -210,3 +210,16 @@ env EVP_DEV=1 uv run uvicorn app:app --port 8080
 curl -H 'Host: pyevp.dev' localhost:8080/
 uv run pytest
 ```
+
+### Updating Tailwind and daisyUI
+
+The versions are pinned at the top of `scripts/build-css.sh`, each download with a SHA256.
+Renovate bumps `TAILWIND_VERSION` and `DAISYUI_VERSION` but cannot update the hashes, so after
+a bump the script fails with a SHA256 mismatch until they are fixed:
+
+```sh
+scripts/build-css.sh --print-hashes   # downloads the pinned versions, prints the *_SHA256 lines
+```
+
+Paste the output over the `*_SHA256` lines in the script, then rerun
+`scripts/build-css.sh static/site.css` and check the page.

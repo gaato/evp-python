@@ -15,3 +15,7 @@ db.sqlite3
 
 # Documentation build
 docs/_build/
+
+# Site stylesheet build (examples/site/scripts/build-css.sh)
+examples/site/.cache/
+examples/site/static/site.css

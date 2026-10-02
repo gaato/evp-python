@@ -1,0 +1,12 @@
+/* Built by scripts/build-css.sh. Paths are relative to this file. */
+
+/* source(none) turns off automatic detection, which scans from the current directory and
+   would pick up the cached CLI binary; only the files below are scanned. */
+@import "tailwindcss" source(none);
+@source "../templates/**/*.html";
+@source "../app.py";
+
+/* build-css.sh downloads the pinned daisyUI here. Default themes only. */
+@plugin "../.cache/daisyui.mjs" {
+  themes: light --default, dark --prefersdark;
+}

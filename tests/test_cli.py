@@ -92,6 +92,18 @@ def test_inspect_pretty(app: Typer, issuer: FakeIssuer) -> None:
     assert "NOT verified" in result.output
 
 
+@pytest.mark.parametrize("iat", [1e100, float("nan"), 10**30])
+@pytest.mark.parametrize("args", [[], ["--json"]])
+def test_inspect_out_of_range_dates(
+    app: Typer, issuer: FakeIssuer, iat: float, args: list[str]
+) -> None:
+    browser = FakeBrowser(clock=issuer.clock)
+    evt = issuer.issue("alice@example.com", browser.public_jwk, claims={"iat": iat})
+    token = browser.present(evt, audience=ORIGIN, nonce="n0nce")
+    result = runner.invoke(app, ["inspect", token, *args])
+    assert result.exit_code == 0, result.output
+
+
 def test_inspect_malformed(app: Typer) -> None:
     result = runner.invoke(app, ["inspect", "garbage", "--json"])
     assert result.exit_code == 1

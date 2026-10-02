@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import math
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -87,7 +88,14 @@ def _numeric_date(claims: JSONObject, name: str, what: str) -> datetime | None:
         return None
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise TokenError(ErrorCode.MALFORMED_TOKEN, f"{what} {name} is not a NumericDate")
-    return datetime.fromtimestamp(value, UTC)
+    try:
+        if not math.isfinite(value):
+            raise ValueError(value)
+        return datetime.fromtimestamp(value, UTC)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise TokenError(
+            ErrorCode.MALFORMED_TOKEN, f"{what} {name} is not a representable NumericDate"
+        ) from exc
 
 
 def _check_freshness(iat: datetime, now: datetime, profile: Profile, what: str) -> None:
@@ -133,7 +141,8 @@ def precheck_evt(token: ParsedToken, *, now: datetime, profile: Profile) -> _EVT
     exp = _numeric_date(claims, "exp", "EVT")
     if exp is None and profile.require_exp:
         raise TokenError(ErrorCode.MALFORMED_TOKEN, "EVT exp claim is missing")
-    if exp is not None and now > exp + profile.clock_skew:
+    # Written so that an ``exp`` near datetime.max cannot overflow.
+    if exp is not None and now - profile.clock_skew > exp:
         raise TokenError(ErrorCode.TOKEN_EXPIRED, "EVT has expired")
 
     cnf = claims.get("cnf")

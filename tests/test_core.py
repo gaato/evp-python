@@ -13,7 +13,7 @@ from evp import DEFAULT_PROFILE, ErrorCode, EVPError, Profile, Verifier
 from evp._jose import b64url_encode
 from evp.core import FetchJson, ResolveTxt, verification_steps
 from evp.testing import FakeBrowser, FakeIssuer, FixedClock, make_verifier
-from evp.token import build_kb
+from evp.token import build_kb, compute_sd_hash, sign_jwt
 
 from .conftest import AUDIENCE, EMAIL
 
@@ -60,10 +60,25 @@ def test_key_rotation_requests_refresh(
         steps.send(issuer.jwks)
 
 
-# --- negative cases -------------------------------------------------------------
-
 # TODO(py3.12): back to a ``type`` statement once 3.11 support is dropped.
 Build: TypeAlias = Callable[[FakeIssuer, FakeBrowser, str, FixedClock], str]
+
+
+def _kb_with_iat(iat: Any) -> Build:
+    def build(issuer: FakeIssuer, browser: FakeBrowser, nonce: str, clock: FixedClock) -> str:
+        evt = issuer.issue(EMAIL, browser.public_jwk)
+        claims = {
+            "aud": AUDIENCE,
+            "nonce": nonce,
+            "iat": iat,
+            "sd_hash": compute_sd_hash(evt + "~"),
+        }
+        return f"{evt}~{sign_jwt({'alg': browser.alg, 'typ': 'kb+jwt'}, claims, browser.key)}"
+
+    return build
+
+
+# --- negative cases -------------------------------------------------------------
 
 
 def _present(
@@ -165,6 +180,18 @@ CASES: dict[str, tuple[Build, ErrorCode]] = {
         lambda i, b, n, c: _present(i, b, n, claims={"email_verified": False}),
         ErrorCode.EMAIL_NOT_VERIFIED,
     ),
+    **{
+        f"evt {name} {value!r}": (
+            lambda i, b, n, c, name=name, value=value: _present(i, b, n, claims={name: value}),
+            ErrorCode.MALFORMED_TOKEN,
+        )
+        for name in ("iat", "exp")
+        for value in (1e100, float("nan"), float("-inf"), 10**30)
+    },
+    **{
+        f"kb iat {value!r}": (_kb_with_iat(value), ErrorCode.MALFORMED_TOKEN)
+        for value in (1e100, float("nan"), 10**30)
+    },
     "missing email": (
         lambda i, b, n, c: _present(i, b, n, claims={"email": None}),
         ErrorCode.MALFORMED_TOKEN,
@@ -213,6 +240,12 @@ def test_every_error_code_is_exercised() -> None:
         ErrorCode.TOKEN_REPLAYED,  # test_replay
     }
     assert covered == set(ErrorCode)
+
+
+def test_exp_at_the_end_of_time(issuer: FakeIssuer, browser: FakeBrowser, nonce: str) -> None:
+    verifier = make_verifier(issuer, audience=AUDIENCE)
+    token = _present(issuer, browser, nonce, claims={"exp": 253402300799})  # 9999-12-31
+    assert verifier.verify(token, nonce=nonce).email == EMAIL
 
 
 def test_email_mismatch(verifier: Verifier, token: str, nonce: str) -> None:

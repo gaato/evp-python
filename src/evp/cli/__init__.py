@@ -66,7 +66,10 @@ def _json(data: Any) -> None:
 def _age(timestamp: Any, now: datetime) -> str:
     if isinstance(timestamp, bool) or not isinstance(timestamp, int | float):
         return "-"
-    seconds = int((now - datetime.fromtimestamp(timestamp, UTC)).total_seconds())
+    try:
+        seconds = int((now - datetime.fromtimestamp(timestamp, UTC)).total_seconds())
+    except (OverflowError, OSError, ValueError):
+        return "-"
     return f"{seconds}s ago" if seconds >= 0 else f"in {-seconds}s"
 
 

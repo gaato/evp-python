@@ -1,0 +1,1074 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Gakuto Furuya
+# This file is distributed under the same license as the pyevp package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pyevp 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../api.md:1
+msgid "API reference"
+msgstr ""
+
+#: ../../api.md:3
+msgid "`pyevp`"
+msgstr ""
+
+#: ../../api.md:5
+msgid ""
+"Everything most applications need is importable from the top-level "
+"package."
+msgstr ""
+
+#: of pyevp:1
+msgid "Relying-party verification for the Email Verification Protocol (EVP)."
+msgstr ""
+
+#: of pyevp.cache.AsyncCache:1
+msgid ""
+":class:`Cache` with coroutine methods, for stores that must not block the"
+" event loop."
+msgstr ""
+
+#: of pyevp.cache.AsyncCache:3
+msgid ":class:`~pyevp.AsyncVerifier` accepts either kind."
+msgstr ""
+
+#: of pyevp.verifier.AsyncVerifier:1
+msgid "Asynchronous verifier (FastAPI, Starlette, Django async views)."
+msgstr ""
+
+#: of pyevp.verifier.AsyncVerifier.default:1 pyevp.verifier.Verifier.default:1
+msgid "Build a verifier using dnspython and httpx (``pip install pyevp[all]``)."
+msgstr ""
+
+#: of pyevp.verifier.AsyncVerifier.default:3 pyevp.verifier.Verifier.default:3
+msgid ""
+"Any constructor argument, including ``resolver`` / ``fetcher``, can be "
+"overridden."
+msgstr ""
+
+#: ../../api.md of pyevp.adapters._doh.parse_txt_data pyevp.core.precheck_evt
+#: pyevp.core.replay_key pyevp.core.verification_steps pyevp.core.verify_kb
+#: pyevp.diagnostics.adiscover pyevp.diagnostics.discover
+#: pyevp.diagnostics.discovery_steps pyevp.discovery.canonical_issuer
+#: pyevp.discovery.email_domain pyevp.discovery.is_public_hostname
+#: pyevp.discovery.parse_txt_records pyevp.discovery.validate_jwks
+#: pyevp.issuer.core.Issuer.aparse_request
+#: pyevp.issuer.core.Issuer.dns_txt_records pyevp.issuer.core.Issuer.issue
+#: pyevp.issuer.core.Issuer.jwks_document
+#: pyevp.issuer.core.Issuer.metadata_document
+#: pyevp.issuer.core.Issuer.parse_request pyevp.issuer.core.is_valid_email
+#: pyevp.issuer.errors.IssuanceError.authentication_required
+#: pyevp.issuer.fedcm.accounts_document
+#: pyevp.issuer.fedcm.web_identity_document pyevp.issuer.keys.Signer.sign
+#: pyevp.issuer.keys.SigningKey.from_jwk
+#: pyevp.issuer.keys.SigningKey.private_jwk pyevp.issuer.keys.public_jwk
+#: pyevp.issuer.profile.IssuanceProfile.chrome_153
+#: pyevp.issuer.profile.IssuanceProfile.draft_hardt_02
+#: pyevp.nonce.generate_nonce pyevp.nonce.nonces_equal
+#: pyevp.ports.JsonFetcher.fetch_json pyevp.ports.TxtResolver.resolve_txt
+#: pyevp.profile.Profile.compat_2026_10 pyevp.profile.Profile.draft_hardt_02
+#: pyevp.profile.Profile.named pyevp.profile.Profile.replace
+#: pyevp.replay.ReplayGuard.mark_used
+#: pyevp.testing.FakeBrowser.issuance_request
+#: pyevp.testing.FakeIssuer.gmail_like pyevp.testing.FakeIssuer.issue
+#: pyevp.testing.make_verifier pyevp.token.build_kb pyevp.token.sign_jwt
+#: pyevp.verifier.AsyncVerifier.default pyevp.verifier.AsyncVerifier.verify
+#: pyevp.verifier.Verifier.default
+msgid "Return type"
+msgstr ""
+
+#: of pyevp.verifier.AsyncVerifier.verify:1
+msgid "Async counterpart of :meth:`Verifier.verify`."
+msgstr ""
+
+#: of pyevp.cache.Cache:1
+msgid "Key/value store for decoded JSON documents."
+msgstr ""
+
+#: of pyevp.cache.Cache:3
+msgid ""
+"Implementations may be backed by Django's cache, Redis, … ; they are "
+"called from both sync and async drivers so must not block for long."
+msgstr ""
+
+#: of pyevp.errors.DiscoveryError:1
+msgid "The issuer could not be discovered or its metadata / keys are unusable."
+msgstr ""
+
+#: of pyevp.errors.DiscoveryError:3
+msgid ""
+"``ISSUER_UNREACHABLE`` indicates a transport failure that may be "
+"transient."
+msgstr ""
+
+#: of pyevp.errors.EVPError:1
+msgid "Base class for every verification failure."
+msgstr ""
+
+#: of pyevp.EmailComparison.EXACT:1
+msgid "Byte-for-byte (IETF draft)."
+msgstr ""
+
+#: of pyevp.EmailComparison.CASE_INSENSITIVE:1
+msgid "Unicode case-folded (W3C Email Verification API)."
+msgstr ""
+
+#: of pyevp.cache.InMemoryCache:1
+msgid "Process-local TTL cache (not shared between workers)."
+msgstr ""
+
+#: of pyevp.cache.InMemoryCache:3
+msgid ""
+"Safe to share between threads, e.g. one ``Verifier`` used by a threaded "
+"server."
+msgstr ""
+
+#: of pyevp.replay.InMemoryReplayGuard:1
+msgid "Process-local guard."
+msgstr ""
+
+#: of pyevp.replay.InMemoryReplayGuard:3
+msgid ""
+"Only correct when a single process verifies tokens; with several workers "
+"a token can be replayed against another worker.  Use a shared store "
+"there."
+msgstr ""
+
+#: of pyevp.profile.IssuerFormat:1
+msgid "Accepted spellings of an issuer identifier (token ``iss`` / DNS ``iss=``)."
+msgstr ""
+
+#: of pyevp.IssuerFormat.HOST:1
+msgid "Bare host, e.g. ``accounts.google.com`` (early drafts)."
+msgstr ""
+
+#: of pyevp.IssuerFormat.ORIGIN:1
+msgid "HTTPS origin, e.g. ``https://accounts.google.com`` (draft-hardt -02)."
+msgstr ""
+
+#: of pyevp.ports.JsonFetcher.fetch_json:1
+msgid "GET ``url`` (no redirects to other origins) and return the decoded JSON."
+msgstr ""
+
+#: of pyevp.ports.JsonFetcher.fetch_json:3
+msgid "Raise on transport errors, non-200 responses or invalid JSON."
+msgstr ""
+
+#: of pyevp.observability.LoggingObserver:1
+msgid "Log one line per verification to the ``pyevp`` logger (or ``logger``)."
+msgstr ""
+
+#: of pyevp.cache.NullCache:1
+msgid "A cache that stores nothing: every verification fetches metadata and keys."
+msgstr ""
+
+#: of pyevp.errors.PolicyError:1
+msgid "The token is authentic but does not satisfy the relying party's policy."
+msgstr ""
+
+#: of pyevp.Profile.require_kid:1
+msgid "When false, an absent or empty ``kid`` tries every compatible issuer key."
+msgstr ""
+
+#: of pyevp.Profile.require_cnf_alg:1
+msgid "Require ``cnf.jwk.alg`` and that it equals the KB-JWT ``alg``."
+msgstr ""
+
+#: of pyevp.Profile.allow_disclosures:1
+msgid ""
+"Accept SD-JWT disclosures between the EVT and the KB-JWT (ignored "
+"otherwise)."
+msgstr ""
+
+#: of pyevp.profile.Profile.compat_2026_10:1
+msgid "Accept both the -02 draft and what Chrome + Gmail ship as of 2026-10."
+msgstr ""
+
+#: of pyevp.profile.Profile.compat_2026_10:3
+msgid "Gmail signs with ``EdDSA`` and publishes keys without ``kid``."
+msgstr ""
+
+#: of pyevp.profile.Profile.draft_hardt_02:1
+msgid "Strict reading of draft-hardt-email-verification editor's copy (-02)."
+msgstr ""
+
+#: of pyevp.profile.Profile.named:1
+msgid "Look up a preset by name (e.g. ``\"draft-hardt-02\"``)."
+msgstr ""
+
+#: of pyevp.profile.Profile.replace:1
+msgid "Return a copy with some fields changed (``dataclasses.replace``)."
+msgstr ""
+
+#: of pyevp.replay.ReplayGuard.mark_used:1
+msgid "Remember ``key`` until ``expires_at``."
+msgstr ""
+
+#: of pyevp.replay.ReplayGuard.mark_used:3
+msgid "Return ``True`` if the key was not already present, ``False`` otherwise."
+msgstr ""
+
+#: of pyevp.errors.TokenError:1
+msgid "The presented token is malformed, stale, mis-bound or badly signed."
+msgstr ""
+
+#: of pyevp.ports.TxtResolver.resolve_txt:1
+msgid "Return each TXT record as one string (character-strings concatenated)."
+msgstr ""
+
+#: of pyevp.ports.TxtResolver.resolve_txt:3
+msgid "Return an empty list for NXDOMAIN / NODATA; raise for other failures."
+msgstr ""
+
+#: of pyevp.VerificationEvent.code:1
+msgid "Set when verification failed with an :class:`~pyevp.EVPError`."
+msgstr ""
+
+#: of pyevp.VerificationEvent.issuer:1
+msgid "Canonical issuer; only known after a successful verification."
+msgstr ""
+
+#: of pyevp.VerificationEvent.email_domain:1
+msgid "Domain of the ``email`` claim, read from the token *before* verification."
+msgstr ""
+
+#: of pyevp.types.VerifiedEmail:1
+msgid "The result of a successful verification."
+msgstr ""
+
+#: of pyevp.VerifiedEmail.email:1
+msgid "The address as asserted by the issuer (not normalised)."
+msgstr ""
+
+#: of pyevp.VerifiedEmail.issuer:1
+msgid "Canonical issuer origin, e.g. ``https://accounts.google.com``."
+msgstr ""
+
+#: of pyevp.VerifiedEmail.claims:1
+msgid "All issuer-signed claims, for forward compatibility."
+msgstr ""
+
+#: of pyevp.verifier.Verifier:1
+msgid "Synchronous verifier (Django, Flask, scripts)."
+msgstr ""
+
+#: of pyevp.verifier.Verifier:3
+msgid "Thread-safe as long as the injected ports and cache are."
+msgstr ""
+
+#: of pyevp.verifier.Verifier.verify:1
+msgid "Verify a presentation token."
+msgstr ""
+
+#: ../../api.md
+msgid "Parameters"
+msgstr ""
+
+#: of pyevp.verifier.Verifier.verify:3
+msgid "the nonce this server put on the form (from the session)."
+msgstr ""
+
+#: of pyevp.verifier.Verifier.verify:4
+msgid ""
+"the address the user submitted; checked against the token.  Pass ``None``"
+" explicitly to skip the check and use the asserted address instead."
+msgstr ""
+
+#: of pyevp.verifier.Verifier.verify:6
+msgid "override the configured origin (multi-host deployments)."
+msgstr ""
+
+#: ../../api.md
+msgid "Raises"
+msgstr ""
+
+#: of pyevp.verifier.Verifier.verify:7
+msgid "on any failure; see ``.code``."
+msgstr ""
+
+#: of pyevp.nonce.generate_nonce:1
+msgid "Return a URL-safe nonce with ``nbytes`` of entropy (at least 16)."
+msgstr ""
+
+#: of pyevp.nonce.nonces_equal:1
+msgid "Compare two nonces in constant time."
+msgstr ""
+
+#: ../../api.md:15
+msgid "The profile verifiers use unless told otherwise: ``compat-2026-10``."
+msgstr ""
+
+#: ../../api.md:20
+msgid "All presets by name; see :meth:`Profile.named`."
+msgstr ""
+
+#: ../../api.md:27
+msgid "Verification core"
+msgstr ""
+
+#: of pyevp.core:1
+msgid "Sans-I/O verification core."
+msgstr ""
+
+#: of pyevp.core:3
+msgid ""
+":func:`verification_steps` is a generator that yields :data:`Effect` "
+"requests (DNS / HTTPS lookups) and receives their results via ``send``.  "
+"Drivers in :mod:`pyevp.verifier` run it synchronously or asynchronously; "
+"tests can drive it by hand.  Everything else in this module is a pure "
+"function."
+msgstr ""
+
+#: of pyevp.core.FetchJson:1
+msgid "Request the JSON document at ``url``.  Reply with the decoded JSON value."
+msgstr ""
+
+#: of pyevp.core.FetchJson:3
+msgid "``refresh`` asks the driver to bypass its cache (e.g. after key rotation)."
+msgstr ""
+
+#: of pyevp.core.MarkUsed:1
+msgid ""
+"Record that a token has been accepted.  Reply ``True`` if it was not seen"
+" before."
+msgstr ""
+
+#: of pyevp.core.MarkUsed:3
+msgid ""
+"``key`` only needs remembering until ``expires_at``: from that instant "
+"on, the token fails the freshness checks anyway.  Freshness is judged "
+"once, before any I/O, so a driver must reject the token "
+"(``TOKEN_EXPIRED``) if its clock has reached ``expires_at`` after "
+"marking: the record may already be gone, and a replay would not find it."
+msgstr ""
+
+#: of pyevp.core.ResolveTxt:1
+msgid ""
+"Request the TXT records of ``name``.  Reply with ``list[str]`` (empty if "
+"none)."
+msgstr ""
+
+#: of pyevp.core.precheck_evt:1
+msgid "Check everything about the EVT that does not need the issuer's keys."
+msgstr ""
+
+#: of pyevp.core.replay_key:1
+msgid "Stable identifier of a presentation for replay detection."
+msgstr ""
+
+#: of pyevp.core.replay_key:3
+msgid ""
+"It is derived from the KB-JWT signing input (header and payload), not "
+"from the whole token: signatures can be re-encoded without the holder key"
+" (ECDSA ``s`` → ``n - s``, non-canonical base64url), while the signing "
+"input cannot. The payload binds the nonce, audience, ``iat`` and, through"
+" ``sd_hash``, the EVT."
+msgstr ""
+
+#: of pyevp.core.replay_key:8
+msgid ""
+"A raw token is parsed first and raises :class:`~pyevp.TokenError` if "
+"malformed."
+msgstr ""
+
+#: of pyevp.core.verification_steps:1
+msgid "Full RP verification.  Yields effects; returns :class:`VerifiedEmail`."
+msgstr ""
+
+#: of pyevp.core.verification_steps:3
+msgid ""
+"Order matters: everything that can be checked offline (including the key-"
+"binding signature) is checked before any network effect is requested, and"
+" the only hosts ever contacted are derived from DNS, never from the "
+"token. With ``replay_protection`` the token is marked as used once "
+"everything else has passed, so that garbage tokens cannot fill the replay"
+" store."
+msgstr ""
+
+#: of pyevp.core.verify_evt_signature:1
+msgid "Verify the EVT signature against an issuer JWK Set."
+msgstr ""
+
+#: of pyevp.core.verify_evt_signature:3
+msgid ""
+"Raises ``KEY_NOT_FOUND`` when no key could even be tried, so the caller "
+"may refresh the key set; ``EVT_SIGNATURE_INVALID`` otherwise."
+msgstr ""
+
+#: of pyevp.core.verify_kb:1
+msgid "Verify the key-binding JWT against the holder key bound in the EVT."
+msgstr ""
+
+#: of pyevp.core.verify_kb:3
+msgid "Returns the KB-JWT's ``iat``."
+msgstr ""
+
+#: of pyevp.token:1
+msgid "Presentation token codec: ``<EVT>~[<disclosure>~...]<KB-JWT>``."
+msgstr ""
+
+#: of pyevp.token:3
+msgid ""
+"Parsing only splits and decodes; it performs no signature checks.  The "
+"build helpers are used by :mod:`pyevp.testing` and are kept here so a "
+"future issuer implementation can reuse them."
+msgstr ""
+
+#: of pyevp.token.CompactJWT:1
+msgid "A compact JWS whose header and payload were decoded but not verified."
+msgstr ""
+
+#: of pyevp.token.ParsedToken.sd_hash_input:1
+msgid "Everything before the KB-JWT, including the trailing ``~``."
+msgstr ""
+
+#: of pyevp.token.build_kb:1
+msgid "Append a key-binding JWT to an EVT, producing the presentation token."
+msgstr ""
+
+#: of pyevp.token.build_kb:3
+msgid ""
+"``evt`` may carry the SD-JWT ``~`` that issuers append "
+"(``issuance_token``) or not."
+msgstr ""
+
+#: of pyevp.token.sign_jwt:1
+msgid ""
+"Sign ``claims`` as a compact JWS.  ``private_key`` is a joserfc key "
+"object."
+msgstr ""
+
+#: of pyevp.discovery:1
+msgid "Issuer discovery: pure functions, no I/O."
+msgstr ""
+
+#: of pyevp.discovery.canonical_issuer:1
+msgid "Turn an issuer identifier into its ``https://host`` form."
+msgstr ""
+
+#: of pyevp.discovery.canonical_issuer:3
+msgid ""
+"Returns ``None`` when ``value`` is not acceptable under ``accepted``.  "
+"The host is not case-folded: the drafts require byte-for-byte comparison."
+msgstr ""
+
+#: of pyevp.discovery.email_domain:1
+msgid "Return the DNS (A-label) form of the domain part of ``email``."
+msgstr ""
+
+#: of pyevp.discovery.email_domain:3
+msgid ""
+"Internationalised domains are mapped with UTS #46 / IDNA2008, as browsers"
+" do. Python's ``\"idna\"`` codec implements IDNA2003, which maps some "
+"names onto other domains (``faß.example`` → ``fass.example``).  Raises "
+":class:`UnicodeError` for invalid internationalised domains."
+msgstr ""
+
+#: of pyevp.discovery.is_public_hostname:1
+msgid "Whether ``host`` may name a public issuer host."
+msgstr ""
+
+#: of pyevp.discovery.is_public_hostname:3
+msgid ""
+"Rejects IP literals, single-label names and special-use names such as "
+"``localhost``, so that a DNS record or metadata document chosen by an "
+"attacker cannot point the verifier at the relying party's own network.  "
+"The addresses a public name resolves to are checked by the HTTP adapters "
+"before connecting."
+msgstr ""
+
+#: of pyevp.discovery.parse_txt_records:1
+msgid "Extract the canonical issuer from the TXT records of the discovery name."
+msgstr ""
+
+#: of pyevp.discovery.validate_jwks:1
+msgid ""
+"Return the usable public keys of a JWK Set; unknown or private entries "
+"are dropped."
+msgstr ""
+
+#: ../../api.md:39
+msgid "Diagnostics"
+msgstr ""
+
+#: of pyevp.diagnostics:1
+msgid ""
+"Issuer diagnostics: what a relying party sees when it discovers a "
+"domain's issuer."
+msgstr ""
+
+#: of pyevp.diagnostics:3
+msgid ""
+"Used by ``pyevp discover``, by the weekly drift check, and by issuer "
+"operators who want to check their DNS record, metadata and keys against a"
+" profile."
+msgstr ""
+
+#: of pyevp.diagnostics.adiscover:1
+msgid "Async counterpart of :func:`discover`."
+msgstr ""
+
+#: of pyevp.diagnostics.discover:1
+msgid "Run :func:`discovery_steps` with synchronous ports (no caching)."
+msgstr ""
+
+#: of pyevp.diagnostics.discovery_steps:1
+msgid "Sans-I/O issuer check for an email address or domain."
+msgstr ""
+
+#: of pyevp.diagnostics.discovery_steps:3
+msgid ""
+"Content problems are collected in :attr:`IssuerReport.problems`; "
+"transport failures surface as :class:`~pyevp.DiscoveryError` from the "
+"driver."
+msgstr ""
+
+#: ../../api.md:45
+msgid "Adapters"
+msgstr ""
+
+#: of pyevp.adapters.dnspython:1
+msgid "TXT resolvers backed by dnspython (``pip install pyevp[dns]``)."
+msgstr ""
+
+#: of pyevp.adapters.dnspython.DnsPythonResolver:1
+msgid "Synchronous resolver."
+msgstr ""
+
+#: of pyevp.adapters.dnspython.DnsPythonResolver:3
+msgid ""
+"With ``require_dnssec=True`` the answer must carry the AD flag, which is "
+"only meaningful when the configured upstream resolver validates DNSSEC "
+"and the path to it is trusted (e.g. a local validating resolver)."
+msgstr ""
+
+#: of pyevp.adapters.dnspython.DnssecError:1
+msgid "The answer was not marked authenticated (AD) by the resolver."
+msgstr ""
+
+#: of pyevp.adapters.httpx:1
+msgid ""
+"JSON fetchers backed by httpx2 or httpx (``pip install pyevp[httpx2]`` / "
+"``pyevp[httpx]``)."
+msgstr ""
+
+#: of pyevp.adapters.httpx:3
+msgid ""
+"httpx2 is used for default clients when it is installed; a client from "
+"either library can be passed in explicitly."
+msgstr ""
+
+#: of pyevp.adapters.httpx.AsyncHttpxFetcher:1
+msgid "Asynchronous counterpart of :class:`HttpxFetcher` (asyncio or trio)."
+msgstr ""
+
+#: of pyevp.adapters.httpx.HttpxFetcher:1
+msgid "Synchronous fetcher."
+msgstr ""
+
+#: of pyevp.adapters.httpx.HttpxFetcher:3
+msgid ""
+"Redirects are not followed, compressed responses are refused and bodies "
+"are size-capped. Before each request the host is resolved and refused "
+"unless every address is globally routable; pass "
+"``require_global_addresses=False`` to reach an issuer on a private "
+"network (local development) or when an egress proxy enforces that policy "
+"and resolves names itself.  ``resolve_host`` replaces the system resolver"
+" used for that check."
+msgstr ""
+
+#: of pyevp.adapters.doh:1
+msgid ""
+"TXT resolvers over DNS-over-HTTPS JSON APIs (``pip install "
+"pyevp[httpx2]`` or ``pyevp[httpx]``)."
+msgstr ""
+
+#: of pyevp.adapters.doh:3
+msgid ""
+"Useful where plain DNS is unavailable or untrusted (serverless platforms,"
+" locked-down networks).  Only an HTTP client is needed; dnspython is not."
+msgstr ""
+
+#: of pyevp.adapters.doh:6
+msgid ""
+"``require_dnssec`` checks the resolver's ``AD`` flag, which only means "
+"that the DoH provider validated the answer: you are trusting that "
+"provider over TLS. Unsigned zones (gmail.com, for example) never pass "
+"this check."
+msgstr ""
+
+#: of pyevp.adapters.doh:10
+msgid ""
+"If you already use ``dnspython[doh]``, an RFC 8484 resolver is also "
+"possible::"
+msgstr ""
+
+#: of pyevp.adapters._doh.DnssecError:1
+msgid "The answer was not marked authenticated (AD) by the DoH provider."
+msgstr ""
+
+#: of pyevp.adapters._doh.DohError:1
+msgid "The DoH provider failed or answered with an error (e.g. SERVFAIL)."
+msgstr ""
+
+#: of pyevp.adapters.doh.DohResolver:1
+msgid ""
+"Synchronous DoH TXT resolver (Google by default; pass "
+"``endpoint=CLOUDFLARE`` etc.)."
+msgstr ""
+
+#: of pyevp.adapters._doh.parse_txt_data:1
+msgid "Decode a JSON-API TXT ``data`` value into one string."
+msgstr ""
+
+#: of pyevp.adapters._doh.parse_txt_data:3
+msgid ""
+"Cloudflare returns presentation format: each character-string quoted, "
+"with ``\\\"``, ``\\\\`` and ``\\DDD`` escapes, separated by spaces.  "
+"Google returns the strings already joined and unquoted."
+msgstr ""
+
+#: of pyevp.adapters.urllib:1
+msgid "A JSON fetcher and a DoH TXT resolver using only the standard library."
+msgstr ""
+
+#: of pyevp.adapters.urllib:3
+msgid ""
+"Nothing beyond pyevp's core dependencies is needed, which suits "
+"applications that already pick their own HTTP stack and do not want httpx"
+" or dnspython::"
+msgstr ""
+
+#: of pyevp.adapters.urllib:11
+msgid ""
+"Both are synchronous; async applications should use the httpx adapters. "
+"Like those, they never follow redirects, refuse compressed responses and "
+"cap body sizes.  Proxies from the environment (``HTTPS_PROXY``) are "
+"honoured as usual for urllib; pass ``handlers`` to configure proxies or "
+"TLS differently::"
+msgstr ""
+
+#: of pyevp.adapters.urllib.UrllibDohResolver:1
+msgid ""
+"Synchronous DoH TXT resolver (Google by default; pass ``CLOUDFLARE`` "
+"etc.)."
+msgstr ""
+
+#: of pyevp.adapters.urllib.UrllibDohResolver:3
+msgid ""
+"``require_dnssec=True`` checks the provider's ``AD`` flag, so it means "
+"trusting that provider over TLS; unsigned zones (gmail.com, for example) "
+"never pass it."
+msgstr ""
+
+#: of pyevp.adapters.urllib.UrllibFetcher:1
+msgid "Synchronous :class:`~pyevp.JsonFetcher` built on :mod:`urllib.request`."
+msgstr ""
+
+#: of pyevp.adapters.urllib.UrllibFetcher:3
+msgid ""
+"Like :class:`~pyevp.adapters.httpx.HttpxFetcher`, it refuses hosts that "
+"do not resolve exclusively to globally routable addresses unless "
+"``require_global_addresses=False``."
+msgstr ""
+
+#: ../../api.md:58
+msgid "Integrations"
+msgstr ""
+
+#: of pyevp.contrib.django:1
+msgid "Django integration (``pip install pyevp[django]``)."
+msgstr ""
+
+#: of pyevp.contrib.django:3
+msgid ""
+":class:`DjangoCache` / :class:`AsyncDjangoCache` share issuer metadata "
+"and key sets between workers through Django's cache framework."
+msgstr ""
+
+#: of pyevp.contrib.django:5
+msgid ""
+":class:`DjangoReplayGuard` / :class:`AsyncDjangoReplayGuard` remember "
+"accepted tokens in a database table.  Add ``\"pyevp.contrib.django\"`` to"
+" ``INSTALLED_APPS`` and run ``migrate`` to create it."
+msgstr ""
+
+#: of pyevp.contrib.django:18
+msgid ""
+"Caches and databases are looked up on every call, so these can be created"
+" at import time, before Django's settings are configured."
+msgstr ""
+
+#: of pyevp.contrib.django.AsyncDjangoCache:1
+msgid ""
+"An :class:`~pyevp.AsyncCache` using Django's async cache API (``aget`` / "
+"``aset``)."
+msgstr ""
+
+#: of pyevp.contrib.django.AsyncDjangoCache:3
+msgid "Takes the same arguments as :class:`DjangoCache` and shares its entries."
+msgstr ""
+
+#: of pyevp.contrib.django.AsyncDjangoReplayGuard:1
+msgid ":class:`DjangoReplayGuard` for :class:`~pyevp.AsyncVerifier`."
+msgstr ""
+
+#: of pyevp.contrib.django.AsyncDjangoReplayGuard:3
+msgid "The database work runs in Django's thread for synchronous code."
+msgstr ""
+
+#: of pyevp.contrib.django.DjangoCache:1
+msgid "A :class:`~pyevp.Cache` backed by one of Django's ``CACHES``."
+msgstr ""
+
+#: of pyevp.contrib.django.DjangoCache:3
+msgid ""
+"Use a backend shared between workers (Redis, Memcached, database) for the"
+" cache to help; ``locmem`` is per process like "
+":class:`~pyevp.InMemoryCache`. An evicted entry is simply fetched again."
+"  With :class:`~pyevp.AsyncVerifier`, use :class:`AsyncDjangoCache`, "
+"which does not block the event loop."
+msgstr ""
+
+#: of pyevp.contrib.django.DjangoReplayGuard:1
+msgid "A :class:`~pyevp.ReplayGuard` storing accepted tokens in the database."
+msgstr ""
+
+#: of pyevp.contrib.django.DjangoReplayGuard:3
+msgid ""
+"Each token is a row keyed by its digest until the token expires; a second"
+" insert of the same key fails on the primary key, so concurrent workers "
+"cannot both accept a token.  Unlike a cache, the table never evicts rows "
+"early, and database errors propagate, so verification fails closed. "
+"Expired rows are deleted as new tokens are recorded."
+msgstr ""
+
+#: of pyevp.contrib.django.DjangoReplayGuard:9
+msgid ""
+"Each record is committed immediately in its own transaction, so a later "
+"rollback of the request cannot undo it.  Called inside a transaction on "
+"the same database (``ATOMIC_REQUESTS``, ``transaction.atomic()``, or with"
+" autocommit off) it raises ``RuntimeError`` instead; point ``using`` at a"
+" second alias for the same database with ``ATOMIC_REQUESTS`` off and "
+"autocommit on.  Django's ``TestCase`` transactions are exempt."
+msgstr ""
+
+#: of pyevp.contrib.django.DjangoReplayGuard:16
+msgid ""
+"Requires ``\"pyevp.contrib.django\"`` in ``INSTALLED_APPS`` and "
+"``migrate``."
+msgstr ""
+
+#: ../../api.md:64
+msgid "Issuer (experimental)"
+msgstr ""
+
+#: of pyevp.issuer:1
+msgid "Issuer side of the Email Verification Protocol (experimental)."
+msgstr ""
+
+#: of pyevp.issuer:3
+msgid ""
+"Framework-neutral building blocks for running an issuer for your own "
+"email domains: validate the browser's signed issuance request, mint EVTs,"
+" and produce the metadata, JWKS and DNS records to publish.  See "
+":class:`Issuer`."
+msgstr ""
+
+#: of pyevp.issuer.errors.IssuanceError:1
+msgid "A request the issuer must refuse.  Render it with :meth:`to_response`."
+msgstr ""
+
+#: of pyevp.issuer.errors.IssuanceError:3
+msgid ""
+"``message`` is for logs; the response body only ever carries the fixed "
+"description of ``code``."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceError.signature_error:1
+msgid "``Signature-Error`` code, for ``invalid_signature``."
+msgstr ""
+
+#: of pyevp.issuer.errors.IssuanceError.authentication_required:1
+msgid ""
+"The one error for \"no session\", \"unknown address\" and \"not this "
+"user's address\"."
+msgstr ""
+
+#: of pyevp.issuer.errors.IssuanceError.authentication_required:3
+msgid ""
+"Raise it for every such case so that responses cannot be used to probe "
+"accounts."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceEvent.stage:1
+msgid "``\"request\"`` (validation) or ``\"issue\"`` (an EVT was signed)."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceProfile.request_algorithms:1
+msgid ""
+"Algorithms accepted for the browser's request signature (also limited by "
+"metadata)."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceProfile.require_request_key_alg:1
+msgid ""
+"Require ``alg`` in the ``hwk`` Signature-Key; otherwise it is implied by "
+"the curve."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceProfile.max_request_age:1
+msgid "How far the signature's ``created`` may lie from now, either way."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceProfile.polymorphic_eddsa_header:1
+msgid ""
+"Write ``\"alg\": \"EdDSA\"`` in EVT headers signed with Ed25519 (as Gmail"
+" did in 2026)."
+msgstr ""
+
+#: of pyevp.issuer.profile.IssuanceProfile.chrome_153:1
+msgid ""
+"What Chrome 153+ sends and accepts (verified end to end with "
+"154.0.8037.92)."
+msgstr ""
+
+#: of pyevp.issuer.profile.IssuanceProfile.chrome_153:3
+msgid ""
+"Chrome signs requests with ``hwk`` keys that omit ``alg``, and it rejects"
+" EVTs whose header says ``\"alg\": \"Ed25519\"``: it only accepts "
+"``EdDSA``, ``ES256`` and ``RS256``.  Ed25519-signed EVTs therefore carry "
+"``EdDSA``, as Gmail's do."
+msgstr ""
+
+#: of pyevp.issuer.profile.IssuanceProfile.draft_hardt_02:1
+msgid "Strict reading of draft-hardt-email-verification-02 and signature-key-09."
+msgstr ""
+
+#: of pyevp.issuer.core.IssuanceRequest:1
+msgid "A request whose signature, freshness and body have been validated."
+msgstr ""
+
+#: of pyevp.issuer.core.IssuanceRequest:3
+msgid "The user has *not* been authenticated yet."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceRequest.email:1
+msgid "Exactly as the browser sent it; also what the EVT will assert."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceRequest.holder_jwk:1
+msgid "The browser's public key, bound into the EVT as ``cnf.jwk``."
+msgstr ""
+
+#: of pyevp.issuer.IssuanceRequest.signature_base:1
+msgid "What ``signature`` covers; it identifies the request for the replay guard."
+msgstr ""
+
+#: of pyevp.issuer.errors.IssuanceResponse:1
+msgid "A framework-neutral HTTP response."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:1
+msgid "Issues EVTs for the email domains this issuer is authoritative for."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:3
+msgid "the issuer identifier, ``https://`` + host (what DNS ``iss=`` names)."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:4
+msgid ""
+"the URL browsers POST to.  The request signature is checked against this "
+"URL, not the ``Host`` header, so it works behind a proxy."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:6
+msgid "where :meth:`jwks_document` is served."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:7
+msgid "the active signing key."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:8
+msgid ""
+"further public JWKs to publish: the next key before a rotation, and "
+"retired keys until every EVT they signed has expired at relying parties."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer:10
+msgid ""
+"domains EVTs may be issued for.  Requests for any other domain are "
+"refused with ``authentication_required``."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer.metadata_document:1
+#, python-brace-format
+msgid "Serve at ``{issuer}/.well-known/email-verification``."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer.jwks_document:1
+msgid "Serve at ``jwks_uri``."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer.dns_txt_records:1
+msgid "The TXT record to publish for each email domain."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer.parse_request:1
+msgid "Validate a request with a synchronous (or no) replay guard."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer.aparse_request:1
+msgid "Validate a request with a synchronous or asynchronous replay guard."
+msgstr ""
+
+#: of pyevp.issuer.core.Issuer.issue:1
+msgid "Sign an EVT for ``request``.  Call only after authenticating the user."
+msgstr ""
+
+#: of pyevp.issuer.Signer.alg:1
+msgid "``Ed25519`` or ``ES256``."
+msgstr ""
+
+#: of pyevp.issuer.Signer.alg
+msgid "type"
+msgstr ""
+
+#: of pyevp.issuer.Signer.alg:3
+msgid "A fully specified algorithm"
+msgstr ""
+
+#: of pyevp.issuer.Signer.public_jwk:1
+msgid "The verification key as published in the JWKS (with ``kid`` and ``alg``)."
+msgstr ""
+
+#: of pyevp.issuer.keys.Signer.sign:1
+msgid "Sign in JWS encoding (raw ``r || s`` for ES256)."
+msgstr ""
+
+#: of pyevp.issuer.keys.SigningKey:1
+msgid "A private key held in process memory."
+msgstr ""
+
+#: of pyevp.issuer.keys.SigningKey.from_jwk:1
+msgid ""
+"Load a private JWK; it must carry ``kid``, and ``alg`` unless the curve "
+"implies it."
+msgstr ""
+
+#: of pyevp.issuer.keys.SigningKey.private_jwk:1
+msgid "The private key as a JWK, for writing to a secret store."
+msgstr ""
+
+#: of pyevp.issuer.fedcm.accounts_document:1
+msgid "The accounts endpoint's response for a signed-in user's addresses."
+msgstr ""
+
+#: of pyevp.issuer.fedcm.accounts_document:3
+msgid ""
+"Pass every address the session's user may get EVTs for.  Return this only"
+" for requests with the session cookie; without a session, answer 401."
+msgstr ""
+
+#: of pyevp.issuer.core.is_valid_email:1
+msgid "Whether ``value`` is a WHATWG HTML valid email address (ASCII only)."
+msgstr ""
+
+#: of pyevp.issuer.keys.public_jwk:1
+msgid ""
+"Normalise a public key for publication: no private members, ``kid``, "
+"``alg``, use."
+msgstr ""
+
+#: of pyevp.issuer.fedcm.web_identity_document:1
+msgid "Serve at ``https://<registrable domain>/.well-known/web-identity``."
+msgstr ""
+
+#: ../../api.md:72
+msgid "Testing"
+msgstr ""
+
+#: of pyevp.testing:1
+msgid "Test doubles: a fake issuer, a fake browser and in-memory ports."
+msgstr ""
+
+#: of pyevp.testing:3
+msgid ""
+"These let applications test their EVP integration end-to-end without "
+"network access::"
+msgstr ""
+
+#: of pyevp.testing.FakeBrowser:1
+msgid "Holds the key-binding key and produces presentation tokens."
+msgstr ""
+
+#: of pyevp.testing.FakeBrowser.issuance_request:1
+msgid ""
+"A signed issuance request, as keyword arguments for "
+"``Issuer.parse_request``."
+msgstr ""
+
+#: of pyevp.testing.FakeBrowser.issuance_request:3
+msgid ""
+"Like Chrome 153, the ``hwk`` key omits ``alg`` unless ``include_alg`` is "
+"set. ``extra`` adds members to the JSON body."
+msgstr ""
+
+#: of pyevp.testing.FakeIssuer:1
+msgid ""
+"Mints EVTs.  Deviations from the spec can be configured to mimic real "
+"issuers."
+msgstr ""
+
+#: of pyevp.testing.FakeIssuer:3
+#, python-brace-format
+msgid "issuer host; the issuer identifier is ``https://{host}``."
+msgstr ""
+
+#: of pyevp.testing.FakeIssuer:4
+msgid "key id; ``\"\"`` or ``None`` reproduces Gmail's key-id-less JWKS."
+msgstr ""
+
+#: of pyevp.testing.FakeIssuer:5
+msgid "how ``iss`` is written in tokens."
+msgstr ""
+
+#: of pyevp.testing.FakeIssuer.gmail_like:1
+msgid "Mimic Gmail as deployed in 2026-10: ``EdDSA``, keys without ``kid``."
+msgstr ""
+
+#: of pyevp.testing.FakeIssuer.issue:1
+msgid ""
+"Return a signed EVT.  ``claims`` / ``header`` override or add fields (a "
+"value of ``None`` removes the field)."
+msgstr ""
+
+#: of pyevp.testing.FixedClock:1
+msgid "A manually advanced clock, usable wherever a ``Clock`` is expected."
+msgstr ""
+
+#: of pyevp.testing.InMemoryHttp:1
+msgid "Serves documents by URL; a callable value is invoked on each request."
+msgstr ""
+
+#: of pyevp.testing.make_verifier:1
+msgid "A :class:`Verifier` wired to in-memory DNS/HTTP serving ``issuers``."
+msgstr ""
+

@@ -49,6 +49,8 @@ As a result:
 - DNS, HTTP, caches and replay stores can be swapped without touching verification;
 - tests can drive the generator by hand or plug in the fakes from {mod}`pyevp.testing`.
 
+(profiles)=
+
 ## Profiles
 
 The protocol is still moving, and deployed issuers lag behind the drafts. Gmail, for instance,

@@ -9,6 +9,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/gaato/pyevp/blob/main/LICENSE)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/gaato/pyevp)
 
+[日本語](https://github.com/gaato/pyevp/blob/main/README.ja.md)
+
 Relying-party verification for the **Email Verification Protocol** (EVP): the browser obtains a
 token from the user's email provider proving they control an address, and your server verifies it,
 with no confirmation email round-trip.

@@ -27,7 +27,7 @@ system. A complete FastAPI sketch lives in
 
 `pyevp.issuer` covers steps 1–4 except "the logged-in user controls the address", which is
 yours. Chrome also requires the FedCM documents described in [What Chrome requires beyond the
-draft](#what-chrome-requires-beyond-the-draft).
+draft](#chrome-requirements).
 
 ## Set up
 
@@ -120,6 +120,8 @@ store, as described in {doc}`replay`.
 Rate-limit the issuance endpoint per IP address in front of the application. `observer=`
 receives an {class}`pyevp.issuer.IssuanceEvent` for every accepted or rejected request
 (including requests rejected as replays) and every issued token, for metrics and audit logs.
+
+(chrome-requirements)=
 
 ## What Chrome requires beyond the draft
 

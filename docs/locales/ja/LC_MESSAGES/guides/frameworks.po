@@ -1,0 +1,226 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Gakuto Furuya
+# This file is distributed under the same license as the pyevp package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pyevp 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guides/frameworks.md:1
+msgid "Framework integration"
+msgstr "フレームワークとの統合"
+
+#: ../../guides/frameworks.md:3
+#, python-brace-format
+msgid ""
+"The repository's `examples/` directory has a complete, tested project for"
+" each integration below. Copy one out and replace `pyevp = { workspace = "
+"true }` with a normal dependency to start your own."
+msgstr ""
+"リポジトリの `examples/` "
+"ディレクトリには、以下の統合ごとに、テスト済みの完全なプロジェクトがあります。自分のプロジェクトを始めるときは、いずれかをコピーし、`pyevp "
+"= { workspace = true }` を通常の依存指定に置き換えてください。"
+
+#: ../../guides/frameworks.md:7
+msgid "FastAPI"
+msgstr "FastAPI"
+
+#: ../../guides/frameworks.md:9
+#, python-brace-format
+msgid ""
+"Create one {class}`~pyevp.AsyncVerifier` at startup and inject it as a "
+"dependency, so that tests can override it. Starlette's "
+"`SessionMiddleware` keeps the session in a signed cookie, so the example "
+"enables a replay guard."
+msgstr ""
+"起動時に {class}`~pyevp.AsyncVerifier` を 1 "
+"つ作成し、依存関係として注入します。こうしておくと、テストで差し替えられます。Starlette の `SessionMiddleware` "
+"はセッションを署名付き Cookie に保存するため、この例ではリプレイガードを有効にしています。"
+
+#: ../../guides/frameworks.md:18
+msgid "Flask"
+msgstr "Flask"
+
+#: ../../guides/frameworks.md:20
+#, python-brace-format
+msgid ""
+"Build the synchronous {class}`~pyevp.Verifier` in the application factory"
+" and keep it in `app.extensions`, so that tests can pass one wired to "
+"fakes. Flask's default session is a signed cookie, so the example enables"
+" a replay guard."
+msgstr ""
+"同期版の {class}`~pyevp.Verifier` をアプリケーションファクトリーで組み立て、`app.extensions` "
+"に保持します。こうしておくと、テストではフェイクにつないだものを渡せます。Flask の既定のセッションは署名付き Cookie "
+"なので、この例ではリプレイガードを有効にしています。"
+
+#: ../../guides/frameworks.md:29
+msgid "fastapi-users"
+msgstr "fastapi-users"
+
+#: ../../guides/frameworks.md:31
+msgid ""
+"Register users through your own route. A valid token creates the user "
+"with `is_verified=True`; otherwise the usual verification email applies. "
+"Build the `UserCreate` on the server and pass `safe=False` only so that "
+"`is_verified` is kept."
+msgstr ""
+"ユーザー登録は独自のルートで行います。トークンが有効なら `is_verified=True` "
+"でユーザーを作成し、そうでなければ通常の確認メールによる検証を行います。`UserCreate` "
+"はサーバー側で組み立ててください。`safe=False` を渡すのは、`is_verified` を保持させるためだけです。"
+
+#: ../../guides/frameworks.md:41
+msgid "AuthX (passwordless login)"
+msgstr "AuthX（パスワードレスログイン）"
+
+#: ../../guides/frameworks.md:43
+msgid "When the verified address *is* the login, replay protection is essential."
+msgstr "検証したアドレスが*そのまま*ログインになる場合、リプレイ対策は欠かせません。"
+
+#: ../../guides/frameworks.md:50
+msgid "django-allauth"
+msgstr "django-allauth"
+
+#: ../../guides/frameworks.md:52
+msgid ""
+"Override `DefaultAccountAdapter.is_email_verified`. A valid token makes "
+"the new `EmailAddress` verified, so no confirmation mail is sent; "
+"anything else falls back to allauth's normal flow."
+msgstr ""
+"`DefaultAccountAdapter.is_email_verified` をオーバーライドします。トークンが有効なら新しい "
+"`EmailAddress` が検証済みになり、確認メールは送信されません。それ以外の場合は allauth "
+"の通常のフローにフォールバックします。"
+
+#: ../../guides/frameworks.md:60
+#, python-brace-format, python-format
+msgid ""
+"Add `{% evp_token_input %}` inside the signup form template, and set "
+"`ACCOUNT_ADAPTER`, `ACCOUNT_FORMS[\"signup\"]` and `EVP_ORIGIN` (see "
+"`examples/django_allauth/settings.py`)."
+msgstr ""
+"サインアップフォームのテンプレート内に `{% evp_token_input %}` "
+"を追加し、`ACCOUNT_ADAPTER`、`ACCOUNT_FORMS[\"signup\"]`、`EVP_ORIGIN` "
+"を設定します（`examples/django_allauth/settings.py` を参照してください）。"
+
+#: ../../guides/frameworks.md:63
+msgid "Django building blocks"
+msgstr "Django 向けの部品"
+
+#: ../../guides/frameworks.md:65
+#, python-brace-format
+msgid ""
+"{mod}`pyevp.contrib.django` (`pip install \"pyevp[django]\"`) provides "
+"the parts every Django integration needs:"
+msgstr ""
+"{mod}`pyevp.contrib.django`（`pip install \"pyevp[django]\"`）は、どの Django "
+"統合にも必要な次の部品を提供します。"
+
+#: ../../guides/frameworks.md:68
+#, python-brace-format
+msgid ""
+"{class}`~pyevp.contrib.django.DjangoCache` shares issuer metadata and key"
+" sets between workers through Django's cache framework. It takes a "
+"`CACHES` alias and a key prefix, `DjangoCache(\"evp\", prefix=\"evp:\")`,"
+" and hashes keys so that long URLs fit Memcached's key limit. An evicted "
+"entry is simply fetched again."
+msgstr ""
+"{class}`~pyevp.contrib.django.DjangoCache` は、Django "
+"のキャッシュフレームワークを通じて、発行者（issuer）のメタデータと鍵セットをワーカー間で共有します。`CACHES` "
+"のエイリアスとキーのプレフィックスを受け取り（`DjangoCache(\"evp\", prefix=\"evp:\")`）、長い URL でも"
+" Memcached のキー長の上限に収まるようにキーをハッシュ化します。キャッシュから追い出されたエントリーは、単に取得し直されます。"
+
+#: ../../guides/frameworks.md:72
+#, python-brace-format
+msgid ""
+"{class}`~pyevp.contrib.django.DjangoReplayGuard` remembers accepted "
+"tokens in a database table, not in the cache. Caches evict entries before"
+" their TTL when they fill up, which would let a still-valid token be "
+"accepted again; a table keeps every row until the token expires, and a "
+"duplicate insert fails on the primary key even across workers. Add the "
+"app and create the table:"
+msgstr ""
+"{class}`~pyevp.contrib.django.DjangoReplayGuard` "
+"は、受理したトークンをキャッシュではなくデータベースのテーブルに記録します。キャッシュは満杯になると TTL "
+"より前にエントリーを追い出すため、まだ有効なトークンが再び受理されてしまうおそれがあります。テーブルならトークンの有効期限が切れるまですべての行が残り、重複した挿入はワーカーをまたいでも主キー制約で失敗します。アプリを追加し、テーブルを作成します。"
+
+#: ../../guides/frameworks.md:82
+msgid ""
+"then run `manage.py migrate`. Database errors propagate, so verification "
+"fails closed."
+msgstr ""
+"続けて `manage.py migrate` を実行します。データベースのエラーはそのまま伝播するため、検証は安全側に倒れて失敗します（fail"
+" closed）。"
+
+#: ../../guides/frameworks.md:84
+msgid ""
+"Each record is committed in its own transaction as soon as the token is "
+"accepted, so a rollback of the request cannot undo it. That is impossible"
+" inside a transaction on the same database, whether an atomic block or a "
+"manual one with autocommit off, so there the guard raises `RuntimeError` "
+"rather than write a record that a rollback could erase. With "
+"`ATOMIC_REQUESTS` or `AUTOCOMMIT=False`, give the guard a second alias "
+"for the same database; both are set per alias:"
+msgstr ""
+"各レコードはトークンを受理した時点で専用のトランザクションでコミットされるため、リクエストがロールバックされても取り消されません。同じデータベースのトランザクションの中では、atomic"
+" ブロックでも autocommit "
+"を無効にした手動のトランザクションでも、これは実現できません。そのためガードは、ロールバックで消えうるレコードを書き込む代わりに "
+"`RuntimeError` を送出します。`ATOMIC_REQUESTS` や `AUTOCOMMIT=False` "
+"を使っている場合は、同じデータベースを指す別のエイリアスをガードに渡してください。どちらの設定もエイリアスごとに指定します。"
+
+#: ../../guides/frameworks.md:96
+msgid "Django's `TestCase` transactions are exempt, so tests need no extra setup."
+msgstr "Django の `TestCase` のトランザクションは対象外なので、テストに追加の設定は必要ありません。"
+
+#: ../../guides/frameworks.md:98
+#, python-brace-format
+msgid ""
+"With {class}`~pyevp.AsyncVerifier`, use "
+"{class}`~pyevp.contrib.django.AsyncDjangoCache` and "
+"{class}`~pyevp.contrib.django.AsyncDjangoReplayGuard`. They keep database"
+" access off the event loop, where Django would raise "
+"`SynchronousOnlyOperation`."
+msgstr ""
+"{class}`~pyevp.AsyncVerifier` "
+"では、{class}`~pyevp.contrib.django.AsyncDjangoCache` と "
+"{class}`~pyevp.contrib.django.AsyncDjangoReplayGuard` "
+"を使います。これらはデータベースへのアクセスをイベントループの外で行います。イベントループ上でアクセスすると、Django が "
+"`SynchronousOnlyOperation` を送出するためです。"
+
+#: ../../guides/frameworks.md:102
+#, python-brace-format
+msgid ""
+"Combined with the {doc}`standard-library adapters <transport>`, a Django "
+"project needs no dependency beyond pyevp's core:"
+msgstr ""
+"{doc}`標準ライブラリのアダプター <transport>` と組み合わせれば、Django プロジェクトに pyevp "
+"のコア以外の依存は必要ありません。"
+
+#: ../../guides/frameworks.md:119
+msgid "Other frameworks"
+msgstr "その他のフレームワーク"
+
+#: ../../guides/frameworks.md:121
+#, python-brace-format
+msgid ""
+"Anything else works the same way: keep a nonce in the session, read the "
+"hidden `evt` field, and call {meth}`pyevp.Verifier.verify`. Use "
+"{class}`~pyevp.Verifier` in synchronous code and "
+"{class}`~pyevp.AsyncVerifier` under asyncio."
+msgstr ""
+"ほかのフレームワークでも手順は同じです。nonce をセッションに保存し、隠しフィールド `evt` "
+"を読み取って、{meth}`pyevp.Verifier.verify` を呼び出します。同期コードでは "
+"{class}`~pyevp.Verifier` を、asyncio 上では {class}`~pyevp.AsyncVerifier` "
+"を使います。"
+

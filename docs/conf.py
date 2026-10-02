@@ -24,6 +24,11 @@ exclude_patterns = ["_build"]
 myst_enable_extensions = ["colon_fence", "deflist", "fieldlist"]
 myst_heading_anchors = 3
 
+# Translations (see CONTRIBUTING.md). Fuzzy entries are not used: changed strings fall back to
+# English until a translator reviews them.
+locale_dirs = ["locales"]
+gettext_compact = False
+
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented_params"

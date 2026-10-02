@@ -1,0 +1,232 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Gakuto Furuya
+# This file is distributed under the same license as the pyevp package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pyevp 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../concepts.md:1
+msgid "Concepts"
+msgstr "基本概念"
+
+#: ../../concepts.md:3
+msgid "The flow"
+msgstr "全体の流れ"
+
+#: ../../concepts.md:5
+#, python-brace-format
+msgid "Your page renders a form with a nonce (see {doc}`quickstart`)."
+msgstr "ページが nonce を埋め込んだフォームを表示します（{doc}`quickstart` を参照）。"
+
+#: ../../concepts.md:6
+msgid ""
+"The user picks an address from autofill. The browser looks up the issuer "
+"for the address's domain, obtains an **Email Verification Token (EVT)** "
+"from it, and binds it to your origin and nonce with a **key-binding JWT "
+"(KB-JWT)**."
+msgstr ""
+"ユーザーが自動入力の候補からアドレスを選びます。ブラウザーはそのアドレスのドメインの発行者（issuer）を調べ、発行者から **Email "
+"Verification Token**（EVT）を受け取り、**鍵バインディング JWT**（KB-JWT）で自分のサイトのオリジンと "
+"nonce に結び付けます。"
+
+#: ../../concepts.md:9
+msgid "The form is submitted with `evt=<EVT>~<KB-JWT>`."
+msgstr "フォームが `evt=<EVT>~<KB-JWT>` を付けて送信されます。"
+
+#: ../../concepts.md:10
+msgid "Your server verifies it."
+msgstr "サーバーがそれを検証します。"
+
+#: ../../concepts.md:12
+msgid ""
+"The EVT is signed by the issuer and contains `iss`, `iat`, `email`, "
+"`email_verified` and the browser's public key (`cnf.jwk`). The KB-JWT is "
+"signed with that browser key and contains `aud` (your origin), `nonce`, "
+"`iat` and `sd_hash` (a hash of the EVT)."
+msgstr ""
+"EVT は発行者が署名したもので、`iss`、`iat`、`email`、`email_verified` "
+"とブラウザーの公開鍵（`cnf.jwk`）を含みます。KB-JWT "
+"はそのブラウザーの鍵で署名されており、`aud`（自分のサイトのオリジン）、`nonce`、`iat`、`sd_hash`（EVT "
+"のハッシュ）を含みます。"
+
+#: ../../concepts.md:16
+msgid "Verification"
+msgstr "検証"
+
+#: ../../concepts.md:18
+#, python-brace-format
+msgid "{func}`pyevp.core.verification_steps` checks, in this order:"
+msgstr "{func}`pyevp.core.verification_steps` は次の順に確認します。"
+
+#: ../../concepts.md:20
+msgid ""
+"**Offline checks.** It parses the token, then checks the EVT's header and"
+" claims and its freshness. It verifies the KB-JWT signature against "
+"`cnf.jwk`, and checks `aud`, `nonce`, `iat` and `sd_hash`. It also "
+"compares the submitted email when one is given."
+msgstr ""
+"**オフラインでの確認**。トークンをパースし、EVT のヘッダーとクレーム、鮮度を確認します。KB-JWT の署名を `cnf.jwk` "
+"で検証し、`aud`、`nonce`、`iat`、`sd_hash` "
+"を確認します。送信されたメールアドレスが渡されていれば、それとの一致も確認します。"
+
+#: ../../concepts.md:23
+msgid ""
+"**Discovery.** It looks up the DNS TXT record `_email-"
+"verification.<domain>`, which must hold exactly one `iss=` entry. The "
+"token's `iss` must equal that issuer."
+msgstr ""
+"**ディスカバリー**。DNS の TXT レコード `_email-verification.<domain>` を引きます。このレコードには "
+"`iss=` のエントリーがちょうど 1 つなければなりません。トークンの `iss` はその発行者と一致する必要があります。"
+
+#: ../../concepts.md:25
+msgid ""
+"**Issuer metadata and keys.** It fetches `<issuer>/.well-known/email-"
+"verification` and then the `jwks_uri` it names. These are cached. If no "
+"key verifies the token, the keys are fetched again once, rate-limited, in"
+" case they were rotated."
+msgstr ""
+"**発行者のメタデータと鍵**。`<issuer>/.well-known/email-verification` を取得し、続いてそこに記された"
+" `jwks_uri` "
+"を取得します。これらはキャッシュされます。どの鍵でもトークンを検証できなかった場合は、鍵がローテーションされた可能性を考えて、レート制限をかけたうえで"
+" 1 回だけ鍵を取得し直します。"
+
+#: ../../concepts.md:28
+msgid "**EVT signature.**"
+msgstr "**EVT の署名**。"
+
+#: ../../concepts.md:29
+msgid "**Replay protection**, if enabled."
+msgstr "**リプレイ対策**（有効な場合）。"
+
+#: ../../concepts.md:31
+msgid ""
+"Everything that can be checked without the network is checked first. The "
+"only hosts ever contacted are derived from DNS, never from the token."
+msgstr "ネットワークを使わずに確認できることは、すべて先に確認します。接続するホストは常に DNS から導き出し、トークンの内容から決めることはありません。"
+
+#: ../../concepts.md:34
+msgid "Sans-I/O core"
+msgstr "Sans-I/O のコア"
+
+#: ../../concepts.md:36
+#, python-brace-format
+msgid ""
+"The verification logic in {mod}`pyevp.core` performs no I/O. It is a "
+"generator that *yields* requests, {class}`~pyevp.core.ResolveTxt`, "
+"{class}`~pyevp.core.FetchJson` and {class}`~pyevp.core.MarkUsed`, and "
+"receives their results. The drivers {class}`pyevp.Verifier` and "
+"{class}`pyevp.AsyncVerifier` only answer those requests through injected "
+"*ports*:"
+msgstr ""
+"{mod}`pyevp.core` の検証ロジックは I/O "
+"を一切行いません。これはジェネレーターで、リクエスト（{class}`~pyevp.core.ResolveTxt`、{class}`~pyevp.core.FetchJson`、{class}`~pyevp.core.MarkUsed`）を"
+" *yield* し、その結果を受け取ります。ドライバーである {class}`pyevp.Verifier` と "
+"{class}`pyevp.AsyncVerifier` は、注入された *ポート* を通じてそのリクエストに応えるだけです。"
+
+#: ../../concepts.md:41
+#, python-brace-format
+msgid "{class}`~pyevp.TxtResolver`"
+msgstr "{class}`~pyevp.TxtResolver`"
+
+#: ../../concepts.md:42
+#, python-brace-format
+msgid "{class}`~pyevp.JsonFetcher`"
+msgstr "{class}`~pyevp.JsonFetcher`"
+
+#: ../../concepts.md:43
+#, python-brace-format
+msgid "{class}`~pyevp.ReplayGuard`"
+msgstr "{class}`~pyevp.ReplayGuard`"
+
+#: ../../concepts.md:44
+msgid "their async counterparts"
+msgstr "それぞれの非同期版"
+
+#: ../../concepts.md:46
+msgid "As a result:"
+msgstr "その結果、次のことができます。"
+
+#: ../../concepts.md:48
+msgid ""
+"the same logic serves synchronous Django views and asynchronous FastAPI "
+"endpoints;"
+msgstr "同じロジックで、同期の Django ビューにも非同期の FastAPI エンドポイントにも対応できます。"
+
+#: ../../concepts.md:49
+msgid ""
+"DNS, HTTP, caches and replay stores can be swapped without touching "
+"verification;"
+msgstr "検証ロジックに手を入れずに、DNS、HTTP、キャッシュ、リプレイストアを差し替えられます。"
+
+#: ../../concepts.md:50
+#, python-brace-format
+msgid ""
+"tests can drive the generator by hand or plug in the fakes from "
+"{mod}`pyevp.testing`."
+msgstr "テストでは、ジェネレーターを手で動かすことも、{mod}`pyevp.testing` のフェイクを差し込むこともできます。"
+
+#: ../../concepts.md:54
+msgid "Profiles"
+msgstr "プロファイル"
+
+#: ../../concepts.md:56
+#, python-brace-format
+msgid ""
+"The protocol is still moving, and deployed issuers lag behind the drafts."
+" Gmail, for instance, signs with `EdDSA` and publishes keys without "
+"`kid`, which the latest draft forbids. Every such choice lives in a "
+"{class}`pyevp.Profile`:"
+msgstr ""
+"プロトコルはまだ変わり続けており、実際に稼働している発行者はドラフトに追いついていません。たとえば Gmail は `EdDSA` "
+"で署名し、`kid` のない鍵を公開していますが、これは最新のドラフトでは禁止されています。こうした選択はすべて "
+"{class}`pyevp.Profile` にまとめられています。"
+
+#: ../../concepts.md
+msgid "Preset"
+msgstr "プリセット"
+
+#: ../../concepts.md
+msgid "Purpose"
+msgstr "用途"
+
+#: ../../concepts.md
+msgid "`compat-2026-10` (default)"
+msgstr "`compat-2026-10`（既定）"
+
+#: ../../concepts.md
+msgid "Accepts what Chrome and Gmail ship today as well as the -02 draft"
+msgstr "-02 ドラフトに加えて、現在の Chrome と Gmail の実装も受け入れる"
+
+#: ../../concepts.md
+msgid "`draft-hardt-02`"
+msgstr "`draft-hardt-02`"
+
+#: ../../concepts.md
+msgid "Strict reading of draft-hardt-email-verification -02"
+msgstr "draft-hardt-email-verification -02 を厳密に解釈する"
+
+#: ../../concepts.md:73
+#, python-brace-format
+msgid ""
+"Following a spec change means adding a new preset. Existing presets never"
+" change behaviour (see {doc}`compatibility`). Run `pyevp discover "
+"<domain> --profile <name>` to see how an issuer fares under a profile."
+msgstr ""
+"仕様の変更には、新しいプリセットを追加して追従します。既存のプリセットの挙動は変わりません（{doc}`compatibility` "
+"を参照）。`pyevp discover <domain> --profile <name>` "
+"を実行すると、あるプロファイルのもとで発行者がどう扱われるかを確認できます。"
+

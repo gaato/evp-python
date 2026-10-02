@@ -59,6 +59,8 @@ if token and nonce:
 
 `AsyncVerifier` has the same API: `await verifier.verify(...)`.
 
+(handle-failures)=
+
 ## 3. Handle failures
 
 Every failure raises a subclass of {class}`pyevp.EVPError` with a stable {class}`pyevp.ErrorCode`:

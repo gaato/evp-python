@@ -1,0 +1,88 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Gakuto Furuya
+# This file is distributed under the same license as the pyevp package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pyevp 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guides/observability.md:1
+msgid "Logging and metrics"
+msgstr "ログとメトリクス"
+
+#: ../../guides/observability.md:3
+#, python-brace-format
+msgid ""
+"Pass `observer=` to a verifier to receive one "
+"{class}`~pyevp.VerificationEvent` per `verify()` call. An event carries:"
+msgstr ""
+"Verifier に `observer=` を渡すと、`verify()` の呼び出しごとに "
+"{class}`~pyevp.VerificationEvent` を 1 つ受け取れます。イベントには次の情報が含まれます。"
+
+#: ../../guides/observability.md:6
+msgid "`ok`"
+msgstr "`ok`"
+
+#: ../../guides/observability.md:7
+#, python-brace-format
+msgid "`code`: the {class}`~pyevp.ErrorCode` on failure"
+msgstr "`code`: 失敗時の {class}`~pyevp.ErrorCode`"
+
+#: ../../guides/observability.md:8
+msgid "`issuer`: on success"
+msgstr "`issuer`: 成功時の発行者（issuer）"
+
+#: ../../guides/observability.md:9
+msgid "`email_domain`: the claimed domain, read before verification"
+msgstr "`email_domain`: 申告されたドメイン（検証前に読み取ったもの）"
+
+#: ../../guides/observability.md:10
+msgid "`profile`"
+msgstr "`profile`"
+
+#: ../../guides/observability.md:11
+msgid "`duration`"
+msgstr "`duration`"
+
+#: ../../guides/observability.md:19
+#, python-brace-format
+msgid ""
+"{class}`~pyevp.LoggingObserver` writes one line per verification to the "
+"`pyevp` logger. For metrics, write a small callable:"
+msgstr ""
+"{class}`~pyevp.LoggingObserver` は、検証ごとに 1 行を `pyevp` "
+"ロガーに書き込みます。メトリクスを取るには、小さな呼び出し可能オブジェクトを書きます。"
+
+#: ../../guides/observability.md:34
+msgid ""
+"Observers should be fast. Exceptions raised by an observer are logged to "
+"the `pyevp` logger and ignored, so monitoring can never break sign-in."
+msgstr ""
+"オブザーバーは高速に処理を終えるようにしてください。オブザーバーが送出した例外は `pyevp` "
+"ロガーに記録されたうえで無視されるため、監視がサインインを妨げることはありません。"
+
+#: ../../guides/observability.md:37
+#, python-brace-format
+msgid ""
+"Watching these numbers per `email_domain` and `code` shows quickly when "
+"an issuer changes its behaviour (a spike of `unsupported_alg`, for "
+"example). That is the same drift that `pyevp discover` checks for (see "
+"{doc}`cli`)."
+msgstr ""
+"これらの数値を `email_domain` と `code` ごとに監視すると、発行者が挙動を変えたときにすぐ気づけます（たとえば "
+"`unsupported_alg` の急増）。これは `pyevp discover` がチェックするのと同じ種類の変化です（{doc}`cli`"
+" を参照）。"
+

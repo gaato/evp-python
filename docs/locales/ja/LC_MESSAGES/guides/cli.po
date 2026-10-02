@@ -1,0 +1,122 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Gakuto Furuya
+# This file is distributed under the same license as the pyevp package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pyevp 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guides/cli.md:1
+msgid "Command line"
+msgstr "コマンドライン"
+
+#: ../../guides/cli.md:3
+msgid ""
+"The `pyevp` command is for relying-party developers and operators, and "
+"for issuer operators checking their own setup. It needs the `cli` extra. "
+"You can run it without installing anything into your project:"
+msgstr ""
+"`pyevp` "
+"コマンドは、リライングパーティー（RP）の開発者や運用者と、自分の設定を確認したい発行者（issuer）の運用者のためのものです。`cli` "
+"extra が必要です。プロジェクトに何もインストールせずに実行することもできます。"
+
+#: ../../guides/cli.md:11
+msgid "`pyevp discover`"
+msgstr "`pyevp discover`"
+
+#: ../../guides/cli.md:13
+msgid ""
+"Check a domain's issuer the way a relying party sees it: the DNS record, "
+"the metadata, the keys, and whether they work under a profile."
+msgstr "ドメインの発行者を、RP から見えるとおりに確認します。DNS レコード、メタデータ、鍵と、それらがプロファイルのもとで機能するかどうかを調べます。"
+
+#: ../../guides/cli.md:22
+msgid "`pyevp inspect`"
+msgstr "`pyevp inspect`"
+
+#: ../../guides/cli.md:24
+msgid ""
+"Decode a token offline. It shows the headers, the claims, how long ago "
+"each part was issued, whether `sd_hash` matches and the holder key "
+"thumbprint. **Signatures are not verified.**"
+msgstr ""
+"トークンをオフラインでデコードします。ヘッダー、クレーム、各部分が発行されてからの経過時間、`sd_hash` "
+"が一致するかどうか、保有者の鍵のサムプリントを表示します。**署名は検証しません**。"
+
+#: ../../guides/cli.md:32
+msgid "`pyevp verify`"
+msgstr "`pyevp verify`"
+
+#: ../../guides/cli.md:34
+msgid "Run the full verification, as your server would:"
+msgstr "サーバーと同じように、検証をすべて実行します。"
+
+#: ../../guides/cli.md:40
+msgid "Output and exit status"
+msgstr "出力と終了ステータス"
+
+#: ../../guides/cli.md:42
+msgid "Every command accepts `--json` for scripts."
+msgstr "どのコマンドも、スクリプト向けに `--json` を受け付けます。"
+
+#: ../../guides/cli.md
+msgid "Status"
+msgstr "ステータス"
+
+#: ../../guides/cli.md
+msgid "Meaning"
+msgstr "意味"
+
+#: ../../guides/cli.md
+msgid "0"
+msgstr "0"
+
+#: ../../guides/cli.md
+msgid "success"
+msgstr "成功"
+
+#: ../../guides/cli.md
+msgid "1"
+msgstr "1"
+
+#: ../../guides/cli.md
+msgid "verification failed, or discovery found problems"
+msgstr "検証に失敗した、またはディスカバリーで問題が見つかった"
+
+#: ../../guides/cli.md
+msgid "2"
+msgstr "2"
+
+#: ../../guides/cli.md
+msgid "usage error"
+msgstr "使い方の誤り"
+
+#: ../../guides/cli.md
+msgid "3"
+msgstr "3"
+
+#: ../../guides/cli.md
+msgid "the `cli` extra is not installed"
+msgstr "`cli` extra がインストールされていない"
+
+#: ../../guides/cli.md:52
+msgid ""
+"Tokens contain email addresses. Treat them as personal data, and avoid "
+"pasting real users' tokens into shared terminals or issue trackers."
+msgstr ""
+"トークンにはメールアドレスが含まれます。個人情報として扱い、実際のユーザーのトークンを共有のターミナルや issue "
+"トラッカーに貼り付けないでください。"
+

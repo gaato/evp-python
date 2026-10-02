@@ -17,6 +17,10 @@ from evp import AsyncVerifier, InMemoryReplayGuard
 verifier = AsyncVerifier.default(audience="https://example.com", replay_guard=InMemoryReplayGuard())
 ```
 
+The key identifies the presentation, not its bytes: it is a hash of the KB-JWT header and
+payload, which carry the nonce, audience and a hash of the EVT. Re-encoding a signature, for
+example turning an ECDSA `s` into `n - s`, therefore does not produce a new key.
+
 The guard is only consulted after every other check has passed, so rejected tokens never fill
 the store. Errors raised by the guard itself, such as a store outage, propagate unchanged.
 

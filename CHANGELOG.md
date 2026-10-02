@@ -19,6 +19,8 @@ follows the compatibility policy described in the README.
 - dnspython and httpx / httpx2 adapters (`evp[dns]`, `evp[httpx]`, `evp[httpx2]`, `evp[all]`);
   httpx2 is preferred when installed.
 - Opt-in replay protection (`replay_guard=`, `InMemoryReplayGuard`, `ErrorCode.TOKEN_REPLAYED`).
+  Presentations are keyed by the KB-JWT signing input, so re-encoded signatures are still
+  detected.
 - Observer hook for logging and metrics (`observer=`, `VerificationEvent`, `LoggingObserver`).
 - DNS-over-HTTPS TXT resolvers (`evp.adapters.doh`, Google and Cloudflare JSON APIs).
 - `Verifier.default()` / `AsyncVerifier.default()` accept `resolver=` / `fetcher=` overrides.

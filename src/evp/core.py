@@ -226,9 +226,20 @@ def _signing_alg_advertised(alg: str, advertised: tuple[str, ...] | None) -> boo
     return any(_jose.algorithms_compatible(alg, a) for a in advertised)
 
 
-def replay_key(token: str) -> str:
-    """Stable identifier of a presentation token for replay detection."""
-    return _jose.b64url_encode(hashlib.sha256(token.encode("ascii")).digest())
+def replay_key(token: str | ParsedToken) -> str:
+    """Stable identifier of a presentation for replay detection.
+
+    It is derived from the KB-JWT signing input (header and payload), not from the
+    whole token: signatures can be re-encoded without the holder key (ECDSA ``s``
+    → ``n - s``, non-canonical base64url), while the signing input cannot. The
+    payload binds the nonce, audience, ``iat`` and, through ``sd_hash``, the EVT.
+
+    A raw token is parsed first and raises :class:`~evp.TokenError` if malformed.
+    """
+    if isinstance(token, str):
+        token = parse_token(token, allow_disclosures=True)
+    signing_input = token.kb.compact.rpartition(".")[0]
+    return _jose.b64url_encode(hashlib.sha256(signing_input.encode("ascii")).digest())
 
 
 def verification_steps(
@@ -288,7 +299,7 @@ def verification_steps(
 
     if replay_protection:
         expires_at = kb_issued_at + profile.max_token_age + profile.clock_skew
-        if not (yield MarkUsed(replay_key(parsed.raw), expires_at)):
+        if not (yield MarkUsed(replay_key(parsed), expires_at)):
             raise TokenError(ErrorCode.TOKEN_REPLAYED, "token has already been used")
 
     private = parsed.evt.claims.get("is_private_email")

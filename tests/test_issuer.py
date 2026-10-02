@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any
 
@@ -8,7 +10,7 @@ import anyio
 import pytest
 from joserfc.jwk import ECKey, OKPKey
 
-from pyevp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, discovery
+from pyevp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, _sf, discovery
 from pyevp._jose import decode_json_segment
 from pyevp.diagnostics import discover
 from pyevp.issuer import (
@@ -334,6 +336,35 @@ def test_bad_signature_sets_signature_error(clock: FixedClock) -> None:
     }
 
 
+@pytest.mark.parametrize("created", ["999999999999999", "-999999999999999"])
+def test_unrepresentable_created(clock: FixedClock, created: str) -> None:
+    request = Browser(clock).request()
+    headers = request["headers"]
+    headers["Signature-Input"] = re.sub(
+        r"created=\d+", f"created={created}", headers["Signature-Input"]
+    )
+    exc = error(make_issuer(clock), request)
+    assert exc.code == "invalid_signature"
+    assert exc.signature_error == "invalid_signature"
+
+
+def _pairs(headers: dict[str, str]) -> Iterator[tuple[str, str]]:
+    yield from headers.items()
+
+
+@pytest.mark.parametrize("wrap", [lambda h: iter(h.items()), _pairs, lambda h: list(h.items())])
+def test_headers_may_be_any_iterable(clock: FixedClock, wrap: Any) -> None:
+    issuer = make_issuer(clock)
+    browser = Browser(clock)
+    request = browser.request()
+    issuer.parse_request(**{**request, "headers": wrap(request["headers"])})
+
+    async def main() -> None:
+        await issuer.aparse_request(**{**request, "headers": wrap(request["headers"])})
+
+    anyio.run(main)
+
+
 def test_stale_request(clock: FixedClock) -> None:
     request = Browser(clock).request()
     clock.advance(timedelta(seconds=301))
@@ -454,6 +485,40 @@ def test_replay_guard(clock: FixedClock) -> None:
     assert error(issuer, request).code == "invalid_signature"
 
 
+# The order of the P-256 group; (r, n - s) is as valid as (r, s).
+P256_N = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+
+
+def _malleated(request: dict[str, Any]) -> dict[str, Any]:
+    headers = dict(request["headers"])
+    ((label, item),) = _sf.parse_dictionary(headers["Signature"]).items()
+    assert isinstance(item, _sf.Item)
+    assert isinstance(item.value, bytes)
+    r, s = item.value[:32], int.from_bytes(item.value[32:])
+    twin = r + (P256_N - s).to_bytes(32)
+    headers["Signature"] = _sf.serialize_dictionary({label: _sf.Item(twin)})
+    assert headers["Signature"] != request["headers"]["Signature"]
+    return {**request, "headers": headers}
+
+
+def test_replay_guard_survives_signature_malleability(clock: FixedClock) -> None:
+    request = Browser(clock, "ES256").request()
+    twin = _malleated(request)
+    make_issuer(clock).parse_request(**twin)  # a valid signature in its own right
+
+    issuer = make_issuer(clock, replay_guard=InMemoryReplayGuard(clock=clock))
+    issuer.parse_request(**request)
+    assert error(issuer, twin).code == "invalid_signature"
+
+    async def main() -> None:
+        issuer = make_issuer(clock, replay_guard=InMemoryReplayGuard(clock=clock))
+        await issuer.aparse_request(**twin)
+        with pytest.raises(IssuanceError, match="already used"):
+            await issuer.aparse_request(**request)
+
+    anyio.run(main)
+
+
 def test_async_replay_guard(clock: FixedClock) -> None:
     class AsyncGuard:
         def __init__(self) -> None:
@@ -489,6 +554,31 @@ def test_observer(clock: FixedClock) -> None:
         IssuanceEvent(True, "issue", None, "example.com"),
         IssuanceEvent(False, "request", IssuanceErrorCode.INVALID_REQUEST, None),
     ]
+
+
+def test_observer_reports_replays(clock: FixedClock) -> None:
+    events: list[IssuanceEvent] = []
+    request = Browser(clock).request()
+    expected = [
+        IssuanceEvent(True, "request", None, "example.com"),
+        IssuanceEvent(False, "request", IssuanceErrorCode.INVALID_SIGNATURE, None),
+    ]
+    guard = InMemoryReplayGuard(clock=clock)
+    issuer = make_issuer(clock, observer=events.append, replay_guard=guard)
+    issuer.parse_request(**request)
+    error(issuer, request)
+    assert events == expected
+
+    async def main() -> None:
+        events.clear()
+        guard = InMemoryReplayGuard(clock=clock)
+        issuer = make_issuer(clock, observer=events.append, replay_guard=guard)
+        await issuer.aparse_request(**request)
+        with pytest.raises(IssuanceError):
+            await issuer.aparse_request(**request)
+
+    anyio.run(main)
+    assert events == expected
 
 
 def test_observer_errors_are_swallowed(clock: FixedClock) -> None:

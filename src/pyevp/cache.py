@@ -9,7 +9,7 @@ from typing import Protocol
 
 from pyevp.ports import Clock, system_clock
 
-__all__ = ["Cache", "CacheEntry", "InMemoryCache", "NullCache"]
+__all__ = ["AsyncCache", "Cache", "CacheEntry", "InMemoryCache", "NullCache"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +28,17 @@ class Cache(Protocol):
     def get(self, key: str) -> CacheEntry | None: ...
 
     def set(self, key: str, entry: CacheEntry, ttl: timedelta) -> None: ...
+
+
+class AsyncCache(Protocol):
+    """:class:`Cache` with coroutine methods, for stores that must not block the event loop.
+
+    :class:`~pyevp.AsyncVerifier` accepts either kind.
+    """
+
+    async def get(self, key: str) -> CacheEntry | None: ...
+
+    async def set(self, key: str, entry: CacheEntry, ttl: timedelta) -> None: ...
 
 
 class NullCache:

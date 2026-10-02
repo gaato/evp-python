@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "allauth",
     "allauth.account",
+    "pyevp.contrib.django",  # DjangoReplayGuard's table
 ]
 
 MIDDLEWARE = [

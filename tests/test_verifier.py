@@ -6,10 +6,13 @@ import anyio
 import pytest
 
 from pyevp import (
+    AsyncCache,
     AsyncVerifier,
+    CacheEntry,
     DiscoveryError,
     ErrorCode,
     EVPError,
+    InMemoryCache,
     NullCache,
     Profile,
     TokenError,
@@ -66,6 +69,70 @@ def test_metadata_and_jwks_are_cached(
         )
         verifier.verify(token, nonce=nonce)
     assert _http(verifier).requests == [issuer.metadata_url, issuer.jwks_uri]
+
+
+class _AsyncCache:
+    """An AsyncCache that records calls and yields to the loop on each one."""
+
+    def __init__(self, clock: FixedClock) -> None:
+        self.inner = InMemoryCache(clock=clock)
+        self.calls: list[str] = []
+
+    async def get(self, key: str) -> CacheEntry | None:
+        await anyio.sleep(0)
+        self.calls.append(f"get {key}")
+        return self.inner.get(key)
+
+    async def set(self, key: str, entry: CacheEntry, ttl: timedelta) -> None:
+        await anyio.sleep(0)
+        self.calls.append(f"set {key}")
+        self.inner.set(key, entry, ttl)
+
+
+@pytest.mark.anyio
+async def test_async_cache_is_awaited(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, clock: FixedClock
+) -> None:
+    cache = _AsyncCache(clock)
+    typed: AsyncCache = cache  # checked statically by ty
+    verifier = make_async_verifier(issuer, audience=AUDIENCE, cache=typed)
+    for _ in range(2):
+        token = browser.present(
+            issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
+        )
+        assert (await verifier.verify(token, nonce=nonce)).email == EMAIL
+    meta, jwks = issuer.metadata_url, issuer.jwks_uri
+    assert cache.calls == [
+        f"get {meta}",
+        f"set {meta}",
+        f"get {jwks}",
+        f"set {jwks}",
+        f"get {meta}",
+        f"get {jwks}",
+    ]
+    fetcher = verifier._fetcher
+    assert isinstance(fetcher, AsyncInMemoryHttp)
+    assert fetcher.requests == [meta, jwks]
+
+
+@pytest.mark.anyio
+async def test_async_cache_refresh_is_rate_limited(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, clock: FixedClock
+) -> None:
+    verifier = make_async_verifier(issuer, audience=AUDIENCE, cache=_AsyncCache(clock))
+
+    def fresh_token() -> str:
+        return browser.present(
+            issuer.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce
+        )
+
+    await verifier.verify(fresh_token(), nonce=nonce)
+    issuer.rotate_key()
+    with pytest.raises(EVPError) as exc:
+        await verifier.verify(fresh_token(), nonce=nonce)
+    assert exc.value.code is ErrorCode.EVT_SIGNATURE_INVALID
+    clock.advance(timedelta(minutes=2))
+    assert (await verifier.verify(fresh_token(), nonce=nonce)).email == EMAIL
 
 
 def test_null_cache_fetches_every_time(issuer: FakeIssuer, token: str, nonce: str) -> None:

@@ -47,5 +47,8 @@ class RedisReplayGuard:
         return bool(self.redis.set(f"evp:used:{key}", 1, nx=True, pxat=pxat))
 ```
 
-With Django, `cache.add()` is atomic on the Redis and Memcached backends. See
-`DjangoCacheReplayGuard` in {doc}`frameworks`.
+The store must keep each record until it expires. Do not build a guard on a cache that evicts
+under memory pressure: once the record is evicted, the token is accepted again. For Redis this
+means `maxmemory-policy noeviction` (the `volatile-*` policies evict exactly these keys, which
+have a TTL), so that a full Redis rejects the write and verification fails instead. With Django, use {class}`~pyevp.contrib.django.DjangoReplayGuard`,
+which keeps records in a database table; see {doc}`frameworks`.

@@ -64,7 +64,7 @@ jobs:
             if [ "$EXTRAS" = all ]; then flags=--all-extras; else flags=; fi
             uv sync --locked --python "$PYTHON" $flags
           else
-            if [ "$EXTRAS" = all ]; then target=".[all,cli]"; else target="."; fi
+            if [ "$EXTRAS" = all ]; then target=".[all,cli,django]"; else target="."; fi
             uv venv --python "$PYTHON"
             uv pip install "$target" pytest anyio
           fi
@@ -84,7 +84,7 @@ jobs:
       - name: Install lowest direct dependencies
         run: |
           uv venv --python 3.11
-          uv pip install --resolution lowest-direct ".[all,cli]"
+          uv pip install --resolution lowest-direct ".[all,cli,django]"
           uv pip install pytest anyio
       - run: .venv/bin/pytest
 

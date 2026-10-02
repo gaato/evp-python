@@ -1,6 +1,6 @@
 """Relying-party verification for the Email Verification Protocol (EVP)."""
 
-from pyevp.cache import Cache, CacheEntry, InMemoryCache, NullCache
+from pyevp.cache import AsyncCache, Cache, CacheEntry, InMemoryCache, NullCache
 from pyevp.errors import DiscoveryError, ErrorCode, EVPError, PolicyError, TokenError
 from pyevp.nonce import generate_nonce, nonces_equal
 from pyevp.observability import LoggingObserver, Observer, VerificationEvent
@@ -12,6 +12,7 @@ from pyevp.verifier import AsyncVerifier, Verifier
 
 __all__ = [
     "DEFAULT_PROFILE",
+    "AsyncCache",
     "AsyncJsonFetcher",
     "AsyncReplayGuard",
     "AsyncTxtResolver",

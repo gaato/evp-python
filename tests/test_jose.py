@@ -48,6 +48,7 @@ ED448 = {"kty": "OKP", "crv": "Ed448", "x": "abc"}
         ("Ed25519", {**ED25519, "key_ops": ["sign", "verify"]}, True),
         ("Ed25519", {**ED25519, "key_ops": ["encrypt"]}, False),
         ("Ed25519", {**ED25519, "key_ops": []}, False),
+        ("Ed25519", {**ED25519, "key_ops": None}, False),
     ],
 )
 def test_key_supports(alg: str, key: dict[str, Any], supported: bool) -> None:

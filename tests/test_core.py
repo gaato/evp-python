@@ -7,12 +7,13 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypeAlias
 
+import anyio
 import pytest
 
 from pyevp import DEFAULT_PROFILE, ErrorCode, EVPError, Profile, Verifier
 from pyevp._jose import b64url_encode
 from pyevp.core import FetchJson, ResolveTxt, verification_steps
-from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, make_verifier
+from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, make_async_verifier, make_verifier
 from pyevp.token import build_kb, compute_sd_hash, sign_jwt
 
 from .conftest import AUDIENCE, EMAIL
@@ -341,6 +342,23 @@ def test_holder_key_without_verify_op_is_refused(
     with pytest.raises(EVPError) as exc:
         verifier.verify(token, nonce=nonce)
     assert exc.value.code is ErrorCode.UNSUPPORTED_ALG
+
+
+def test_holder_key_with_null_key_ops_is_malformed(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str
+) -> None:
+    holder = {**browser.public_jwk, "key_ops": None}
+    token = browser.present(issuer.issue(EMAIL, holder), audience=AUDIENCE, nonce=nonce)
+    with pytest.raises(EVPError) as exc:
+        make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.MALFORMED_TOKEN
+
+    async def main() -> None:
+        with pytest.raises(EVPError) as exc:
+            await make_async_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce)
+        assert exc.value.code is ErrorCode.MALFORMED_TOKEN
+
+    anyio.run(main)
 
 
 class _EncryptOnlyIssuer(FakeIssuer):

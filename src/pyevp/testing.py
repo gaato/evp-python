@@ -22,7 +22,7 @@ from typing import Any, Literal, TypeAlias
 from joserfc.jwk import ECKey, OKPKey
 
 from pyevp import _httpsig, discovery
-from pyevp.cache import Cache
+from pyevp.cache import AsyncCache, Cache
 from pyevp.observability import Observer
 from pyevp.profile import DEFAULT_PROFILE, Profile
 from pyevp.replay import AsyncReplayGuard, ReplayGuard
@@ -325,7 +325,7 @@ def make_async_verifier(
     audience: str,
     profile: Profile = DEFAULT_PROFILE,
     clock: FixedClock | None = None,
-    cache: Cache | None = None,
+    cache: Cache | AsyncCache | None = None,
     replay_guard: ReplayGuard | AsyncReplayGuard | None = None,
     observer: Observer | None = None,
 ) -> AsyncVerifier:

@@ -51,10 +51,35 @@ resolver.nameservers = ["https://cloudflare-dns.com/dns-query"]
 DnsPythonResolver(resolver)
 ```
 
+## Standard library only
+
+{mod}`pyevp.adapters.urllib` needs nothing beyond pyevp's core dependencies, for applications
+that already chose an HTTP stack and do not want httpx or dnspython added. Without dnspython
+there is no stdlib way to query TXT records, so it resolves them over DoH:
+
+```python
+from pyevp import Verifier
+from pyevp.adapters.urllib import CLOUDFLARE, UrllibDohResolver, UrllibFetcher
+
+verifier = Verifier(audience=..., resolver=UrllibDohResolver(), fetcher=UrllibFetcher())
+verifier = Verifier(audience=..., resolver=UrllibDohResolver(CLOUDFLARE), fetcher=UrllibFetcher())
+```
+
+They behave like the httpx adapters: no redirects, no compressed responses, size-capped bodies.
+The DoH trade-offs above apply: the provider sees which domains you look up, and
+`require_dnssec=True` means trusting it. Both adapters are synchronous. Proxies from the
+environment are honoured; pass `handlers` to configure proxies or TLS explicitly:
+
+```python
+UrllibFetcher(handlers=[urllib.request.HTTPSHandler(context=ssl_context)])
+```
+
 ## Caching
 
 Issuer metadata and key sets are cached for 10 minutes (`cache_ttl`) in a process-local
 {class}`~pyevp.InMemoryCache`. Pass any {class}`~pyevp.Cache` implementation to share it between
-workers; the Django example has one backed by Django's cache. When a signature does not verify,
+workers; {class}`pyevp.contrib.django.DjangoCache` is one backed by Django's cache.
+{class}`~pyevp.AsyncVerifier` also accepts an {class}`~pyevp.AsyncCache`, whose methods are
+coroutines, for stores that must not be called on the event loop. When a signature does not verify,
 the keys are fetched again to pick up key rotation, at most once per `min_refresh_interval`
 and URL, even when the fetch fails or verifications run concurrently.

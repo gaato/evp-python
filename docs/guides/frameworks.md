@@ -54,11 +54,67 @@ verified, so no confirmation mail is sent; anything else falls back to allauth's
 
 ```{literalinclude} ../../examples/django_allauth/evp_allauth.py
 :language: python
-:start-at: "class DjangoCache:"
+:start-at: "@cache"
 ```
 
 Add `{% evp_token_input %}` inside the signup form template, and set `ACCOUNT_ADAPTER`,
 `ACCOUNT_FORMS["signup"]` and `EVP_ORIGIN` (see `examples/django_allauth/settings.py`).
+
+## Django building blocks
+
+{mod}`pyevp.contrib.django` (`pip install "pyevp[django]"`) provides the parts every Django
+integration needs:
+
+- {class}`~pyevp.contrib.django.DjangoCache` shares issuer metadata and key sets between workers
+  through Django's cache framework. It takes a `CACHES` alias and a key prefix,
+  `DjangoCache("evp", prefix="evp:")`, and hashes keys so that long URLs fit Memcached's key
+  limit. An evicted entry is simply fetched again.
+- {class}`~pyevp.contrib.django.DjangoReplayGuard` remembers accepted tokens in a database
+  table, not in the cache. Caches evict entries before their TTL when they fill up, which would
+  let a still-valid token be accepted again; a table keeps every row until the token expires,
+  and a duplicate insert fails on the primary key even across workers. Add the app and create
+  the table:
+
+  ```python
+  INSTALLED_APPS = [..., "pyevp.contrib.django"]
+  ```
+
+  then run `manage.py migrate`. Database errors propagate, so verification fails closed.
+
+  Each record is committed in its own transaction as soon as the token is accepted, so a
+  rollback of the request cannot undo it. That is impossible inside a transaction on the same
+  database, whether an atomic block or a manual one with autocommit off, so there the guard
+  raises `RuntimeError` rather than write a record that a rollback could erase. With
+  `ATOMIC_REQUESTS` or `AUTOCOMMIT=False`, give the guard a second alias for the same
+  database; both are set per alias:
+
+  ```python
+  DATABASES["evp"] = {**DATABASES["default"], "ATOMIC_REQUESTS": False, "AUTOCOMMIT": True}
+  replay_guard = DjangoReplayGuard(using="evp")
+  ```
+
+  Django's `TestCase` transactions are exempt, so tests need no extra setup.
+
+With {class}`~pyevp.AsyncVerifier`, use {class}`~pyevp.contrib.django.AsyncDjangoCache` and
+{class}`~pyevp.contrib.django.AsyncDjangoReplayGuard`. They keep database access off the event
+loop, where Django would raise `SynchronousOnlyOperation`.
+
+Combined with the {doc}`standard-library adapters <transport>`, a Django project needs no
+dependency beyond pyevp's core:
+
+```python
+from pyevp import Verifier
+from pyevp.adapters.urllib import UrllibDohResolver, UrllibFetcher
+from pyevp.contrib.django import DjangoCache, DjangoReplayGuard
+
+verifier = Verifier(
+    audience=settings.EVP_ORIGIN,
+    resolver=UrllibDohResolver(),
+    fetcher=UrllibFetcher(),
+    cache=DjangoCache(),
+    replay_guard=DjangoReplayGuard(),
+)
+```
 
 ## Other frameworks
 

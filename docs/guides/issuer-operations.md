@@ -111,11 +111,13 @@ exception message for your logs.
 
 A signed request is only accepted within 300 seconds of its `created` time. Within that window,
 a captured request could be resent together with the cookies. Pass `replay_guard=` to refuse a
-signature the second time it is seen. Use a shared store, as described in {doc}`replay`.
+request the second time it is seen. The guard keys on the signed content rather than the
+signature bytes, so re-encoding an ES256 signature does not get a request past it. Use a shared
+store, as described in {doc}`replay`.
 
 Rate-limit the issuance endpoint per IP address in front of the application. `observer=`
-receives an {class}`pyevp.issuer.IssuanceEvent` for every validated request and issued token, for
-metrics and audit logs.
+receives an {class}`pyevp.issuer.IssuanceEvent` for every accepted or rejected request
+(including requests rejected as replays) and every issued token, for metrics and audit logs.
 
 ## What Chrome requires beyond the draft
 

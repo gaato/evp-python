@@ -130,6 +130,7 @@ def test_validate_jwks_drops_private_and_junk() -> None:
         {"kid": 1},
         {"use": None},
         {"key_ops": "verify"},
+        {"key_ops": None},
         {"key_ops": [1]},
         {"kty": ["OKP"]},
     ],

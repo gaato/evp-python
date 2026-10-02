@@ -1211,6 +1211,9 @@ cli = [
     { name = "httpx2" },
     { name = "typer" },
 ]
+django = [
+    { name = "django" },
+]
 dns = [
     { name = "dnspython" },
 ]
@@ -1224,6 +1227,7 @@ httpx2 = [
 [package.dev-dependencies]
 dev = [
     { name = "anyio" },
+    { name = "django" },
     { name = "httpx2" },
     { name = "pytest" },
     { name = "ruff" },
@@ -1237,6 +1241,7 @@ docs = [
 
 [package.metadata]
 requires-dist = [
+    { name = "django", marker = "extra == 'django'", specifier = ">=4.2" },
     { name = "dnspython", marker = "extra == 'dns'", specifier = ">=2.7" },
     { name = "httpx", marker = "extra == 'httpx'", specifier = ">=0.28" },
     { name = "httpx2", marker = "extra == 'httpx2'", specifier = ">=2.13" },
@@ -1246,11 +1251,12 @@ requires-dist = [
     { name = "pyevp", extras = ["dns", "httpx2"], marker = "extra == 'cli'" },
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.27" },
 ]
-provides-extras = ["dns", "httpx", "httpx2", "all", "cli"]
+provides-extras = ["dns", "httpx", "httpx2", "all", "cli", "django"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "anyio", specifier = ">=4.15.1" },
+    { name = "django", specifier = ">=6.1.1" },
     { name = "httpx2", specifier = ">=2.13" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.16.9" },

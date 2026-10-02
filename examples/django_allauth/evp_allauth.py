@@ -12,53 +12,27 @@ template can use ``{% evp_token_input %}``.
 from __future__ import annotations
 
 import logging
-import math
-from datetime import datetime, timedelta
 from functools import cache
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.forms import SignupForm
 from django import forms, template
 from django.conf import settings
-from django.core.cache import cache as django_cache
 from django.http import HttpRequest
-from django.utils import timezone
 from django.utils.html import format_html
 
-from pyevp import CacheEntry, EVPError, Verifier, generate_nonce
+from pyevp import EVPError, Verifier, generate_nonce
+from pyevp.contrib.django import DjangoCache, DjangoReplayGuard
 
 logger = logging.getLogger(__name__)
 SESSION_KEY = "evp_nonce"
 register = template.Library()
 
 
-class DjangoCache:
-    """Share issuer metadata / JWKS between workers via Django's cache framework."""
-
-    def get(self, key: str) -> CacheEntry | None:
-        return django_cache.get(f"evp:{key}")
-
-    def set(self, key: str, entry: CacheEntry, ttl: timedelta) -> None:
-        django_cache.set(f"evp:{key}", entry, timeout=ttl.total_seconds())
-
-
-class DjangoCacheReplayGuard:
-    """Remember accepted tokens in Django's cache (``add`` is atomic on Redis / Memcached).
-
-    Django's default database-backed sessions already make the nonce single-use;
-    this guards against replay if sessions are stored client-side (signed cookies).
-    """
-
-    def mark_used(self, key: str, expires_at: datetime) -> bool:
-        # Cache backends keep whole seconds; round up so the record outlives the token.
-        timeout = max(math.ceil((expires_at - timezone.now()).total_seconds()), 1)
-        return django_cache.add(f"evp:used:{key}", 1, timeout=timeout)
-
-
 @cache
 def get_verifier() -> Verifier:
     return Verifier.default(
-        audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoCacheReplayGuard()
+        audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoReplayGuard()
     )
 
 

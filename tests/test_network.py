@@ -12,6 +12,7 @@ from pyevp import DEFAULT_PROFILE, TxtResolver
 from pyevp.adapters import doh
 from pyevp.adapters.dnspython import DnsPythonResolver
 from pyevp.adapters.httpx import HttpxFetcher
+from pyevp.adapters.urllib import UrllibDohResolver, UrllibFetcher
 from pyevp.diagnostics import discover
 
 pytestmark = pytest.mark.network
@@ -37,5 +38,20 @@ def test_known_issuers_work_with_default_profile(
     finally:
         if isinstance(txt, doh.DohResolver):
             txt.close()
+    assert report.issuer == expected_issuer
+    assert report.ok, f"{domain} drifted from {DEFAULT_PROFILE.name}: {report.problems}"
+
+
+@pytest.mark.parametrize(("domain", "expected_issuer"), KNOWN_ISSUERS.items())
+@pytest.mark.parametrize("endpoint", [doh.GOOGLE, doh.CLOUDFLARE], ids=["google", "cloudflare"])
+def test_known_issuers_work_with_stdlib_adapters(
+    domain: str, expected_issuer: str, endpoint: str
+) -> None:
+    report = discover(
+        domain,
+        resolver=UrllibDohResolver(endpoint),
+        fetcher=UrllibFetcher(),
+        profile=DEFAULT_PROFILE,
+    )
     assert report.issuer == expected_issuer
     assert report.ok, f"{domain} drifted from {DEFAULT_PROFILE.name}: {report.problems}"

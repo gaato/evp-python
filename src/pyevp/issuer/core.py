@@ -71,6 +71,8 @@ class IssuanceRequest:
     alg: str
     created: datetime
     signature: bytes = field(repr=False)
+    signature_base: bytes = field(repr=False)
+    """What ``signature`` covers; it identifies the request for the replay guard."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,19 +218,29 @@ class Issuer:
         guard = self.replay_guard
         if guard is not None and inspect.iscoroutinefunction(guard.mark_used):
             raise TypeError("use aparse_request with an asynchronous replay guard")
-        request = self._observed(self._validate, method, headers, body)
-        if guard is not None:
-            self._check_replay(cast(ReplayGuard, guard).mark_used(*self._replay_key(request)))
+        try:
+            request = self._validate(method, headers, body)
+            if guard is not None:
+                self._check_replay(cast(ReplayGuard, guard).mark_used(*self._replay_key(request)))
+        except IssuanceError as exc:
+            self._rejected(exc)
+            raise
+        self._accepted(request)
         return request
 
     async def aparse_request(
         self, *, method: str, headers: Headers, body: bytes
     ) -> IssuanceRequest:
         """Validate a request with a synchronous or asynchronous replay guard."""
-        request = self._observed(self._validate, method, headers, body)
-        if self.replay_guard is not None:
-            marked = self.replay_guard.mark_used(*self._replay_key(request))
-            self._check_replay(await marked if inspect.isawaitable(marked) else marked)
+        try:
+            request = self._validate(method, headers, body)
+            if self.replay_guard is not None:
+                marked = self.replay_guard.mark_used(*self._replay_key(request))
+                self._check_replay(await marked if inspect.isawaitable(marked) else marked)
+        except IssuanceError as exc:
+            self._rejected(exc)
+            raise
+        self._accepted(request)
         return request
 
     def issue(self, request: IssuanceRequest) -> str:
@@ -262,16 +274,11 @@ class Issuer:
     def _header_alg(self, alg: str) -> str:
         return "EdDSA" if alg == "Ed25519" and self.profile.polymorphic_eddsa_header else alg
 
-    def _observed(
-        self, validate: Callable[[str, Headers, bytes], IssuanceRequest], *args: Any
-    ) -> IssuanceRequest:
-        try:
-            request = validate(*args)
-        except IssuanceError as exc:
-            self._notify(IssuanceEvent(False, "request", exc.code, None))
-            raise
+    def _rejected(self, exc: IssuanceError) -> None:
+        self._notify(IssuanceEvent(False, "request", exc.code, None))
+
+    def _accepted(self, request: IssuanceRequest) -> None:
         self._notify(IssuanceEvent(True, "request", None, discovery.email_domain(request.email)))
-        return request
 
     def _notify(self, event: IssuanceEvent) -> None:
         if self.observer is None:
@@ -284,6 +291,8 @@ class Issuer:
     def _validate(self, method: str, headers: Headers, body: bytes) -> IssuanceRequest:
         if method != "POST":
             raise IssuanceError(IssuanceErrorCode.INVALID_REQUEST, f"method {method} not allowed")
+        # Read once: an iterator would be empty when verify_request parses it again.
+        headers = _httpsig.header_pairs(headers)
         lines = _httpsig._field_lines(headers)
         if _media_type(lines.get("content-type", ())) != "application/json":
             raise IssuanceError(
@@ -335,12 +344,13 @@ class Issuer:
             # Same answer as for an unknown account, so domains cannot be probed either.
             raise IssuanceError.authentication_required(f"not authoritative for {email!r}")
         return IssuanceRequest(
-            email, signed.public_jwk, signed.alg, signed.created, signed.signature
+            email, signed.public_jwk, signed.alg, signed.created, signed.signature, signed.base
         )
 
     def _replay_key(self, request: IssuanceRequest) -> tuple[str, datetime]:
-        # Only the holder of the browser's private key can produce another valid signature.
-        key = "issuance:" + hashlib.sha256(request.signature).hexdigest()
+        # Keyed on what was signed, not on the signature: anyone can re-encode an ECDSA
+        # signature ((r, s) -> (r, n - s)) into another valid one for the same request.
+        key = "issuance:" + hashlib.sha256(request.signature_base).hexdigest()
         return key, request.created + self.profile.max_request_age + timedelta(seconds=1)
 
     @staticmethod

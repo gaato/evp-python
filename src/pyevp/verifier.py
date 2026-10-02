@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import Any, Self
 from urllib.parse import urlsplit
 
-from pyevp.cache import Cache, CacheEntry, InMemoryCache
+from pyevp.cache import AsyncCache, Cache, CacheEntry, InMemoryCache
 from pyevp.core import Effect, FetchJson, MarkUsed, ResolveTxt, Steps, verification_steps
 from pyevp.errors import DiscoveryError, ErrorCode, EVPError, TokenError
 from pyevp.observability import Observer, VerificationEvent, claimed_email_domain
@@ -53,7 +53,6 @@ class _Base:
         *,
         audience: str,
         profile: Profile,
-        cache: Cache | None,
         clock: Clock,
         cache_ttl: timedelta,
         min_refresh_interval: timedelta,
@@ -65,7 +64,6 @@ class _Base:
         self._observer = observer
         self.profile = profile
         self._clock = clock
-        self._cache: Cache = cache if cache is not None else InMemoryCache(clock=clock)
         self._cache_ttl = cache_ttl
         self._min_refresh_interval = min_refresh_interval
         self._refresh_lock = threading.Lock()
@@ -101,8 +99,8 @@ class _Base:
         except Exception:
             logger.exception("EVP observer raised; ignoring")
 
-    def _cached(self, effect: FetchJson) -> CacheEntry | None:
-        entry = self._cache.get(effect.url)
+    def _reuse(self, effect: FetchJson, entry: CacheEntry | None) -> CacheEntry | None:
+        """Decide whether the cached ``entry`` for ``effect.url`` answers the fetch."""
         if entry is None or not effect.refresh:
             return entry
         # A forced refresh is reserved before fetching, so failed fetches and concurrent
@@ -128,8 +126,8 @@ class _Base:
             raise TokenError(ErrorCode.TOKEN_EXPIRED, "token expired during verification")
         return marked
 
-    def _store(self, effect: FetchJson, value: object) -> None:
-        self._cache.set(effect.url, CacheEntry(value, self._clock()), self._cache_ttl)
+    def _entry(self, value: object) -> CacheEntry:
+        return CacheEntry(value, self._clock())
 
 
 def _unreachable(effect: ResolveTxt | FetchJson, exc: Exception) -> DiscoveryError:
@@ -162,7 +160,6 @@ class Verifier(_Base):
         super().__init__(
             audience=audience,
             profile=profile,
-            cache=cache,
             clock=clock,
             cache_ttl=cache_ttl,
             min_refresh_interval=min_refresh_interval,
@@ -172,6 +169,7 @@ class Verifier(_Base):
         self._resolver = resolver
         self._fetcher = fetcher
         self._replay_guard = replay_guard
+        self._cache = cache if cache is not None else InMemoryCache(clock=clock)
 
     @classmethod
     def default(cls, *, audience: str, **kwargs: Any) -> Self:
@@ -230,11 +228,11 @@ class Verifier(_Base):
             match effect:
                 case ResolveTxt(name=name):
                     return self._resolver.resolve_txt(name)
-                case FetchJson():
-                    if (entry := self._cached(effect)) is not None:
+                case FetchJson(url=url):
+                    if (entry := self._reuse(effect, self._cache.get(url))) is not None:
                         return entry.value
-                    value = self._fetcher.fetch_json(effect.url)
-                    self._store(effect, value)
+                    value = self._fetcher.fetch_json(url)
+                    self._cache.set(url, self._entry(value), self._cache_ttl)
                     return value
         except EVPError:
             raise
@@ -252,7 +250,7 @@ class AsyncVerifier(_Base):
         resolver: AsyncTxtResolver,
         fetcher: AsyncJsonFetcher,
         profile: Profile = DEFAULT_PROFILE,
-        cache: Cache | None = None,
+        cache: Cache | AsyncCache | None = None,
         clock: Clock = system_clock,
         cache_ttl: timedelta = timedelta(minutes=10),
         min_refresh_interval: timedelta = timedelta(minutes=1),
@@ -262,7 +260,6 @@ class AsyncVerifier(_Base):
         super().__init__(
             audience=audience,
             profile=profile,
-            cache=cache,
             clock=clock,
             cache_ttl=cache_ttl,
             min_refresh_interval=min_refresh_interval,
@@ -272,6 +269,7 @@ class AsyncVerifier(_Base):
         self._resolver = resolver
         self._fetcher = fetcher
         self._replay_guard = replay_guard
+        self._cache = cache if cache is not None else InMemoryCache(clock=clock)
 
     @classmethod
     def default(cls, *, audience: str, **kwargs: Any) -> Self:
@@ -324,11 +322,16 @@ class AsyncVerifier(_Base):
             match effect:
                 case ResolveTxt(name=name):
                     return await self._resolver.resolve_txt(name)
-                case FetchJson():
-                    if (entry := self._cached(effect)) is not None:
+                case FetchJson(url=url):
+                    cached = self._cache.get(url)
+                    if inspect.isawaitable(cached):
+                        cached = await cached
+                    if (entry := self._reuse(effect, cached)) is not None:
                         return entry.value
-                    value = await self._fetcher.fetch_json(effect.url)
-                    self._store(effect, value)
+                    value = await self._fetcher.fetch_json(url)
+                    stored = self._cache.set(url, self._entry(value), self._cache_ttl)
+                    if inspect.isawaitable(stored):
+                        await stored
                     return value
         except EVPError:
             raise

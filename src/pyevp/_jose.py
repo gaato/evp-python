@@ -87,8 +87,10 @@ def has_valid_members(key: Mapping[str, Any]) -> bool:
         return False
     if any(m in key and not isinstance(key[m], str) for m in _STRING_MEMBERS):
         return False
-    ops = key.get("key_ops")
-    return ops is None or (isinstance(ops, list) and all(isinstance(o, str) for o in ops))
+    if "key_ops" not in key:
+        return True
+    ops = key["key_ops"]
+    return isinstance(ops, list) and all(isinstance(o, str) for o in ops)
 
 
 def is_public_jwk(key: Mapping[str, Any]) -> bool:

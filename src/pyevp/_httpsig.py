@@ -55,13 +55,20 @@ class SignedRequest:
     """The signer's key as a JWK, always with ``alg``."""
     created: datetime
     signature: bytes
+    base: bytes
+    """The signature base that ``signature`` was verified over."""
+
+
+def header_pairs(headers: Headers) -> list[tuple[str, str]]:
+    """``headers`` as a list, so that an iterator can be read more than once."""
+    # A Mapping is also an Iterable of its keys, so narrowing the union confuses type checkers.
+    pairs = cast("Mapping[str, str]", headers).items() if isinstance(headers, Mapping) else headers
+    return list(pairs)
 
 
 def _field_lines(headers: Headers) -> dict[str, list[str]]:
-    # A Mapping is also an Iterable of its keys, so narrowing the union confuses type checkers.
-    pairs = cast("Mapping[str, str]", headers).items() if isinstance(headers, Mapping) else headers
     lines: dict[str, list[str]] = {}
-    for name, value in pairs:
+    for name, value in header_pairs(headers):
         lines.setdefault(name.lower(), []).append(value.strip(" \t"))
     return lines
 
@@ -209,7 +216,12 @@ def verify_request(
     created = params.get("created")
     if not isinstance(created, int) or isinstance(created, bool):
         raise SignatureError("invalid_signature", "Signature-Input has no integer created")
-    created_at = datetime.fromtimestamp(created, UTC)
+    try:
+        created_at = datetime.fromtimestamp(created, UTC)
+    except (OverflowError, OSError, ValueError):
+        raise SignatureError(
+            "invalid_signature", "Signature-Input created is out of range"
+        ) from None
     if created_at > now + max_age:
         raise SignatureError("clock_skew", "signature created in the future")
     if created_at < now - max_age:
@@ -227,7 +239,7 @@ def verify_request(
         raise SignatureError("invalid_signature", "HTTP Message Signature verification failed")
     # Only now that the body is known to be what was signed is the digest worth checking.
     _check_digest(lines.get("content-digest"), body)
-    return SignedRequest(label, alg, jwk, created_at, signature.value)
+    return SignedRequest(label, alg, jwk, created_at, signature.value, base)
 
 
 def sign_request(

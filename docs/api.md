@@ -50,6 +50,15 @@ Everything most applications need is importable from the top-level package.
 .. automodule:: pyevp.adapters.httpx
 
 .. automodule:: pyevp.adapters.doh
+
+.. automodule:: pyevp.adapters.urllib
+   :exclude-members: CLOUDFLARE, GOOGLE, DnssecError, DohError, FetchError
+```
+
+## Integrations
+
+```{eval-rst}
+.. automodule:: pyevp.contrib.django
 ```
 
 ## Issuer (experimental)

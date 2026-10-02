@@ -9,8 +9,13 @@ remembering every accepted token until it would expire anyway.
 Implementations must make :meth:`ReplayGuard.mark_used` an atomic
 "add if absent", shared by every worker that verifies tokens, for example:
 
-- Redis: ``SET evp:<key> 1 NX PXAT <expires_at in ms>``
-- Django's cache: ``cache.add(key, 1, timeout)`` (atomic on Redis / Memcached)
+- Redis: ``SET evp:<key> 1 NX PXAT <expires_at in ms>``, with
+  ``maxmemory-policy noeviction``
+- A database table with the key as primary key, as
+  :class:`pyevp.contrib.django.DjangoReplayGuard` does
+
+The store must keep every record until ``expires_at``: caches that evict
+entries under memory pressure (Memcached, Django's cache backends) do not.
 
 ``expires_at`` can already be past when verification took long; guards need not
 handle that specially, because the verifier rejects the token afterwards.

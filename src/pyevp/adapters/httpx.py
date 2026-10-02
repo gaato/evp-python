@@ -6,10 +6,12 @@ library can be passed in explicitly.
 
 from __future__ import annotations
 
-import json
 from types import TracebackType
 from typing import TYPE_CHECKING, Self
 
+from pyevp.adapters._fetch import HEADERS as _HEADERS
+from pyevp.adapters._fetch import MAX_DOCUMENT_BYTES, FetchError
+from pyevp.adapters._fetch import decode as _decode
 from pyevp.adapters._http import http
 
 if TYPE_CHECKING:
@@ -17,28 +19,12 @@ if TYPE_CHECKING:
 
 __all__ = ["AsyncHttpxFetcher", "FetchError", "HttpxFetcher"]
 
-MAX_DOCUMENT_BYTES = 256 * 1024
-# Bodies are read undecoded so the size cap applies to what is held in memory;
-# a decompression bomb would otherwise be expanded before the cap is checked.
-_HEADERS = {"Accept": "application/json", "Accept-Encoding": "identity"}
-
-
-class FetchError(Exception):
-    pass
-
 
 def _check(response: Response) -> None:
     if response.status_code != 200:
         raise FetchError(f"GET {response.request.url} returned HTTP {response.status_code}")
     if response.headers.get("Content-Encoding", "identity").strip().lower() != "identity":
         raise FetchError(f"GET {response.request.url} returned a compressed response")
-
-
-def _decode(body: bytes, url: str) -> object:
-    try:
-        return json.loads(body)
-    except (ValueError, RecursionError) as exc:
-        raise FetchError(f"GET {url} did not return JSON") from exc
 
 
 class HttpxFetcher:

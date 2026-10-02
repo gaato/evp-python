@@ -19,6 +19,14 @@ follows the compatibility policy described in the README.
 - `FakeBrowser.issuance_request()` for testing issuers.
 - `examples/issuer_fastapi`.
 - `examples/flask`, a Flask relying party using the synchronous `Verifier`.
+- `pyevp.contrib.django` (`pip install pyevp[django]`), replacing the copies in the
+  django-allauth example: `DjangoCache` / `AsyncDjangoCache` on Django's cache framework, and
+  `DjangoReplayGuard` / `AsyncDjangoReplayGuard`, which keep accepted tokens in a database
+  table (add the app to `INSTALLED_APPS` and run `migrate`) and commit each record
+  independently of the request's transaction.
+- `AsyncCache`: `AsyncVerifier` accepts a cache with coroutine methods.
+- `pyevp.adapters.urllib`: `UrllibFetcher` and `UrllibDohResolver`, built on the standard
+  library only, so verification needs no HTTP or DNS library beyond the core dependencies.
 
 ### Changed
 

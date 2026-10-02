@@ -207,7 +207,7 @@ msgid ""
 " be presented. Relying parties accept EVTs for about five minutes, so a "
 "day is plenty."
 msgstr ""
-"退役させた公開鍵は、それで署名されたトークンが提示されうる間は公開し続けます。RP が EVT を受け入れるのはおよそ 5 分間なので、1 "
+"使わなくなった公開鍵は、それで署名されたトークンが提示されうる間は公開し続けます。RP が EVT を受け入れるのはおよそ 5 分間なので、1 "
 "日あれば十分です。"
 
 #: ../../guides/issuer-operations.md:110
@@ -361,7 +361,7 @@ msgid ""
 " set `issuance_path`, `jwks_path` and the other `*_path` attributes in a "
 "subclass."
 msgstr ""
-"`evp.urls` は 発行者のオリジンのルートに include します。メタデータは `/.well-known/email-"
+"`evp.urls` は発行者のオリジンのルートに include します。メタデータは `/.well-known/email-"
 "verification`、JWKS は `/email-verification/jwks`、発行は `/email-"
 "verification/issuance`、FedCM の accounts エンドポイントは `/fedcm/accounts` で提供され"
 "、`/.well-known/web-identity` も含まれます。発行者の `issuance_endpoint` と `jwks_uri`"
@@ -397,8 +397,8 @@ msgid ""
 "instead of passing an `Issuer` when one deployment serves several "
 "issuers, for example one per host."
 msgstr ""
-"`get_issuer(request)` はリクエストに対応する発行者 を返します。ホストごとに発行者を分けるなど、1つのデプロイで複数の発行者"
-" を提供する場合は、`Issuer` を渡す代わりにこれを上書きします。"
+"`get_issuer(request)` はリクエストに対応する発行者を返します。ホストごとに発行者を分けるなど、1 つのデプロイで複数の発行者"
+"を提供する場合は、`Issuer` を渡す代わりにこれをオーバーライドします。"
 
 #: ../../guides/issuer-operations.md:188
 msgid ""
@@ -427,12 +427,12 @@ msgstr ""
 " は常に CSRF チェックと `ATOMIC_REQUESTS` の対象外です。偽造されたクロスサイトリクエストは `Sec-Fetch-"
 "Dest: email-verification` も有効な署名も付けられないためです。`ATOMIC_REQUESTS` の対象外なので "
 "{class}`~pyevp.contrib.django.DjangoReplayGuard` "
-"は記録を単独でコミットでき、2つ目のデータベースエイリアスなしで `replay_guard=DjangoReplayGuard()` を "
-"`Issuer` に渡せます。ビューは同期なので、同期版のガードを使ってください。16 KiB を超える本文は読み込む前に拒否します。"
+"は記録を単独でコミットでき、別のデータベースエイリアスを用意しなくても `replay_guard=DjangoReplayGuard()` を "
+"`Issuer` に渡せます。ビューは同期なので、同期版のガードを使ってください。16 KiB を超えるボディは読み込む前に拒否します。"
 
 #: ../../guides/issuer-operations.md:200
 msgid "Settings:"
-msgstr "設定:"
+msgstr "設定は次のとおりです。"
 
 #: ../../guides/issuer-operations.md:210
 #, python-brace-format

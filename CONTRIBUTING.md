@@ -55,6 +55,36 @@ Link to sections with explicit labels (`(label-name)=` above the heading, then
 number, like `3. Handle failures`, needs the dot escaped in its translation (`3\\. …` in the
 `.po` file), or it is parsed as a list and the translation is dropped.
 
+### Japanese style
+
+Follow the [JTF style guide](https://www.jtf.jp/pdf/jtf_style_guide.pdf) except for spacing, and
+keep to the existing translation:
+
+- です・ます. Write 「〜できます」, not 「〜することができます」. Leave "you" untranslated.
+- Keep the long vowel at the end of katakana words: ユーザー, ブラウザー, サーバー, アダプター.
+- Put a half-width space between Japanese and Latin letters, digits or code (`DNS の TXT レコード`,
+  `1 つ`, `2 回`), but never before a particle (`発行者を`, not `発行者 を`).
+- Use full-width parentheses in running text. End a sentence that introduces a code block or list
+  with 「。」 (「次のように設定します。」), not a colon.
+- Give the English term in parentheses only the first time it appears on a page: 発行者（issuer）.
+
+| English | Japanese |
+|---|---|
+| issuer | 発行者 |
+| relying party (RP) | リライングパーティー（RP） |
+| verify, verification | 検証する、検証 |
+| raise (an exception) | 送出する |
+| override (a method) | オーバーライドする |
+| fall back | フォールバックする |
+| replay protection, replay guard | リプレイ対策、リプレイガード |
+| hidden field | hidden フィールド |
+| body (of a request) | ボディ |
+| discovery | ディスカバリー (noun only) |
+| end-to-end | エンドツーエンド |
+| fake | フェイク |
+
+### Building
+
 To build the Japanese docs locally and check progress:
 
 ```fish

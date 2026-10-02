@@ -43,7 +43,7 @@ msgstr "`code`: 失敗時の {class}`~pyevp.ErrorCode`"
 
 #: ../../guides/observability.md:8
 msgid "`issuer`: on success"
-msgstr "`issuer`: 成功時の発行者（issuer）"
+msgstr "`issuer`: 成功時の発行者"
 
 #: ../../guides/observability.md:9
 msgid "`email_domain`: the claimed domain, read before verification"

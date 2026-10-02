@@ -129,7 +129,7 @@ msgstr "{class}`~pyevp.DiscoveryError`"
 
 #: ../../quickstart.md
 msgid "The issuer could not be discovered or used"
-msgstr "発行者（issuer）をディスカバリーできない、または利用できない"
+msgstr "発行者（issuer）が見つからない、または利用できない"
 
 #: ../../quickstart.md
 msgid "`issuer_mismatch`, `issuer_unreachable`"

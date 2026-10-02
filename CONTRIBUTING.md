@@ -15,6 +15,7 @@ Each example under `examples/` is a member of the uv workspace with its own test
 uv run --directory examples/fastapi pytest
 uv run --directory examples/flask pytest
 uv run --directory examples/django_allauth pytest
+uv run --directory examples/issuer_django pytest
 ```
 
 To try one in a browser:

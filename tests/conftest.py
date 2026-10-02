@@ -18,6 +18,7 @@ _REQUIRES: dict[str, tuple[tuple[str, ...], ...]] = {
     "test_doh.py": (("httpx", "httpx2"),),
     "test_cli.py": (("typer",),),
     "test_contrib_django.py": (("django",),),
+    "test_contrib_django_issuer.py": (("django",),),
     "test_network.py": (("httpx", "httpx2"), ("dns",)),
 }
 collect_ignore = [

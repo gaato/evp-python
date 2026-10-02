@@ -1,0 +1,8 @@
+<!doctype html>
+<title>EVP issuer</title>
+{% if user.is_authenticated %}
+  <p>Signed in as {{ user.email }}. Relying parties can now verify this address.</p>
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button>Log out</button></form>
+{% else %}
+  <p><a href="{% url 'login' %}">Log in</a></p>
+{% endif %}

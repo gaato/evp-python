@@ -59,6 +59,10 @@ Everything most applications need is importable from the top-level package.
 
 ```{eval-rst}
 .. automodule:: pyevp.contrib.django
+
+.. automodule:: pyevp.contrib.django.issuer
+   :members: IssuerSite, MetadataView, JWKSView, IssuanceView, AccountsView, WebIdentityView,
+      LoginStatusMiddleware
 ```
 
 ## Issuer (experimental)

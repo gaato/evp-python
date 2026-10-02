@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-import atexit
 import contextlib
-import shutil
-import tempfile
 import warnings
 from collections.abc import Iterator
 from datetime import timedelta
-from pathlib import Path
 from typing import Any
 
-import django
 import pytest
-from django.conf import settings
 from django.core.cache import caches
 from django.core.management import call_command
 from django.db import connections, transaction
@@ -35,30 +29,10 @@ from pyevp.contrib.django import (
 )
 from pyevp.testing import FakeIssuer, FixedClock, make_async_verifier, make_verifier
 
+from . import _django
 from .conftest import AUDIENCE, EMAIL
 
-_tmp = Path(tempfile.mkdtemp(prefix="pyevp-django-"))
-atexit.register(shutil.rmtree, _tmp, ignore_errors=True)
-
-if not settings.configured:
-    settings.configure(
-        INSTALLED_APPS=["pyevp.contrib.django"],
-        DATABASES={
-            # A file, not :memory:, so that sync_to_async's thread sees the same data.
-            "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": str(_tmp / "db.sqlite3")},
-            # The recipe for ATOMIC_REQUESTS: a second alias for the same database.
-            "replay": {"ENGINE": "django.db.backends.sqlite3", "NAME": str(_tmp / "db.sqlite3")},
-        },
-        CACHES={
-            "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
-            "db": {
-                "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-                "LOCATION": "evp_cache",
-            },
-        },
-        USE_TZ=True,
-    )
-    django.setup()
+_django.configure()
 
 # Models can only be imported once the app registry is ready.
 from pyevp.contrib.django.models import UsedToken  # noqa: E402

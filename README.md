@@ -111,6 +111,7 @@ Each example is a standalone project with its own tests:
 - [`examples/authx`](https://github.com/gaato/pyevp/blob/main/examples/authx/app.py): passwordless login with AuthX
 - [`examples/django_allauth`](https://github.com/gaato/pyevp/blob/main/examples/django_allauth/evp_allauth.py): a django-allauth adapter
 - [`examples/issuer_fastapi`](https://github.com/gaato/pyevp/blob/main/examples/issuer_fastapi/app.py): an issuer for your own domains
+- [`examples/issuer_django`](https://github.com/gaato/pyevp/blob/main/examples/issuer_django/urls.py): the same issuer on Django, with Django's own users
 
 ## Contributing
 

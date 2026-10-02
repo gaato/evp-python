@@ -14,6 +14,7 @@ members = [
     "pyevp-example-fastapi",
     "pyevp-example-fastapi-users",
     "pyevp-example-flask",
+    "pyevp-example-issuer-django",
     "pyevp-example-issuer-fastapi",
     "pyevp-example-site",
 ]
@@ -1437,6 +1438,29 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1" }]
+
+[[package]]
+name = "pyevp-example-issuer-django"
+version = "0"
+source = { virtual = "examples/issuer_django" }
+dependencies = [
+    { name = "pyevp", extra = ["django"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-django" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyevp", extras = ["django"], editable = "." }]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1" },
+    { name = "pytest-django", specifier = ">=4.11" },
+]
 
 [[package]]
 name = "pyevp-example-issuer-fastapi"

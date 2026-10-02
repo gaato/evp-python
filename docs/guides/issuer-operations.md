@@ -13,6 +13,7 @@ still changing, so expect the `chrome-153` issuance profile to follow them.
 not include an HTTP server or user accounts. You plug it into your web framework and your login
 system. A complete FastAPI sketch lives in
 [`examples/issuer_fastapi`](https://github.com/gaato/pyevp/tree/main/examples/issuer_fastapi).
+Django projects can use the ready-made views described in [Django](#django-issuer).
 
 ## What an issuer does
 
@@ -150,6 +151,74 @@ and then stops without telling the page why.
 Chrome also shows the user a one-time prompt per address ("verify this email automatically?")
 before the first issuance. It starts the check when focus moves from the email field to another
 form field, and it rate-limits repeated failures per address.
+
+(django-issuer)=
+
+## Django
+
+{mod}`pyevp.contrib.django.issuer` (`pip install "pyevp[django]"`) serves every endpoint above,
+and the FedCM ones Chrome needs, from Django views. The signed-in Django user decides which
+addresses get tokens. A complete project lives in
+[`examples/issuer_django`](https://github.com/gaato/pyevp/tree/main/examples/issuer_django).
+
+```python
+# urls.py on the issuer's origin
+from pyevp.contrib.django.issuer import IssuerSite
+
+evp = IssuerSite(issuer)  # the Issuer from "Set up"
+urlpatterns = [path("", include(evp.urls)), ...]
+```
+
+Include `evp.urls` at the root of the issuer's origin. It serves the metadata at
+`/.well-known/email-verification`, the JWKS at `/email-verification/jwks`, issuance at
+`/email-verification/issuance`, the FedCM accounts endpoint at `/fedcm/accounts`, and
+`/.well-known/web-identity`. The issuer's `issuance_endpoint` and `jwks_uri` must use these
+paths. `IssuerSite` raises `ImproperlyConfigured` otherwise. To use other paths, set
+`issuance_path`, `jwks_path` and the other `*_path` attributes in a subclass.
+
+Subclass {class}`~pyevp.contrib.django.issuer.IssuerSite` to adapt it:
+
+- `user_emails(request)` returns the addresses the signed-in user may get tokens for. It returns
+  the user model's email field by default. Return only addresses the user has proven control
+  of, for example the verified addresses of django-allauth.
+- `owns(request, email)` compares the requested address with those, case-insensitively by
+  default.
+- `get_issuer(request)` returns the issuer for the request. Override it instead of passing an
+  `Issuer` when one deployment serves several issuers, for example one per host.
+- `login_url` (an argument) is where Chrome sends users who are not signed in. It defaults to
+  `settings.LOGIN_URL`.
+
+Each endpoint is also a view of its own, for mounting it somewhere else while keeping the same
+hooks, such as `AccountsView.as_view(site=evp)`.
+{class}`~pyevp.contrib.django.issuer.IssuanceView` is always exempt from CSRF checks and from
+`ATOMIC_REQUESTS`. A forged cross-site request cannot carry `Sec-Fetch-Dest:
+email-verification` or a valid signature. The exemption from `ATOMIC_REQUESTS` lets
+{class}`~pyevp.contrib.django.DjangoReplayGuard` commit its record on its own, so pass
+`replay_guard=DjangoReplayGuard()` to the `Issuer` without a second database alias. The view is
+synchronous, so use the synchronous guard. Bodies over 16 KiB are refused before they are read.
+
+Settings:
+
+```python
+INSTALLED_APPS = [..., "pyevp.contrib.django"]  # replay guard table and system checks
+MIDDLEWARE = [
+    ...,
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "pyevp.contrib.django.issuer.LoginStatusMiddleware",
+]
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+```
+
+{class}`~pyevp.contrib.django.issuer.LoginStatusMiddleware` adds `Set-Login: logged-in` or
+`logged-out` to page responses, so Chrome learns about logins and logouts without changes to
+your login views. With the app installed, `manage.py check` warns (`pyevp.W001`, `pyevp.W002`)
+when the session cookie would not reach the issuer from Chrome's cross-site requests.
+
+If the issuer is on a subdomain such as `accounts.example.com`, Chrome reads
+`/.well-known/web-identity` from `example.com`. Serve
+{class}`~pyevp.contrib.django.issuer.WebIdentityView` there, or the document from
+`web_identity_document()`.
 
 ## Not supported yet
 

@@ -17,6 +17,8 @@
 
 Caches and databases are looked up on every call, so these can be created at
 import time, before Django's settings are configured.
+
+For running an issuer, see :mod:`pyevp.contrib.django.issuer`.
 """
 
 from __future__ import annotations

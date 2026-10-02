@@ -1,0 +1,7 @@
+<!doctype html>
+<title>Log in</title>
+<form method="post" action="{% url 'login' %}">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button>Log in</button>
+</form>

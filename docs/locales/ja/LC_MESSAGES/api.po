@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"POT-Creation-Date: 2026-10-03 07:59+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -61,7 +61,11 @@ msgid ""
 "overridden."
 msgstr ""
 
-#: ../../api.md of pyevp.adapters._doh.parse_txt_data pyevp.core.precheck_evt
+#: ../../api.md of pyevp.adapters._doh.parse_txt_data
+#: pyevp.contrib.django.issuer.IssuanceView.as_view
+#: pyevp.contrib.django.issuer.IssuerSite.get_issuer
+#: pyevp.contrib.django.issuer.IssuerSite.owns
+#: pyevp.contrib.django.issuer.IssuerSite.user_emails pyevp.core.precheck_evt
 #: pyevp.core.replay_key pyevp.core.verification_steps pyevp.core.verify_kb
 #: pyevp.diagnostics.adiscover pyevp.diagnostics.discover
 #: pyevp.diagnostics.discovery_steps pyevp.discovery.canonical_issuer
@@ -714,6 +718,10 @@ msgid ""
 " at import time, before Django's settings are configured."
 msgstr ""
 
+#: of pyevp.contrib.django:21
+msgid "For running an issuer, see :mod:`pyevp.contrib.django.issuer`."
+msgstr ""
+
 #: of pyevp.contrib.django.AsyncDjangoCache:1
 msgid ""
 "An :class:`~pyevp.AsyncCache` using Django's async cache API (``aget`` / "
@@ -774,7 +782,125 @@ msgid ""
 "``migrate``."
 msgstr ""
 
-#: ../../api.md:64
+#: of pyevp.contrib.django.issuer:1
+msgid "Running an EVP issuer in Django (experimental)."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer:3
+msgid ""
+":class:`IssuerSite` serves everything Chrome needs from an issuer, with "
+"the logged-in Django user deciding which addresses get tokens::"
+msgstr ""
+
+#: of pyevp.contrib.django.issuer:12
+msgid ""
+"Subclass it to choose the issuer per request "
+"(:meth:`IssuerSite.get_issuer`) or the addresses a user may get tokens "
+"for (:meth:`IssuerSite.user_emails`).  Each endpoint is also a view of "
+"its own, for mounting it somewhere else::"
+msgstr ""
+
+#: of pyevp.contrib.django.issuer:18
+msgid ""
+"The session cookie must be ``SameSite=None; Secure``, because Chrome's "
+"requests to the issuer are cross-site; a system check warns otherwise.  "
+"Add :class:`LoginStatusMiddleware` so that Chrome knows when users are "
+"signed in."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.AccountsView:1
+msgid "The FedCM accounts endpoint Chrome checks before asking for a token."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuanceView:1
+msgid ""
+"The issuer's ``issuance_endpoint``: an EVT for a user who controls the "
+"address."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuanceView:3
+msgid ""
+"Exempt from CSRF protection and from ``ATOMIC_REQUESTS``; use a "
+"synchronous replay guard such as "
+":class:`~pyevp.contrib.django.DjangoReplayGuard`. Put per-IP rate "
+"limiting in front of it."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuanceView.as_view:1
+msgid "Main entry point for a request-response process."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite:1
+msgid ""
+"The issuer's endpoints, bound to one :class:`~pyevp.issuer.Issuer` or "
+"chosen per request."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite:3
+msgid ""
+"the issuer to serve.  Leave it out and override :meth:`get_issuer` when "
+"it depends on the request, e.g. on the host."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite:5
+msgid ""
+"where Chrome sends users who are not signed in; defaults to "
+"``settings.LOGIN_URL``.  A path is taken relative to the issuer's origin."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite:8
+msgid ""
+":attr:`urls` must be included at the root of the issuer's origin, and the"
+" paths below must match the issuer's ``issuance_endpoint`` and "
+"``jwks_uri``."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite.get_issuer:1
+msgid "The issuer answering ``request``."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite.user_emails:1
+msgid "Addresses the signed-in user may get tokens for; empty without a session."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite.user_emails:3
+msgid ""
+"The default is the user model's email field.  Return only addresses the "
+"user has proven control of."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.IssuerSite.owns:1
+msgid ""
+"Whether the signed-in user controls ``email``, compared case-"
+"insensitively."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.JWKSView:1
+msgid "The issuer's ``jwks_uri``."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.LoginStatusMiddleware:1
+msgid "Tells Chrome whether the user is signed in (FedCM Login Status API)."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.LoginStatusMiddleware:3
+msgid ""
+"Adds ``Set-Login: logged-in`` or ``logged-out`` to page responses, so "
+"that Chrome does not skip the issuer for a signed-in user.  Place it "
+"after ``AuthenticationMiddleware``."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.MetadataView:1
+msgid "``/.well-known/email-verification``."
+msgstr ""
+
+#: of pyevp.contrib.django.issuer.WebIdentityView:1
+msgid ""
+"``/.well-known/web-identity``, which Chrome reads on the issuer's "
+"registrable domain."
+msgstr ""
+
+#: ../../api.md:68
 msgid "Issuer (experimental)"
 msgstr ""
 
@@ -1001,7 +1127,7 @@ msgstr ""
 msgid "Serve at ``https://<registrable domain>/.well-known/web-identity``."
 msgstr ""
 
-#: ../../api.md:72
+#: ../../api.md:76
 msgid "Testing"
 msgstr ""
 

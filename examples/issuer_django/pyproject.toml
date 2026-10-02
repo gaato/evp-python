@@ -1,0 +1,24 @@
+[project]
+name = "pyevp-example-issuer-django"
+version = "0"
+description = "Django EVP issuer using pyevp.contrib.django.issuer"
+requires-python = ">=3.12"
+dependencies = [
+    "pyevp[django]",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1",
+    "pytest-django>=4.11",
+]
+
+[tool.uv.sources]
+pyevp = { workspace = true }
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "settings"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = ["error"]

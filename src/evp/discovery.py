@@ -79,8 +79,12 @@ def metadata_url(issuer: str, profile: Profile) -> str:
 def _require_https_url(value: Any, field: str) -> str:
     if not isinstance(value, str):
         raise DiscoveryError(ErrorCode.METADATA_INVALID, f"{field} is missing")
-    parts = urlsplit(value)
-    if parts.scheme != "https" or not parts.hostname:
+    try:
+        parts = urlsplit(value)
+        ok = parts.scheme == "https" and bool(parts.hostname)
+    except ValueError:  # e.g. "https://[": urlsplit itself rejects some inputs
+        ok = False
+    if not ok:
         raise DiscoveryError(ErrorCode.METADATA_INVALID, f"{field} is not an https URL")
     return value
 

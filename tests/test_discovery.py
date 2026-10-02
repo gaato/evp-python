@@ -91,6 +91,8 @@ def test_validate_metadata() -> None:
         ({"issuer": "accounts.google.com"}, ErrorCode.ISSUER_MISMATCH),
         ({"jwks_uri": "http://insecure.example/jwks"}, ErrorCode.METADATA_INVALID),
         ({"jwks_uri": None}, ErrorCode.METADATA_INVALID),
+        ({"jwks_uri": "https://["}, ErrorCode.METADATA_INVALID),
+        ({"issuance_endpoint": "https://[::1/issue"}, ErrorCode.METADATA_INVALID),
         ({"signing_alg_values_supported": "EdDSA"}, ErrorCode.METADATA_INVALID),
     ],
 )

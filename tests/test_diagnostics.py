@@ -70,6 +70,10 @@ def test_kid_required() -> None:
         (lambda dns, http, i: http.documents.update({i.metadata_url: {}}), "metadata:"),
         (lambda dns, http, i: http.documents.update({i.jwks_uri: {"keys": []}}), "JWKS:"),
         (
+            lambda dns, http, i: http.documents[i.metadata_url].update(jwks_uri="https://["),
+            "metadata: jwks_uri is not an https URL",
+        ),
+        (
             lambda dns, http, i: http.documents[i.metadata_url].update(
                 signing_alg_values_supported=[]
             ),

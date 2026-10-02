@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       # Install the examples too so that ty can resolve FastAPI / Django imports.
-      - run: uv sync --locked --all-packages --all-extras
+      - run: uv sync --locked --all-packages --all-extras --group interop
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
       - run: uv run --no-sync ty check

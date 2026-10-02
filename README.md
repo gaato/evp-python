@@ -234,6 +234,8 @@ your own.
 
 - [`examples/fastapi/`](examples/fastapi/app.py) is a FastAPI app with session nonces. Its tests
   override the verifier dependency with fakes.
+- [`examples/flask/`](examples/flask/app.py) is the same flow in Flask with the synchronous
+  `Verifier`. Its tests pass a verifier wired to fakes to the application factory.
 - [`examples/fastapi_users/`](examples/fastapi_users/app.py) is a fastapi-users registration that
   creates EVP-verified users with `is_verified=True` and falls back to the usual verification
   email otherwise.
@@ -247,6 +249,7 @@ your own.
 
 ```sh
 cd examples/fastapi && uv run uvicorn app:app --port 8000
+cd examples/flask && uv run flask run --port 8000
 cd examples/django_allauth && uv run manage.py migrate && uv run manage.py runserver
 ```
 
@@ -257,6 +260,7 @@ uv sync --all-packages --all-extras
 uv run pytest              # library: unit + end-to-end with fakes
 uv run pytest -m network   # live checks against deployed issuers (Gmail)
 uv run --directory examples/fastapi pytest
+uv run --directory examples/flask pytest
 uv run --directory examples/django_allauth pytest
 uv run ruff check && uv run ruff format --check && uv run ty check
 ```

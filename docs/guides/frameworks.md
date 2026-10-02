@@ -15,6 +15,17 @@ example enables a replay guard.
 :start-at: "@asynccontextmanager"
 ```
 
+## Flask
+
+Build the synchronous {class}`~pyevp.Verifier` in the application factory and keep it in
+`app.extensions`, so that tests can pass one wired to fakes. Flask's default session is a signed
+cookie, so the example enables a replay guard.
+
+```{literalinclude} ../../examples/flask/app.py
+:language: python
+:start-at: "def create_app"
+```
+
 ## fastapi-users
 
 Register users through your own route. A valid token creates the user with

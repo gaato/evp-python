@@ -18,6 +18,7 @@ follows the compatibility policy described in the README.
 - `pyevp issuer keygen` and `pyevp issuer documents` CLI commands.
 - `FakeBrowser.issuance_request()` for testing issuers.
 - `examples/issuer_fastapi`.
+- `examples/flask`, a Flask relying party using the synchronous `Verifier`.
 
 ### Changed
 

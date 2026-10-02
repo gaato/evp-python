@@ -1,0 +1,23 @@
+[project]
+name = "pyevp-example-flask"
+version = "0"
+description = "Flask relying party using pyevp"
+requires-python = ">=3.12"
+dependencies = [
+    "pyevp[all]",
+    "flask>=3.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1",
+]
+
+[tool.uv.sources]
+pyevp = { workspace = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = ["error"]

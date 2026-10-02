@@ -14,6 +14,7 @@ EMAIL = "alice@example.com"
 # Each requirement is a group of alternatives, any of which will do.
 _REQUIRES: dict[str, tuple[tuple[str, ...], ...]] = {
     "test_adapters.py": (("httpx", "httpx2"),),
+    "test_dnspython.py": (("dns",),),
     "test_doh.py": (("httpx", "httpx2"),),
     "test_cli.py": (("typer",),),
     "test_network.py": (("httpx", "httpx2"), ("dns",)),

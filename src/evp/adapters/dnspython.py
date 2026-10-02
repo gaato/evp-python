@@ -19,7 +19,9 @@ class DnssecError(Exception):
 def _configure(resolver: dns.resolver.BaseResolver, require_dnssec: bool) -> None:
     if require_dnssec:
         resolver.use_edns(0, dns.flags.DO, 1232)
-        resolver.flags = (resolver.flags or 0) | dns.flags.AD
+        # ``None`` means dnspython's default query flags, which set RD; keep it.
+        base = dns.flags.RD if resolver.flags is None else resolver.flags
+        resolver.flags = base | dns.flags.AD
 
 
 def _records(answer: Answer, name: str, require_dnssec: bool) -> list[str]:

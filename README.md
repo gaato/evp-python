@@ -107,14 +107,17 @@ verifier = AsyncVerifier.default(audience="https://example.com", replay_guard=In
 `mark_used(key, expires_at) -> bool` as an atomic "add if absent" on a shared store:
 
 ```python
+import math
+
+
 class RedisReplayGuard:
     def __init__(self, redis):
         self.redis = redis
 
     def mark_used(self, key, expires_at):
-        return bool(
-            self.redis.set(f"evp:used:{key}", 1, nx=True, pxat=int(expires_at.timestamp() * 1000))
-        )
+        # Round up: the key must not disappear before the token expires.
+        pxat = math.ceil(expires_at.timestamp() * 1000)
+        return bool(self.redis.set(f"evp:used:{key}", 1, nx=True, pxat=pxat))
 ```
 
 Replays are rejected with `ErrorCode.TOKEN_REPLAYED`. The guard is only consulted after every

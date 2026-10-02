@@ -60,8 +60,8 @@ class FetchJson:
 class MarkUsed:
     """Record that a token has been accepted.  Reply ``True`` if it was not seen before.
 
-    ``key`` only needs remembering until ``expires_at``; after that the token
-    fails the freshness checks anyway.
+    ``key`` only needs remembering until ``expires_at``: from that instant on, the
+    token fails the freshness checks anyway.
     """
 
     key: str
@@ -101,7 +101,9 @@ def _numeric_date(claims: JSONObject, name: str, what: str) -> datetime | None:
 def _check_freshness(iat: datetime, now: datetime, profile: Profile, what: str) -> None:
     if iat > now + profile.clock_skew:
         raise TokenError(ErrorCode.TOKEN_NOT_YET_VALID, f"{what} iat is in the future")
-    if now - iat > profile.max_token_age + profile.clock_skew:
+    # Expired from iat + max_token_age + clock_skew on, the instant replay records may be
+    # dropped (see MarkUsed.expires_at).
+    if now - iat >= profile.max_token_age + profile.clock_skew:
         raise TokenError(ErrorCode.TOKEN_EXPIRED, f"{what} is too old")
 
 

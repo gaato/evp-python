@@ -146,3 +146,23 @@ def test_in_memory_guard_forgets_expired_keys(clock: FixedClock) -> None:
     assert not guard.mark_used("k", clock() + timedelta(minutes=1))
     clock.advance(timedelta(minutes=2))
     assert guard.mark_used("k", clock() + timedelta(minutes=1))
+
+
+def test_token_expires_when_its_record_does(
+    issuer: FakeIssuer, token: str, nonce: str, clock: FixedClock
+) -> None:
+    verifier = make_verifier(
+        issuer, audience=AUDIENCE, replay_guard=InMemoryReplayGuard(clock=clock)
+    )
+    verifier.verify(token, nonce=nonce)
+    lifetime = verifier.profile.max_token_age + verifier.profile.clock_skew
+
+    clock.advance(lifetime - timedelta(microseconds=1))
+    with pytest.raises(EVPError) as exc:
+        verifier.verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.TOKEN_REPLAYED
+
+    clock.advance(timedelta(microseconds=1))  # the guard has now forgotten the token
+    with pytest.raises(EVPError) as exc:
+        verifier.verify(token, nonce=nonce)
+    assert exc.value.code is ErrorCode.TOKEN_EXPIRED

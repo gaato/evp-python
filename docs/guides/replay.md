@@ -31,14 +31,17 @@ implement {class}`~evp.ReplayGuard` or {class}`~evp.AsyncReplayGuard` as an atom
 absent":
 
 ```python
+import math
+
+
 class RedisReplayGuard:
     def __init__(self, redis):
         self.redis = redis
 
     def mark_used(self, key, expires_at):
-        return bool(
-            self.redis.set(f"evp:used:{key}", 1, nx=True, pxat=int(expires_at.timestamp() * 1000))
-        )
+        # Round up: the key must not disappear before the token expires.
+        pxat = math.ceil(expires_at.timestamp() * 1000)
+        return bool(self.redis.set(f"evp:used:{key}", 1, nx=True, pxat=pxat))
 ```
 
 With Django, `cache.add()` is atomic on the Redis and Memcached backends. See

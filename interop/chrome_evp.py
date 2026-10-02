@@ -61,8 +61,8 @@ PROVIDER_UNAVAILABLE_EXIT = 2
 CDP_PORT = 9333
 ATTEMPTS = 3
 
-# HEADFUL CHECK REQUIRED: confirm whether issuer_site takes the issuer origin
-# (https://mail.pyevp.dev) or the site (https://pyevp.dev). Default to the origin.
+# issuer_site is the issuer origin (https://mail.pyevp.dev), not its site: the
+# first run against the public provider passed on stable and beta (2026-10-03).
 CHROME_ISSUER_SITE = ISSUER
 
 # Chrome asks once per address before its first issuance ("verify this email

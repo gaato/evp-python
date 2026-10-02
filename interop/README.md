@@ -64,11 +64,9 @@ uv run --no-sync python -m pytest interop/test_chrome_evp.py
   in a browser popup. DevTools cannot press it, so the profile starts with the answer
   Chrome saves after acceptance: `autofill.email_verification_state` in
   `Default/Preferences`.
-- **Headful check required:** `CHROME_ISSUER_SITE` in `chrome_evp.py` defaults to the
-  issuer origin, `https://mail.pyevp.dev`. Confirm whether the `issuer_site` preference
-  instead needs the site, `https://pyevp.dev`, after deployment. Also confirm that the
-  login sets Chrome's FedCM login status and the issuance count increases when the email
-  field loses focus in this profile.
+- The `issuer_site` in that saved answer is the issuer origin, `https://mail.pyevp.dev`
+  (`CHROME_ISSUER_SITE`), not the site `https://pyevp.dev`. Signing in through the
+  provider's form is enough for Chrome's FedCM login status in this profile.
 - Chrome fills the hidden `email-verification-token` field only on a real submission.
   While that token is pending, the test leaves the RP page in place. For each `/me`
   poll it retrieves the current cookies for `https://mail.pyevp.dev/me` via CDP

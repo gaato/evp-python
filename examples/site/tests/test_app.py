@@ -1185,7 +1185,7 @@ def test_origin_trial_token(signer: SigningKey, stylesheet: Path) -> None:
         assert _origin_trial(demo) == [escaped]
         assert demo.index("origin-trial") < demo.index("</head>")
         text = _page_text(demo)
-        assert "Chrome 150 or later works as is" in text
+        assert "Chrome 150 or later, on desktop or Android, works as is" in text
         assert "chrome://flags/#email-verification-protocol" in text  # The fallback.
         assert "set it to Enabled" not in text
         _nonce(client)

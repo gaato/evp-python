@@ -133,11 +133,11 @@
           <h2 class="card-title">Use Chrome with EVP</h2>
         </div>
         {% if origin_trial_token %}
-        <p>Desktop Chrome 150 or later works as is: this page takes part in the EVP origin trial.</p>
+        <p>Chrome 150 or later, on desktop or Android, works as is: this page takes part in the EVP origin trial.</p>
         <p class="text-sm text-base-content/70">If no token arrives, enable
           <code class="select-all wrap-anywhere">chrome://flags/#email-verification-protocol</code> and relaunch Chrome.</p>
         {% else %}
-        <p>Use desktop Chrome or Chromium 150 or newer. Open
+        <p>Use Chrome or Chromium 150 or newer, on desktop or Android. Open
           <code class="select-all wrap-anywhere">chrome://flags/#email-verification-protocol</code>
           in the address bar, set it to Enabled, and relaunch the browser.</p>
         {% endif %}
@@ -201,13 +201,13 @@
   const brands = navigator.userAgentData?.brands;
   const chrome = brands?.find(({brand}) => /^(Google Chrome|Chromium)$/.test(brand));
   const uaVersion = navigator.userAgent.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1];
-  const desktop = !navigator.userAgentData?.mobile && !/Android|Mobile|iPhone|iPad/.test(navigator.userAgent);
-  const recentChrome = desktop && Number(chrome?.version ?? uaVersion ?? 0) >= 150;
+  // Android Chrome works too; Chrome on iOS is WebKit and reports CriOS, so it falls through.
+  const recentChrome = Number(chrome?.version ?? uaVersion ?? 0) >= 150;
   const hint = document.getElementById("browser-hint");
   if (!window.isSecureContext || !recentChrome) {
     document.getElementById("browser-hint-text").textContent = !window.isSecureContext
       ? "This page is not a secure context. Open it over HTTPS to try EVP."
-      : "This browser may not support EVP. Try desktop Chrome or Chromium 150 or newer with EVP enabled.";
+      : "This browser may not support EVP. Try Chrome or Chromium 150 or newer.";
     hint.hidden = false;
   }
   const form = document.getElementById("verify-form");

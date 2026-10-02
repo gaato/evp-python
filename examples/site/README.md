@@ -96,11 +96,11 @@ attributes that EVP needs to read.
 
 The page uses semantic HTML and named hooks for its three steps: `#demo-browser`,
 `#demo-provider`, and `#demo-verify`, followed by `#demo-result` (`role="status"`,
-`aria-live="polite"`). Desktop Chrome/Chromium 150 or newer with
+`aria-live="polite"`). Chrome/Chromium 150 or newer (desktop or Android) with
 `chrome://flags/#email-verification-protocol` enabled is the suggested browser. With
 `EVP_ORIGIN_TRIAL_TOKEN` set, the page joins the origin trial, so Chrome 150 or later works
 without the flag; the flag stays as a fallback. A soft
-client-side notice uses the secure context, UA brands/version, and mobile hints; it never
+client-side notice uses the secure context and the UA brands/version; it never
 blocks submission and cannot detect whether EVP is enabled. The provider sign-in state
 is not queried or displayed by the relying party. The email field starts empty, with the
 demo address only as a placeholder: Chrome asks the provider for a token only after the

@@ -27,6 +27,8 @@ jobs:
       - run: uv run --no-sync ruff check
       - run: uv run --no-sync ruff format --check
       - run: uv run --no-sync ty check
+      # Offline checks of the Chrome interop script; the nightly run itself is interop.yml.
+      - run: uv run --no-sync python -m pytest interop/test_chrome_evp.py
 
   test:
     name: test (py${{ matrix.python }}, extras=${{ matrix.extras }})

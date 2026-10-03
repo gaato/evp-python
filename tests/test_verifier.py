@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 from datetime import timedelta
 from typing import cast
@@ -454,6 +455,12 @@ class _AsyncPort:
         self.closed += 1
 
 
+# Verifier.default() imports the dnspython adapter, which needs the extra.
+needs_dnspython = pytest.mark.skipif(
+    importlib.util.find_spec("dns") is None, reason="dnspython is not installed"
+)
+
+
 def _fake_default_ports(monkeypatch: pytest.MonkeyPatch, port: type) -> None:
     import pyevp.adapters.dnspython  # noqa: PLC0415
     import pyevp.adapters.httpx  # noqa: PLC0415
@@ -471,6 +478,7 @@ def _closed(*ports: object) -> list[int]:
     return [cast(_Port | _AsyncPort, p).closed for p in ports]
 
 
+@needs_dnspython
 def test_close_closes_what_default_created(monkeypatch: pytest.MonkeyPatch) -> None:
     _fake_default_ports(monkeypatch, _Port)
     with Verifier.default(audience=AUDIENCE) as verifier:
@@ -480,6 +488,7 @@ def test_close_closes_what_default_created(monkeypatch: pytest.MonkeyPatch) -> N
     assert _closed(*ports) == [1, 1]
 
 
+@needs_dnspython
 def test_close_leaves_ports_passed_in_open(monkeypatch: pytest.MonkeyPatch) -> None:
     _fake_default_ports(monkeypatch, _Port)
     fetcher = _Port()
@@ -491,6 +500,7 @@ def test_close_leaves_ports_passed_in_open(monkeypatch: pytest.MonkeyPatch) -> N
     assert fetcher.closed == 0
 
 
+@needs_dnspython
 @pytest.mark.anyio
 async def test_aclose_closes_what_default_created(monkeypatch: pytest.MonkeyPatch) -> None:
     _fake_default_ports(monkeypatch, _AsyncPort)

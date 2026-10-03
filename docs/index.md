@@ -33,6 +33,8 @@ concepts
 :caption: Guides
 
 guides/frameworks
+guides/spa
+guides/password-recovery
 guides/testing
 guides/replay
 guides/observability

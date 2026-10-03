@@ -5,6 +5,7 @@ Some setups cannot do that:
 
 - **Client-side sessions** such as Starlette's signed-cookie `SessionMiddleware`. An attacker who
   captured a token can resend it with the old cookie, which still contains the nonce.
+- **Nonces kept in a cookie** by APIs without a server session (see {doc}`spa`).
 - **Concurrent requests** racing on the same session.
 
 A replay guard remembers every accepted token until it would expire anyway, and rejects a

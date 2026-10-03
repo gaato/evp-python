@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"POT-Creation-Date: 2026-10-03 09:52+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -39,10 +39,17 @@ msgstr ""
 "など）。トークンを傍受した攻撃者は、nonce が残ったままの古い Cookie と一緒にそれを再送できます。"
 
 #: ../../guides/replay.md:8
+#, python-brace-format
+msgid ""
+"**Nonces kept in a cookie** by APIs without a server session (see "
+"{doc}`spa`)."
+msgstr "サーバーセッションの無い API が **nonce を Cookie に置いている** 場合（{doc}`spa` を参照）。"
+
+#: ../../guides/replay.md:9
 msgid "**Concurrent requests** racing on the same session."
 msgstr "**同時リクエスト**による、同じセッション上での競合。"
 
-#: ../../guides/replay.md:10
+#: ../../guides/replay.md:11
 msgid ""
 "A replay guard remembers every accepted token until it would expire "
 "anyway, and rejects a second use with `ErrorCode.TOKEN_REPLAYED`. Replay "
@@ -51,7 +58,7 @@ msgstr ""
 "リプレイガードは、受け付けたトークンを本来の有効期限が切れるまで記憶し、2 回目の使用を `ErrorCode.TOKEN_REPLAYED` "
 "で拒否します。リプレイ対策は既定では無効です。有効にするにはガードを渡します。"
 
-#: ../../guides/replay.md:20
+#: ../../guides/replay.md:21
 msgid ""
 "The key identifies the presentation, not its bytes: it is a hash of the "
 "KB-JWT header and payload, which carry the nonce, audience and a hash of "
@@ -62,7 +69,7 @@ msgstr ""
 "nonce、audience、EVT のハッシュが含まれています。そのため、署名をエンコードし直しても（たとえば ECDSA の `s` を `n"
 " - s` に変えても）新しいキーにはなりません。"
 
-#: ../../guides/replay.md:24
+#: ../../guides/replay.md:25
 msgid ""
 "The guard is only consulted after every other check has passed, so "
 "rejected tokens never fill the store. Errors raised by the guard itself, "
@@ -75,11 +82,11 @@ msgstr ""
 " I/O の前に確認されるため、DNS や HTTP の処理中に期限切れになったトークンは、記録された後に "
 "`ErrorCode.TOKEN_EXPIRED` で拒否されます。その記録はすでに消えているかもしれず、リプレイされても検出できないからです。"
 
-#: ../../guides/replay.md:30
+#: ../../guides/replay.md:31
 msgid "Shared stores"
 msgstr "共有ストア"
 
-#: ../../guides/replay.md:32
+#: ../../guides/replay.md:33
 #, python-brace-format
 msgid ""
 "{class}`~pyevp.InMemoryReplayGuard` only protects a single process. With "
@@ -90,7 +97,7 @@ msgstr ""
 "が守れるのは単一のプロセスだけです。複数のワーカーを使う場合は、{class}`~pyevp.ReplayGuard` または "
 "{class}`~pyevp.AsyncReplayGuard` を、アトミックな「存在しなければ追加」の操作として実装してください。"
 
-#: ../../guides/replay.md:50
+#: ../../guides/replay.md:51
 #, python-brace-format
 msgid ""
 "The store must keep each record until it expires. Do not build a guard on"

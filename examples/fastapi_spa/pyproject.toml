@@ -1,0 +1,25 @@
+[project]
+name = "pyevp-example-fastapi-spa"
+version = "0"
+description = "FastAPI JSON API for a single-page app, without server sessions"
+requires-python = ">=3.12"
+dependencies = [
+    "pyevp[all]",
+    "fastapi>=0.142",
+    "uvicorn>=0.54",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13",
+    "pytest>=9.1",
+]
+
+[tool.uv.sources]
+pyevp = { workspace = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+filterwarnings = ["error"]

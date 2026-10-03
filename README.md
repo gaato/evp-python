@@ -107,8 +107,10 @@ Each example is a standalone project with its own tests:
 
 - [`examples/fastapi`](https://github.com/gaato/pyevp/blob/main/examples/fastapi/app.py): FastAPI with session nonces
 - [`examples/flask`](https://github.com/gaato/pyevp/blob/main/examples/flask/app.py): the same flow with the synchronous `Verifier`
+- [`examples/fastapi_spa`](https://github.com/gaato/pyevp/blob/main/examples/fastapi_spa/app.py): a JSON API for a single-page app, without server sessions, with password recovery
 - [`examples/fastapi_users`](https://github.com/gaato/pyevp/blob/main/examples/fastapi_users/app.py): fastapi-users registration that falls back to the usual verification email
 - [`examples/authx`](https://github.com/gaato/pyevp/blob/main/examples/authx/app.py): passwordless login with AuthX
+- [`examples/django`](https://github.com/gaato/pyevp/blob/main/examples/django/views.py): plain Django with the template tag and `verify_request`
 - [`examples/django_allauth`](https://github.com/gaato/pyevp/blob/main/examples/django_allauth/evp_allauth.py): a django-allauth adapter
 - [`examples/issuer_fastapi`](https://github.com/gaato/pyevp/blob/main/examples/issuer_fastapi/app.py): an issuer for your own domains
 - [`examples/issuer_django`](https://github.com/gaato/pyevp/blob/main/examples/issuer_django/urls.py): the same issuer on Django, with Django's own users

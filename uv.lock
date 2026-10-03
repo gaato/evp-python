@@ -13,6 +13,7 @@ members = [
     "pyevp-example-django",
     "pyevp-example-django-allauth",
     "pyevp-example-fastapi",
+    "pyevp-example-fastapi-spa",
     "pyevp-example-fastapi-users",
     "pyevp-example-flask",
     "pyevp-example-issuer-django",
@@ -1398,6 +1399,35 @@ requires-dist = [
     { name = "itsdangerous", specifier = ">=2.2" },
     { name = "pyevp", extras = ["all"], editable = "." },
     { name = "python-multipart", specifier = ">=0.0.32" },
+    { name = "uvicorn", specifier = ">=0.54" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx2", specifier = ">=2.13" },
+    { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-fastapi-spa"
+version = "0"
+source = { virtual = "examples/fastapi_spa" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pyevp", extra = ["all"] },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx2" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.142" },
+    { name = "pyevp", extras = ["all"], editable = "." },
     { name = "uvicorn", specifier = ">=0.54" },
 ]
 

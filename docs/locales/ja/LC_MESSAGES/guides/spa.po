@@ -1,0 +1,153 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2026, Gakuto Furuya
+# This file is distributed under the same license as the pyevp package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: pyevp 0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 09:52+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guides/spa.md:1
+msgid "Single-page apps and stateless APIs"
+msgstr "シングルページアプリケーションとステートレスな API"
+
+#: ../../guides/spa.md:3
+#, python-brace-format
+msgid ""
+"The {doc}`quickstart <../quickstart>` keeps the nonce in a server "
+"session. An API that authenticates with bearer tokens such as JWTs often "
+"has no session. This page shows where the nonce goes instead, and what "
+"the browser side of a single-page app needs. The server code comes from "
+"[`examples/fastapi_spa`](https://github.com/gaato/pyevp/tree/main/examples/fastapi_spa),"
+" which has tests."
+msgstr "{doc}`クイックスタート <../quickstart>` では nonce をサーバーセッションに置きます。しかし、JWT のようなベアラートークンで認証する API にはセッションが無いことがよくあります。このページでは、その場合に nonce をどこに置くかと、シングルページアプリケーション（SPA）のブラウザー側に何が必要かを説明します。サーバー側のコードは、テスト付きの [`examples/fastapi_spa`](https://github.com/gaato/pyevp/tree/main/examples/fastapi_spa) から引用しています。"
+
+#: ../../guides/spa.md:9
+msgid "Keeping the nonce in a cookie"
+msgstr "nonce を Cookie に置く"
+
+#: ../../guides/spa.md:11
+msgid ""
+"Hand the nonce out from an endpoint and keep a copy in an HttpOnly "
+"cookie. On submission, read it back from the cookie and verify the token "
+"as you would with a session nonce:"
+msgstr "エンドポイントから nonce を渡し、同じ値を HttpOnly の Cookie にも保存します。送信を受けたら Cookie から読み戻し、セッションの nonce と同じようにトークンを検証します。"
+
+#: ../../guides/spa.md:20
+msgid ""
+"The audience is the origin of the frontend, where the form is, not the "
+"origin of the API."
+msgstr "audience はフォームのあるフロントエンドのオリジンで、API のオリジンではありません。"
+
+#: ../../guides/spa.md:21
+msgid "As with a session, consume the nonce only when a token arrived."
+msgstr "セッションの場合と同じく、nonce を消費するのはトークンが届いたときだけにします。"
+
+#: ../../guides/spa.md:22
+#, python-brace-format
+msgid ""
+"The cookie is client-side state, so enable {doc}`replay protection "
+"<replay>`. Otherwise a captured token can be sent again together with the"
+" old cookie."
+msgstr "Cookie はクライアント側の状態なので、{doc}`リプレイ対策 <replay>` を有効にしてください。有効にしないと、盗まれたトークンを古い Cookie と一緒に再送できてしまいます。"
+
+#: ../../guides/spa.md:24
+msgid ""
+"The frontend and the API must be on the same site, for example "
+"`app.example.com` and `api.example.com`. Otherwise the browser does not "
+"send a `SameSite=Strict` cookie."
+msgstr "フロントエンドと API は、`app.example.com` と `api.example.com` のように同じサイトに置く必要があります。そうでないと、ブラウザーは `SameSite=Strict` の Cookie を送りません。"
+
+#: ../../guides/spa.md:26
+#, python-brace-format
+msgid ""
+"When they are on different origins, the frontend sends its requests with "
+"credentials (`fetch(url, {credentials: \"include\"})`, or "
+"`withCredentials: true` in axios), and the API allows them with CORS: "
+"name the frontend's origin and allow credentials."
+msgstr "オリジンが異なる場合、フロントエンドは credentials 付きでリクエストを送り（`fetch(url, {credentials: \"include\"})`、axios なら `withCredentials: true`）、API は CORS でそれを許可します。フロントエンドのオリジンを明示し、credentials を許可してください。"
+
+#: ../../guides/spa.md:29
+msgid ""
+"Other hosts on the same site can overwrite or clear the cookie. The worst"
+" they can do is make the next submission fall back to your usual flow. "
+"Over HTTPS, the `__Secure-` prefix stops hosts served over plain HTTP "
+"from setting it."
+msgstr "同じサイトのほかのホストは、この Cookie を上書きしたり消したりできます。それでも起きうる最悪のことは、次の送信が通常の手順にフォールバックすることだけです。HTTPS なら `__Secure-` プレフィックスを付けると、平文の HTTP で配信されているホストからは設定できなくなります。"
+
+#: ../../guides/spa.md:33
+msgid "In the browser"
+msgstr "ブラウザー側"
+
+#: ../../guides/spa.md:35
+msgid ""
+"A sketch with React and TanStack Query. It follows code that worked in a "
+"dogfooding project, but this sketch itself is not tested:"
+msgstr "React と TanStack Query を使った概略です。dogfooding のプロジェクトで動いたコードに沿っていますが、この概略そのものはテストしていません。"
+
+#: ../../guides/spa.md:72
+msgid ""
+"What the dogfooding project established, with React 19 and Chrome 154 on "
+"a page without a Content-Security-Policy header:"
+msgstr "dogfooding のプロジェクトで、React 19 と Chrome 154 を使い、Content-Security-Policy ヘッダーの無いページで確かめたことは次のとおりです。"
+
+#: ../../guides/spa.md:75
+msgid ""
+"React renders the `nonce` prop as a content attribute, and Chrome picked "
+"it up."
+msgstr "React は `nonce` prop をコンテンツ属性として描画し、Chrome はそれを読み取りました。"
+
+#: ../../guides/spa.md:76
+msgid "A token field rendered only after the nonce arrived worked."
+msgstr "nonce が届いてから描画したトークン欄でも動きました。"
+
+#: ../../guides/spa.md:77
+msgid ""
+"The token could be read from the submit event with `FormData`, inside "
+"react-hook-form's `handleSubmit`. Sending it to the API in a JSON body is"
+" fine, since the API reads JSON."
+msgstr "react-hook-form の `handleSubmit` の中で、submit イベントから `FormData` でトークンを読み取れました。API は JSON を読むので、JSON の本文に入れて送ってかまいません。"
+
+#: ../../guides/spa.md:79
+msgid ""
+"A second request for the nonce, from React's StrictMode or from "
+"refetching when the window regains focus, replaces the cookie and can "
+"leave the page with a stale nonce. TanStack Query with `staleTime: "
+"Infinity` avoids both."
+msgstr "React の StrictMode や、ウィンドウにフォーカスが戻ったときの再取得で nonce をもう一度取得すると、Cookie が置き換わり、ページに古い nonce が残ることがあります。TanStack Query で `staleTime: Infinity` を指定すると、どちらも防げます。"
+
+#: ../../guides/spa.md:83
+msgid ""
+"Submitting before the token arrived was not tested. Such a submission "
+"carries no token and falls back to your usual flow."
+msgstr "トークンが届く前の送信は試していません。その場合の送信にはトークンが含まれず、通常の手順にフォールバックします。"
+
+#: ../../guides/spa.md:86
+msgid "Linting"
+msgstr "lint"
+
+#: ../../guides/spa.md:88
+msgid ""
+"Biome 2.5 reports `autocomplete=\"email-verification-token\"` under "
+"`lint/a11y/useValidAutocomplete`, because the value is not in the HTML "
+"standard yet. Suppress it on the attribute:"
+msgstr "Biome 2.5 は、`autocomplete=\"email-verification-token\"` を `lint/a11y/useValidAutocomplete` として報告します。この値がまだ HTML の標準に無いためです。属性の直前で抑止します。"
+
+#: ../../guides/spa.md:102
+msgid ""
+"`jsx-a11y/autocomplete-valid` in eslint-plugin-jsx-a11y 6.10 skips hidden"
+" inputs, so it does not report the token field."
+msgstr "eslint-plugin-jsx-a11y 6.10 の `jsx-a11y/autocomplete-valid` は hidden の入力欄を対象にしないので、トークン欄は報告されません。"
+

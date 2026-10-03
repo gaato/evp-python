@@ -13,7 +13,9 @@ Each example under `examples/` is a member of the uv workspace with its own test
 
 ```sh
 uv run --directory examples/fastapi pytest
+uv run --directory examples/fastapi_spa pytest
 uv run --directory examples/flask pytest
+uv run --directory examples/django pytest
 uv run --directory examples/django_allauth pytest
 uv run --directory examples/issuer_django pytest
 ```
@@ -95,6 +97,10 @@ keep to the existing translation:
 | driver, port, effect | ドライバー、ポート、エフェクト |
 | fetcher, resolver | フェッチャー、リゾルバー |
 | fail closed | 安全側に失敗する |
+| single-page app (SPA) | シングルページアプリケーション（SPA） |
+| stateless | ステートレス |
+| password recovery, reset token | パスワード再設定、再設定トークン |
+| Cookie, CORS, credentials, same-site | (untranslated) |
 | verifier, nonce, disclosure | (untranslated) |
 
 ### Building

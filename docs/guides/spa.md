@@ -1,0 +1,103 @@
+# Single-page apps and stateless APIs
+
+The {doc}`quickstart <../quickstart>` keeps the nonce in a server session. An API that
+authenticates with bearer tokens such as JWTs often has no session. This page shows where the
+nonce goes instead, and what the browser side of a single-page app needs. The server code comes
+from [`examples/fastapi_spa`](https://github.com/gaato/pyevp/tree/main/examples/fastapi_spa),
+which has tests.
+
+## Keeping the nonce in a cookie
+
+Hand the nonce out from an endpoint and keep a copy in an HttpOnly cookie. On submission, read it
+back from the cookie and verify the token as you would with a session nonce:
+
+```{literalinclude} ../../examples/fastapi_spa/app.py
+:language: python
+:start-after: "# nonce:start"
+:end-before: "# nonce:end"
+```
+
+- The audience is the origin of the frontend, where the form is, not the origin of the API.
+- As with a session, consume the nonce only when a token arrived.
+- The cookie is client-side state, so enable {doc}`replay protection <replay>`. Otherwise a
+  captured token can be sent again together with the old cookie.
+- The frontend and the API must be on the same site, for example `app.example.com` and
+  `api.example.com`. Otherwise the browser does not send a `SameSite=Strict` cookie.
+- When they are on different origins, the frontend sends its requests with credentials
+  (`fetch(url, {credentials: "include"})`, or `withCredentials: true` in axios), and the API
+  allows them with CORS: name the frontend's origin and allow credentials.
+- Other hosts on the same site can overwrite or clear the cookie. The worst they can do is make
+  the next submission fall back to your usual flow. Over HTTPS, the `__Secure-` prefix stops
+  hosts served over plain HTTP from setting it.
+
+## In the browser
+
+A sketch with React and TanStack Query. It follows code that worked in a dogfooding project, but
+this sketch itself is not tested:
+
+```tsx
+const nonce = useQuery({
+  queryKey: ["evp-nonce"],
+  queryFn: async () => {
+    const response = await fetch(`${API}/api/evp/nonce`, { credentials: "include" })
+    return (await response.json()).nonce as string
+  },
+  // Every request replaces the cookie: fetch once, again only after a token was used.
+  staleTime: Infinity,
+})
+
+function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault()
+  const form = new FormData(event.currentTarget)
+  // POST {email: form.get("email"), evt: form.get("evt")} with credentials,
+  // then refetch the nonce if a token was sent.
+}
+
+return (
+  <form onSubmit={onSubmit}>
+    <input type="email" name="email" autoComplete="email" />
+    {nonce.data && (
+      <input
+        type="hidden"
+        name="evt"
+        autoComplete="email-verification-token"
+        nonce={nonce.data}
+      />
+    )}
+    <button type="submit">Continue</button>
+  </form>
+)
+```
+
+What the dogfooding project established, with React 19 and Chrome 154 on a page without a
+Content-Security-Policy header:
+
+- React renders the `nonce` prop as a content attribute, and Chrome picked it up.
+- A token field rendered only after the nonce arrived worked.
+- The token could be read from the submit event with `FormData`, inside react-hook-form's
+  `handleSubmit`. Sending it to the API in a JSON body is fine, since the API reads JSON.
+- A second request for the nonce, from React's StrictMode or from refetching when the window
+  regains focus, replaces the cookie and can leave the page with a stale nonce. TanStack Query
+  with `staleTime: Infinity` avoids both.
+
+Submitting before the token arrived was not tested. Such a submission carries no token and falls
+back to your usual flow.
+
+## Linting
+
+Biome 2.5 reports `autocomplete="email-verification-token"` under
+`lint/a11y/useValidAutocomplete`, because the value is not in the HTML standard yet. Suppress it
+on the attribute:
+
+```text
+<input
+  type="hidden"
+  name="evt"
+  // biome-ignore lint/a11y/useValidAutocomplete: EVP's token field is not in the HTML spec yet
+  autoComplete="email-verification-token"
+  nonce={nonce}
+/>
+```
+
+`jsx-a11y/autocomplete-valid` in eslint-plugin-jsx-a11y 6.10 skips hidden inputs, so it does not
+report the token field.

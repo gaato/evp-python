@@ -15,6 +15,13 @@ example enables a replay guard.
 :start-at: "@asynccontextmanager"
 ```
 
+## Single-page apps
+
+An API without server sessions, for example one that authenticates with JWTs, keeps the nonce in
+a cookie. [`examples/fastapi_spa`](https://github.com/gaato/pyevp/tree/main/examples/fastapi_spa)
+is such an API, with password recovery that skips the email. See {doc}`spa` and
+{doc}`password-recovery`.
+
 ## Flask
 
 Build the synchronous {class}`~pyevp.Verifier` in the application factory and keep it in
@@ -145,6 +152,7 @@ verifier = Verifier(
 
 ## Other frameworks
 
-Anything else works the same way: keep a nonce in the session, read the hidden `evt` field,
+Anything else works the same way: keep a nonce in the session (or, without one, in a cookie: see
+{doc}`spa`), read the hidden `evt` field,
 and call {meth}`pyevp.Verifier.verify`. Use {class}`~pyevp.Verifier` in synchronous code and
 {class}`~pyevp.AsyncVerifier` under asyncio.

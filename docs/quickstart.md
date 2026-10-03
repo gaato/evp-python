@@ -28,7 +28,7 @@ session["evp_nonce"] = nonce
 ```
 
 The `nonce` must be a content attribute in the HTML. Frameworks that set it as a DOM property
-are not picked up by the browser.
+are not picked up by the browser. React 19 renders the `nonce` prop as a content attribute.
 
 Chrome writes the token into the hidden field only when the form is submitted. Before that,
 page scripts read an empty value, so check the token on the server, not in client-side
@@ -36,7 +36,8 @@ validation.
 
 The session holds one nonce, so all forms on a page share it. For the same reason, only the tab
 opened last can be verified; forms in older tabs fall back to your usual flow. Storing the nonce
-gives each visitor a session, so add the inputs only to pages that have a form.
+gives each visitor a session, so add the inputs only to pages that have a form. An API without
+server sessions can keep the nonce in a cookie instead; see {doc}`guides/spa`.
 
 ### Fitting EVP into an existing form
 
@@ -117,6 +118,7 @@ simply try again and whether something on your side needs attention:
 Codes may be added in minor releases, so treat unknown codes as "fall back".
 
 ```{important}
-If your sessions are stored client-side, for example with Starlette's `SessionMiddleware`,
-popping the nonce does not make it single-use. Enable {doc}`replay protection <guides/replay>`.
+If the nonce is stored client-side, in a session kept in a signed cookie such as Starlette's
+`SessionMiddleware` or in a cookie of its own, popping it does not make it single-use. Enable
+{doc}`replay protection <guides/replay>`.
 ```

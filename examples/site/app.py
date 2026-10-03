@@ -506,17 +506,19 @@ def create_app(
         site.state.landing_page = mail_pages.pop("landing")
         site.state.clock = clock
         pages.update(mail_pages)
-        # One process only: the replay guard lives in memory.
-        site.state.verifier = AsyncVerifier.default(
-            audience=f"https://{site_host}",
-            resolver=AllowedIssuers(RecordingResolver(AsyncDnsPythonResolver()), allowed),
-            fetcher=RecordingFetcher(httpx_adapter.AsyncHttpxFetcher()),
-            cache=TrackingCache(InMemoryCache(clock=clock)),
-            replay_guard=InMemoryReplayGuard(clock=clock),
-            observer=LoggingObserver(),
-            clock=RecordingClock(clock),
-        )
-        yield
+        # The verifier closes only what it creates; this fetcher is ours to close.
+        async with httpx_adapter.AsyncHttpxFetcher() as fetcher:
+            # One process only: the replay guard lives in memory.
+            site.state.verifier = AsyncVerifier.default(
+                audience=f"https://{site_host}",
+                resolver=AllowedIssuers(RecordingResolver(AsyncDnsPythonResolver()), allowed),
+                fetcher=RecordingFetcher(fetcher),
+                cache=TrackingCache(InMemoryCache(clock=clock)),
+                replay_guard=InMemoryReplayGuard(clock=clock),
+                observer=LoggingObserver(),
+                clock=RecordingClock(clock),
+            )
+            yield
 
     async def noindex_mail_host(request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)

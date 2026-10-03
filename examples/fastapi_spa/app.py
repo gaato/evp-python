@@ -68,8 +68,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # The nonce cookie is client-side state: a captured token could be sent again
     # with the old cookie.  The replay guard refuses the second use.  Use a shared
     # store (e.g. Redis) when running more than one worker.
-    app.state.verifier = AsyncVerifier.default(audience=ORIGIN, replay_guard=InMemoryReplayGuard())
-    yield
+    verifier = AsyncVerifier.default(audience=ORIGIN, replay_guard=InMemoryReplayGuard())
+    async with verifier:  # closes its HTTP client on shutdown
+        app.state.verifier = verifier
+        yield
 
 
 app = FastAPI(lifespan=lifespan)

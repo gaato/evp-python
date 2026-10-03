@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import json
 import logging
 import os
 import re
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from html.parser import HTMLParser
 from http.cookies import SimpleCookie
 from pathlib import Path
@@ -543,6 +544,12 @@ def stranger() -> FakeIssuer:
     return FakeIssuer(host="evil.example", email_domains=("evil.example",))
 
 
+@contextlib.asynccontextmanager
+async def _opened(http: AsyncInMemoryHttp) -> AsyncIterator[AsyncInMemoryHttp]:
+    """Stand in for ``AsyncHttpxFetcher()``, which the app opens with ``async with``."""
+    yield http
+
+
 @pytest.fixture
 def rp_http(rp_issuer: FakeIssuer, stranger: FakeIssuer) -> AsyncInMemoryHttp:
     return AsyncInMemoryHttp(rp_issuer.http_documents() | stranger.http_documents())
@@ -699,7 +706,7 @@ def test_default_allowlist(
     monkeypatch.setattr(
         site, "AsyncDnsPythonResolver", lambda: AsyncInMemoryDns(provider.dns_records())
     )
-    monkeypatch.setattr(httpx_adapter, "AsyncHttpxFetcher", lambda: http)
+    monkeypatch.setattr(httpx_adapter, "AsyncHttpxFetcher", lambda: _opened(http))
     application = site.create_app(
         signer=signer,
         session_secret="test-session-secret",
@@ -772,7 +779,7 @@ def test_environment_allowlist_override(
     monkeypatch.setattr(
         site, "AsyncDnsPythonResolver", lambda: AsyncInMemoryDns(provider.dns_records())
     )
-    monkeypatch.setattr(httpx_adapter, "AsyncHttpxFetcher", lambda: http)
+    monkeypatch.setattr(httpx_adapter, "AsyncHttpxFetcher", lambda: _opened(http))
     with TestClient(site._from_environment(), base_url=SITE) as client:
         nonce = _nonce(client)
         response = client.post(

@@ -6,7 +6,9 @@ import inspect
 import logging
 import threading
 import time
+from contextlib import AsyncExitStack, ExitStack
 from datetime import datetime, timedelta
+from types import TracebackType
 from typing import Any, Self
 from urllib.parse import urlsplit
 
@@ -68,6 +70,8 @@ class _Base:
         self._min_refresh_interval = min_refresh_interval
         self._refresh_lock = threading.Lock()
         self._refresh_attempts: dict[str, datetime] = {}
+        # Ports created by default(); ports passed in belong to the caller.
+        self._owned: tuple[object, ...] = ()
 
     def _steps(self, token: str, nonce: str, email: str | None, audience: str | None) -> Steps:
         return verification_steps(
@@ -147,7 +151,8 @@ def _missing_extras(cls: type, what: str) -> ImportError:
 class Verifier(_Base):
     """Synchronous verifier (Django, Flask, scripts).
 
-    Thread-safe as long as the injected ports and cache are.
+    Thread-safe as long as the injected ports and cache are.  A context manager:
+    leaving it calls :meth:`close`.
     """
 
     def __init__(
@@ -184,19 +189,46 @@ class Verifier(_Base):
 
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
+        owned: list[object] = []
         if "resolver" not in kwargs:
             try:
                 from pyevp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "dnspython") from exc
             kwargs["resolver"] = DnsPythonResolver()
+            owned.append(kwargs["resolver"])
         if "fetcher" not in kwargs:
             try:
                 from pyevp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "httpx2 or httpx") from exc
             kwargs["fetcher"] = HttpxFetcher()
-        return cls(audience=audience, **kwargs)
+            owned.append(kwargs["fetcher"])
+        verifier = cls(audience=audience, **kwargs)
+        verifier._owned = tuple(owned)
+        return verifier
+
+    def close(self) -> None:
+        """Close the resolver and fetcher that :meth:`default` created.
+
+        Ports passed in belong to the caller, who closes them.  Safe to call twice.
+        """
+        owned, self._owned = self._owned, ()
+        with ExitStack() as stack:
+            for port in owned:
+                if callable(close := getattr(port, "close", None)):
+                    stack.callback(close)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        self.close()
 
     def verify(
         self, token: str, *, nonce: str, email: str | None, audience: str | None = None
@@ -253,7 +285,10 @@ class Verifier(_Base):
 
 
 class AsyncVerifier(_Base):
-    """Asynchronous verifier (FastAPI, Starlette, Django async views)."""
+    """Asynchronous verifier (FastAPI, Starlette, Django async views).
+
+    An async context manager: leaving it calls :meth:`aclose`.
+    """
 
     def __init__(
         self,
@@ -289,19 +324,48 @@ class AsyncVerifier(_Base):
 
         Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
         """
+        owned: list[object] = []
         if "resolver" not in kwargs:
             try:
                 from pyevp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "dnspython") from exc
             kwargs["resolver"] = AsyncDnsPythonResolver()
+            owned.append(kwargs["resolver"])
         if "fetcher" not in kwargs:
             try:
                 from pyevp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "httpx2 or httpx") from exc
             kwargs["fetcher"] = AsyncHttpxFetcher()
-        return cls(audience=audience, **kwargs)
+            owned.append(kwargs["fetcher"])
+        verifier = cls(audience=audience, **kwargs)
+        verifier._owned = tuple(owned)
+        return verifier
+
+    async def aclose(self) -> None:
+        """Close the resolver and fetcher that :meth:`default` created.
+
+        Ports passed in belong to the caller, who closes them.  Safe to call twice.
+        """
+        owned, self._owned = self._owned, ()
+        async with AsyncExitStack() as stack:
+            for port in owned:
+                if callable(aclose := getattr(port, "aclose", None)):
+                    stack.push_async_callback(aclose)
+                elif callable(close := getattr(port, "close", None)):
+                    stack.callback(close)
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        await self.aclose()
 
     async def verify(
         self, token: str, *, nonce: str, email: str | None, audience: str | None = None

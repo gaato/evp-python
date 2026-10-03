@@ -229,3 +229,24 @@ async def test_async_default_resolver_checks_literal_addresses(mod: ModuleType) 
     async with AsyncHttpxFetcher(client) as fetcher:
         with pytest.raises(FetchError, match=r"non-global address 127\.0\.0\.1"):
             await fetcher.fetch_json("https://127.0.0.1/.well-known/email-verification")
+
+
+def test_a_client_passed_in_stays_open(mod: ModuleType) -> None:
+    client = mod.Client(transport=_transport(mod, _handler(mod)))
+    with HttpxFetcher(client, resolve_host=_public):
+        pass
+    assert not client.is_closed
+    owned = HttpxFetcher()
+    owned.close()
+    assert owned._client.is_closed
+
+
+@pytest.mark.anyio
+async def test_an_async_client_passed_in_stays_open(mod: ModuleType) -> None:
+    client = mod.AsyncClient(transport=_transport(mod, _handler(mod)))
+    async with AsyncHttpxFetcher(client, resolve_host=_apublic):
+        pass
+    assert not client.is_closed
+    owned = AsyncHttpxFetcher()
+    await owned.aclose()
+    assert owned._client.is_closed

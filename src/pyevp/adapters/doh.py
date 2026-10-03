@@ -66,6 +66,7 @@ class DohResolver:
         timeout: float = 5.0,
     ) -> None:
         self.endpoint = endpoint
+        self._owns_client = client is None
         self._client: Client = client or http.Client(timeout=timeout, follow_redirects=False)
         self._require_dnssec = require_dnssec
 
@@ -76,7 +77,9 @@ class DohResolver:
         return _records(_check(response, name), name, self._require_dnssec)
 
     def close(self) -> None:
-        self._client.close()
+        """Close the client this resolver created; a client passed in stays open."""
+        if self._owns_client:
+            self._client.close()
 
     def __enter__(self) -> Self:
         return self
@@ -100,6 +103,7 @@ class AsyncDohResolver:
         timeout: float = 5.0,
     ) -> None:
         self.endpoint = endpoint
+        self._owns_client = client is None
         self._client: AsyncClient = client or http.AsyncClient(
             timeout=timeout, follow_redirects=False
         )
@@ -112,7 +116,9 @@ class AsyncDohResolver:
         return _records(_check(response, name), name, self._require_dnssec)
 
     async def aclose(self) -> None:
-        await self._client.aclose()
+        """Close the client this resolver created; a client passed in stays open."""
+        if self._owns_client:
+            await self._client.aclose()
 
     async def __aenter__(self) -> Self:
         return self

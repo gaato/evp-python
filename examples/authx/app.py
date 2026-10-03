@@ -43,8 +43,10 @@ auth = AuthX(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    app.state.verifier = AsyncVerifier.default(audience=ORIGIN, replay_guard=InMemoryReplayGuard())
-    yield
+    verifier = AsyncVerifier.default(audience=ORIGIN, replay_guard=InMemoryReplayGuard())
+    async with verifier:  # closes its HTTP client on shutdown
+        app.state.verifier = verifier
+        yield
 
 
 app = FastAPI(lifespan=lifespan)

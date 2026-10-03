@@ -60,6 +60,10 @@ from pyevp import EVPError, Verifier
 verifier = Verifier.default(audience="https://example.com")
 ```
 
+The verifier keeps an HTTP client open. On shutdown, call `verifier.close()` (`await
+verifier.aclose()` for `AsyncVerifier`), or use it as a context manager. It closes only what
+`default()` created: a resolver, fetcher or HTTP client you pass in is yours to close.
+
 Then, in the form handler:
 
 ```python

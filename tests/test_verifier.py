@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from datetime import timedelta
+from typing import cast
 
 import anyio
 import pytest
@@ -361,3 +362,84 @@ def test_default_accepts_port_overrides(issuer: FakeIssuer, token: str, nonce: s
         clock=issuer.clock,
     )
     assert verifier.verify(token, nonce=nonce, email=None).email == EMAIL
+
+
+class _Port:
+    """Stands in for a resolver and a fetcher; counts close calls."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.closed = 0
+
+    def resolve_txt(self, name: str) -> list[str]:
+        return []
+
+    def fetch_json(self, url: str) -> object:
+        return {}
+
+    def close(self) -> None:
+        self.closed += 1
+
+
+class _AsyncPort:
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self.closed = 0
+
+    async def resolve_txt(self, name: str) -> list[str]:
+        return []
+
+    async def fetch_json(self, url: str) -> object:
+        return {}
+
+    async def aclose(self) -> None:
+        self.closed += 1
+
+
+def _fake_default_ports(monkeypatch: pytest.MonkeyPatch, port: type) -> None:
+    import pyevp.adapters.dnspython  # noqa: PLC0415
+    import pyevp.adapters.httpx  # noqa: PLC0415
+
+    for module, name in [
+        (pyevp.adapters.dnspython, "DnsPythonResolver"),
+        (pyevp.adapters.dnspython, "AsyncDnsPythonResolver"),
+        (pyevp.adapters.httpx, "HttpxFetcher"),
+        (pyevp.adapters.httpx, "AsyncHttpxFetcher"),
+    ]:
+        monkeypatch.setattr(module, name, port)
+
+
+def _closed(*ports: object) -> list[int]:
+    return [cast(_Port | _AsyncPort, p).closed for p in ports]
+
+
+def test_close_closes_what_default_created(monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_default_ports(monkeypatch, _Port)
+    with Verifier.default(audience=AUDIENCE) as verifier:
+        ports = verifier._resolver, verifier._fetcher
+    assert _closed(*ports) == [1, 1]
+    verifier.close()
+    assert _closed(*ports) == [1, 1]
+
+
+def test_close_leaves_ports_passed_in_open(monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_default_ports(monkeypatch, _Port)
+    fetcher = _Port()
+    with Verifier.default(audience=AUDIENCE, fetcher=fetcher) as verifier:
+        resolver = verifier._resolver
+    assert _closed(resolver, fetcher) == [1, 0]
+    with Verifier(audience=AUDIENCE, resolver=_Port(), fetcher=fetcher):
+        pass
+    assert fetcher.closed == 0
+
+
+@pytest.mark.anyio
+async def test_aclose_closes_what_default_created(monkeypatch: pytest.MonkeyPatch) -> None:
+    _fake_default_ports(monkeypatch, _AsyncPort)
+    async with AsyncVerifier.default(audience=AUDIENCE) as verifier:
+        ports = verifier._resolver, verifier._fetcher
+    await verifier.aclose()
+    assert _closed(*ports) == [1, 1]
+
+    resolver = _AsyncPort()
+    async with AsyncVerifier.default(audience=AUDIENCE, resolver=resolver) as verifier:
+        fetcher = verifier._fetcher
+    assert _closed(resolver, fetcher) == [0, 1]

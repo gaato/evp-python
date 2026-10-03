@@ -137,3 +137,25 @@ async def test_async_injected_client_does_not_follow_redirects() -> None:
         with pytest.raises(DohError):
             await resolver.resolve_txt(NAME)
     assert [r.url.host for r in seen] == ["dns.google"]
+
+
+def test_a_client_passed_in_stays_open() -> None:
+    client = http.Client()
+    with DohResolver(client=client):
+        pass
+    assert not client.is_closed
+    owned = DohResolver()
+    owned.close()
+    assert owned._client.is_closed
+
+
+@pytest.mark.anyio
+async def test_an_async_client_passed_in_stays_open() -> None:
+    client = http.AsyncClient()
+    async with AsyncDohResolver(client=client):
+        pass
+    assert not client.is_closed
+    await client.aclose()
+    owned = AsyncDohResolver()
+    await owned.aclose()
+    assert owned._client.is_closed

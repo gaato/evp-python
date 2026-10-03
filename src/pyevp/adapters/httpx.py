@@ -59,6 +59,7 @@ class HttpxFetcher:
         require_global_addresses: bool = True,
         resolve_host: ResolveHost = _fetch.system_resolve_host,
     ) -> None:
+        self._owns_client = client is None
         self._client: Client = client or http.Client(timeout=timeout, follow_redirects=False)
         self._require_global = require_global_addresses
         self._resolve_host = resolve_host
@@ -76,7 +77,9 @@ class HttpxFetcher:
         return _decode(bytes(body), url)
 
     def close(self) -> None:
-        self._client.close()
+        """Close the client this fetcher created; a client passed in stays open."""
+        if self._owns_client:
+            self._client.close()
 
     def __enter__(self) -> Self:
         return self
@@ -101,6 +104,7 @@ class AsyncHttpxFetcher:
         require_global_addresses: bool = True,
         resolve_host: AsyncResolveHost = _anyio_resolve_host,
     ) -> None:
+        self._owns_client = client is None
         self._client: AsyncClient = client or http.AsyncClient(
             timeout=timeout, follow_redirects=False
         )
@@ -127,7 +131,9 @@ class AsyncHttpxFetcher:
         return _decode(bytes(body), url)
 
     async def aclose(self) -> None:
-        await self._client.aclose()
+        """Close the client this fetcher created; a client passed in stays open."""
+        if self._owns_client:
+            await self._client.aclose()
 
     async def __aenter__(self) -> Self:
         return self

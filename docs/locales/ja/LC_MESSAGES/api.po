@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 23:44+0900\n"
+"POT-Creation-Date: 2026-10-04 00:02+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -86,7 +86,7 @@ msgstr ""
 #: pyevp.issuer.errors.IssuanceError.authentication_required
 #: pyevp.issuer.fedcm.accounts_document
 #: pyevp.issuer.fedcm.web_identity_document pyevp.issuer.keys.Signer.sign
-#: pyevp.issuer.keys.SigningKey.from_jwk
+#: pyevp.issuer.keys.SigningKey.from_jwk pyevp.issuer.keys.SigningKey.from_pem
 #: pyevp.issuer.keys.SigningKey.private_jwk pyevp.issuer.keys.public_jwk
 #: pyevp.issuer.profile.IssuanceProfile.chrome_153
 #: pyevp.issuer.profile.IssuanceProfile.draft_hardt_02
@@ -1442,6 +1442,12 @@ msgid ""
 "Load a private JWK; it must carry ``kid``, and ``alg`` unless the curve "
 "implies it."
 msgstr "秘密鍵の JWK を読み込みます。``kid`` は必須で、``alg`` も曲線から決まらない場合は必須です。"
+
+#: of pyevp.issuer.keys.SigningKey.from_pem:1
+msgid ""
+"Load an Ed25519 or P-256 private key in PEM, as key stores and IdPs keep "
+"them."
+msgstr "Ed25519 または P-256 の秘密鍵を PEM から読み込みます。鍵ストアや IdP はこの形式で鍵を保管しています。"
 
 #: of pyevp.issuer.keys.SigningKey.private_jwk:1
 msgid "The private key as a JWK, for writing to a secret store."

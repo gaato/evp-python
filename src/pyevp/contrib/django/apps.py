@@ -12,4 +12,6 @@ class PyevpConfig(AppConfig):
     def ready(self) -> None:
         from pyevp.contrib.django.issuer import check_session_cookie  # noqa: PLC0415
 
-        checks.register(check_session_cookie, checks.Tags.security)
+        # Like Django's own cookie checks, only for `check --deploy`: development servers
+        # usually run without HTTPS.
+        checks.register(check_session_cookie, checks.Tags.security, deploy=True)

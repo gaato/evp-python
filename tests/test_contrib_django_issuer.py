@@ -302,7 +302,10 @@ def test_session_cookie_checks(issuer: Issuer) -> None:
     with override_settings(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=False):
         ids = [m.id for m in check_session_cookie()]
         assert ids == ["pyevp.W001", "pyevp.W002"]
-        assert {m.id for m in checks.run_checks(tags=[checks.Tags.security])} >= set(ids)
+        security = [checks.Tags.security]
+        deploy = checks.run_checks(tags=security, include_deployment_checks=True)
+        assert {m.id for m in deploy} >= set(ids)
+        assert not {m.id for m in checks.run_checks(tags=security)} & set(ids)
     del site
 
 

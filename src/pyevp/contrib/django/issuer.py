@@ -271,8 +271,18 @@ def _to_http(result: IssuanceResponse) -> HttpResponse:
     return HttpResponse(result.body, status=result.status, headers=result.headers)
 
 
+_PER_RESPONSE = (
+    " If your session middleware sets the cookie's attributes per response instead, "
+    "add this check to SILENCED_SYSTEM_CHECKS."
+)
+
+
 def check_session_cookie(**kwargs: Any) -> list[checks.CheckMessage]:
-    """Warn when Chrome's cross-site requests to an :class:`IssuerSite` would lack the session."""
+    """Warn when Chrome's cross-site requests to an :class:`IssuerSite` would lack the session.
+
+    Registered as a deployment check (``manage.py check --deploy``).  It reads the
+    settings, so it cannot see attributes a middleware sets per response.
+    """
     if getattr(settings, "ROOT_URLCONF", None):
         get_resolver().url_patterns  # noqa: B018  (importing the URLconf creates the sites)
     if not _sites:
@@ -283,7 +293,8 @@ def check_session_cookie(**kwargs: Any) -> list[checks.CheckMessage]:
             checks.Warning(
                 "SESSION_COOKIE_SAMESITE is not 'None'.",
                 hint="Chrome's FedCM and issuance requests to the issuer are cross-site; "
-                "without SameSite=None they carry no session and every request fails.",
+                "without SameSite=None they carry no session and every request fails."
+                + _PER_RESPONSE,
                 id="pyevp.W001",
             )
         )
@@ -291,7 +302,7 @@ def check_session_cookie(**kwargs: Any) -> list[checks.CheckMessage]:
         warnings.append(
             checks.Warning(
                 "SESSION_COOKIE_SECURE is off.",
-                hint="Browsers drop SameSite=None cookies that are not Secure.",
+                hint="Browsers drop SameSite=None cookies that are not Secure." + _PER_RESPONSE,
                 id="pyevp.W002",
             )
         )

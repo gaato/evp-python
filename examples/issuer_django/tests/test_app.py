@@ -48,7 +48,8 @@ def _issue(client: Client, browser: FakeBrowser, email: str = EMAIL) -> Any:
 
 
 def test_settings_pass_the_checks() -> None:
-    assert checks.run_checks(tags=[checks.Tags.security]) == []
+    messages = checks.run_checks(tags=[checks.Tags.security], include_deployment_checks=True)
+    assert [m for m in messages if m.id.startswith("pyevp.")] == []
 
 
 def test_documents(client: Client) -> None:

@@ -128,6 +128,26 @@ from your account model or from what the user may send as. It is easy to get sub
   halfway through two-factor authentication, and nothing for administrators just because their
   account has an email field.
 
+(identity-provider)=
+
+### An identity provider as the issuer
+
+A company can point its domain's TXT record at its identity provider, so that employees get
+tokens for their work address. An identity provider knows who is signed in, but usually not
+whether an account's email address was ever verified: administrators type addresses in,
+directory and social-login sources sync them, and self-service enrollment lets users choose
+them. Before issuing:
+
+- Issue only for the company's own domains, and only to employee accounts, not to guests or
+  external users.
+- Refuse an address that more than one account carries. A social login or a second directory
+  can bring in another account with the same address.
+- Let administrators restrict issuance with the provider's own access policies, for example "is
+  in the employees group". That is where the decision "this address really belongs to this
+  person" is made.
+- Consider requiring that the session was established with multi-factor authentication. A token
+  lets other sites sign the user in, so it is worth no less than the login that produced it.
+
 ## Preventing account enumeration
 
 The draft requires the same response whether the address does not exist, nobody is logged in,
@@ -146,6 +166,8 @@ exception message for your logs.
   relying parties' caches (minutes) have picked it up, and then make it the `signer`.
 - Keep publishing the retired public key until no token it signed can still be presented.
   Relying parties accept EVTs for about five minutes, so a day is plenty.
+- A key that is already kept as PEM, for example in an identity provider's certificate store,
+  loads with `SigningKey.from_pem(pem, kid=...)`. Only Ed25519 and P-256 keys work.
 - Keys that never leave a KMS or HSM implement {class}`pyevp.issuer.Signer`: `alg`, `kid`,
   `public_jwk`, and `sign(signing_input) -> bytes` in JWS encoding (raw `r || s` for ES256).
 
@@ -268,8 +290,10 @@ SESSION_COOKIE_SECURE = True
 
 {class}`~pyevp.contrib.django.issuer.LoginStatusMiddleware` adds `Set-Login: logged-in` or
 `logged-out` to page responses, so Chrome learns about logins and logouts without changes to
-your login views. With the app installed, `manage.py check` warns (`pyevp.W001`, `pyevp.W002`)
-when the session cookie would not reach the issuer from Chrome's cross-site requests.
+your login views. With the app installed, `manage.py check --deploy` warns (`pyevp.W001`,
+`pyevp.W002`) when the session cookie would not reach the issuer from Chrome's cross-site
+requests. The check reads the settings. If your session middleware sets the cookie's attributes
+per response instead, as some identity providers do, add both to `SILENCED_SYSTEM_CHECKS`.
 
 Adding the issuer to an existing application usually means editing files the operator owns
 rather than the application's code:

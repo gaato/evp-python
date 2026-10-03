@@ -8,6 +8,13 @@ from typing import Any
 
 import anyio
 import pytest
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 from joserfc.jwk import ECKey, OKPKey
 
 from pyevp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, _jose, _sf, discovery
@@ -23,6 +30,7 @@ from pyevp.issuer import (
     SigningKey,
     accounts_document,
     is_valid_email,
+    public_jwk,
     web_identity_document,
 )
 from pyevp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
@@ -252,6 +260,54 @@ def test_signing_key_round_trips_through_jwk() -> None:
     loaded = SigningKey.from_jwk(key.private_jwk())
     assert loaded.public_jwk == key.public_jwk
     assert key.private_jwk()["d"] not in repr(loaded)
+
+
+@pytest.mark.parametrize(
+    ("key", "alg"),
+    [
+        (ed25519.Ed25519PrivateKey.generate(), "Ed25519"),
+        (ec.generate_private_key(ec.SECP256R1()), "ES256"),
+    ],
+)
+def test_signing_key_from_pem(key: Any, alg: str) -> None:
+    pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+    loaded = SigningKey.from_pem(pem.decode(), kid="k")
+    assert (loaded.alg, loaded.kid) == (alg, "k")
+    assert loaded.public_jwk == public_jwk(
+        OKPKey.import_key(key.public_key()).as_dict()
+        if alg == "Ed25519"
+        else ECKey.import_key(key.public_key()).as_dict(),
+        kid="k",
+        alg=alg,
+    )
+
+
+@pytest.mark.parametrize(
+    ("pem", "message"),
+    [
+        (
+            ec.generate_private_key(ec.SECP384R1()).private_bytes(
+                Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+            ),
+            "P-384",
+        ),
+        (
+            rsa.generate_private_key(65537, 2048).private_bytes(
+                Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+            ),
+            "not an Ed25519 or P-256 private key",
+        ),
+        (
+            ed25519.Ed25519PrivateKey.generate()
+            .public_key()
+            .public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo),
+            "not an Ed25519 or P-256 private key",
+        ),
+    ],
+)
+def test_signing_key_from_pem_rejects(pem: bytes, message: str) -> None:
+    with pytest.raises(ValueError, match=message):
+        SigningKey.from_pem(pem, kid="k")
 
 
 @pytest.mark.parametrize("alg", ["Ed25519", "ES256"])

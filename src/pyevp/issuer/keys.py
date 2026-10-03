@@ -98,6 +98,22 @@ class SigningKey:
             raise ValueError("invalid private key: public key does not match the private key")
         return cls(key, kid=kid, alg=alg)
 
+    @classmethod
+    def from_pem(cls, pem: str | bytes, *, kid: str) -> SigningKey:
+        """Load an Ed25519 or P-256 private key in PEM, as key stores and IdPs keep them."""
+        for key_cls in (OKPKey, ECKey):
+            try:
+                key = key_cls.import_key(pem)
+            except (JoseError, ValueError, TypeError):
+                continue
+            if not key.is_private:
+                break
+            jwk = key.as_dict(private=True)
+            if (jwk["kty"], jwk["crv"]) not in _CURVES.values():
+                raise ValueError(f"unsupported curve {jwk['crv']}; use Ed25519 or P-256")
+            return cls.from_jwk({**jwk, "kid": kid})
+        raise ValueError("not an Ed25519 or P-256 private key in PEM")
+
     def private_jwk(self) -> dict[str, Any]:
         """The private key as a JWK, for writing to a secret store."""
         return {**self._key.as_dict(private=True), "kid": self.kid, "alg": self.alg}

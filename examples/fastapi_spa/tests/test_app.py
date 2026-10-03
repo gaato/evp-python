@@ -141,6 +141,7 @@ def test_reply_does_not_reveal_registration(client: TestClient, issuer: FakeIssu
     assert attempt(ALICE) == attempt("nobody@example.com")
 
 
-def test_bad_reset_token(client: TestClient) -> None:
-    response = client.post("/api/reset-password", json={"token": "x.y", "new_password": "p"})
+@pytest.mark.parametrize("token", ["x.y", "x.é", "é"])
+def test_bad_reset_token(client: TestClient, token: str) -> None:
+    response = client.post("/api/reset-password", json={"token": token, "new_password": "p"})
     assert response.status_code == 400

@@ -206,7 +206,8 @@ def make_reset_token(email: str) -> str:
 
 def check_reset_token(token: str) -> str | None:
     payload, _, signature = token.rpartition(".")
-    if not hmac.compare_digest(signature, _sign(payload)):
+    # As bytes: compare_digest refuses non-ASCII str, and the token is user input.
+    if not hmac.compare_digest(signature.encode(), _sign(payload).encode()):
         return None
     claims = json.loads(base64.urlsafe_b64decode(payload))
     return claims["email"] if claims["exp"] > time.time() else None

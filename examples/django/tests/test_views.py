@@ -8,7 +8,7 @@ import pytest
 import views
 from django.test import Client
 
-from pyevp.contrib.django import DjangoReplayGuard
+from pyevp.contrib.django import EVPReplayGuard
 from pyevp.testing import FakeBrowser, FakeIssuer, make_verifier
 
 ORIGIN = "http://testserver"
@@ -21,7 +21,7 @@ pytestmark = pytest.mark.django_db
 def issuer(monkeypatch: pytest.MonkeyPatch) -> FakeIssuer:
     issuer = FakeIssuer()
     verifier = make_verifier(
-        issuer, audience=ORIGIN, replay_guard=DjangoReplayGuard(clock=issuer.clock)
+        issuer, audience=ORIGIN, replay_guard=EVPReplayGuard(clock=issuer.clock)
     )
     monkeypatch.setattr(views, "get_verifier", lambda: verifier)
     return issuer

@@ -51,5 +51,5 @@ class RedisReplayGuard:
 The store must keep each record until it expires. Do not build a guard on a cache that evicts
 under memory pressure: once the record is evicted, the token is accepted again. For Redis this
 means `maxmemory-policy noeviction` (the `volatile-*` policies evict exactly these keys, which
-have a TTL), so that a full Redis rejects the write and verification fails instead. With Django, use {class}`~pyevp.contrib.django.DjangoReplayGuard`,
+have a TTL), so that a full Redis rejects the write and verification fails instead. With Django, use {class}`~pyevp.contrib.django.EVPReplayGuard`,
 which keeps records in a database table; see {doc}`frameworks`.

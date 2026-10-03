@@ -99,11 +99,11 @@ add `"pyevp.contrib.django"` to `INSTALLED_APPS` and set `ACCOUNT_ADAPTER`,
 {mod}`pyevp.contrib.django` (`pip install "pyevp[django]"`) provides the parts every Django
 integration needs:
 
-- {class}`~pyevp.contrib.django.DjangoCache` shares issuer metadata and key sets between workers
+- {class}`~pyevp.contrib.django.EVPCache` shares issuer metadata and key sets between workers
   through Django's cache framework. It takes a `CACHES` alias and a key prefix,
-  `DjangoCache("evp", prefix="evp:")`, and hashes keys so that long URLs fit Memcached's key
+  `EVPCache("evp", prefix="evp:")`, and hashes keys so that long URLs fit Memcached's key
   limit. An evicted entry is simply fetched again.
-- {class}`~pyevp.contrib.django.DjangoReplayGuard` remembers accepted tokens in a database
+- {class}`~pyevp.contrib.django.EVPReplayGuard` remembers accepted tokens in a database
   table, not in the cache. Caches evict entries before their TTL when they fill up, which would
   let a still-valid token be accepted again; a table keeps every row until the token expires,
   and a duplicate insert fails on the primary key even across workers. Add the app and create
@@ -124,13 +124,13 @@ integration needs:
 
   ```python
   DATABASES["evp"] = {**DATABASES["default"], "ATOMIC_REQUESTS": False, "AUTOCOMMIT": True}
-  replay_guard = DjangoReplayGuard(using="evp")
+  replay_guard = EVPReplayGuard(using="evp")
   ```
 
   Django's `TestCase` transactions are exempt, so tests need no extra setup.
 
-With {class}`~pyevp.AsyncVerifier`, use {class}`~pyevp.contrib.django.AsyncDjangoCache` and
-{class}`~pyevp.contrib.django.AsyncDjangoReplayGuard`. They keep database access off the event
+With {class}`~pyevp.AsyncVerifier`, use {class}`~pyevp.contrib.django.AsyncEVPCache` and
+{class}`~pyevp.contrib.django.AsyncEVPReplayGuard`. They keep database access off the event
 loop, where Django would raise `SynchronousOnlyOperation`.
 
 Combined with the {doc}`standard-library adapters <transport>`, a Django project needs no
@@ -139,14 +139,14 @@ dependency beyond pyevp's core:
 ```python
 from pyevp import Verifier
 from pyevp.adapters.urllib import UrllibDohResolver, UrllibFetcher
-from pyevp.contrib.django import DjangoCache, DjangoReplayGuard
+from pyevp.contrib.django import EVPCache, EVPReplayGuard
 
 verifier = Verifier(
     audience=settings.EVP_ORIGIN,
     resolver=UrllibDohResolver(),
     fetcher=UrllibFetcher(),
-    cache=DjangoCache(),
-    replay_guard=DjangoReplayGuard(),
+    cache=EVPCache(),
+    replay_guard=EVPReplayGuard(),
 )
 ```
 

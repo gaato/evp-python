@@ -12,7 +12,7 @@ Implementations must make :meth:`ReplayGuard.mark_used` an atomic
 - Redis: ``SET evp:<key> 1 NX PXAT <expires_at in ms>``, with
   ``maxmemory-policy noeviction``
 - A database table with the key as primary key, as
-  :class:`pyevp.contrib.django.DjangoReplayGuard` does
+  :class:`pyevp.contrib.django.EVPReplayGuard` does
 
 The store must keep every record until ``expires_at``: caches that evict
 entries under memory pressure (Memcached, Django's cache backends) do not.

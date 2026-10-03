@@ -14,7 +14,7 @@ from django.http import HttpRequest
 from django.test import Client, override_settings
 
 from pyevp import Verifier
-from pyevp.contrib.django import DjangoReplayGuard
+from pyevp.contrib.django import EVPReplayGuard
 from pyevp.contrib.django.issuer import (
     AccountsView,
     IssuerSite,
@@ -190,7 +190,7 @@ def test_invalid_requests(client: Client) -> None:
 def test_replay_guard_under_atomic_requests(
     client: Client, clock: FixedClock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    issuer = _make_issuer(clock, replay_guard=DjangoReplayGuard(clock=clock))
+    issuer = _make_issuer(clock, replay_guard=EVPReplayGuard(clock=clock))
     for alias in ("default", "replay"):
         monkeypatch.setitem(connections.settings[alias], "ATOMIC_REQUESTS", True)
     _login(client)

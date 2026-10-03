@@ -4,18 +4,18 @@ Add ``"pyevp.contrib.django"`` to ``INSTALLED_APPS`` and run ``migrate``.
 
 - ``{% load pyevp %}`` and ``{% evp_token_input %}`` render the hidden token input, and
   :func:`verify_request` / :func:`averify_request` verify what the form submitted.
-- :class:`DjangoCache` / :class:`AsyncDjangoCache` share issuer metadata and key
+- :class:`EVPCache` / :class:`AsyncEVPCache` share issuer metadata and key
   sets between workers through Django's cache framework.
-- :class:`DjangoReplayGuard` / :class:`AsyncDjangoReplayGuard` remember accepted
+- :class:`EVPReplayGuard` / :class:`AsyncEVPReplayGuard` remember accepted
   tokens in a database table.
 
 ::
 
     from pyevp import EVPError, Verifier
-    from pyevp.contrib.django import DjangoCache, DjangoReplayGuard, verify_request
+    from pyevp.contrib.django import EVPCache, EVPReplayGuard, verify_request
 
     verifier = Verifier.default(
-        audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoReplayGuard()
+        audience=settings.EVP_ORIGIN, cache=EVPCache(), replay_guard=EVPReplayGuard()
     )
 
     # In the view that handles the form:
@@ -52,10 +52,10 @@ if TYPE_CHECKING:
     from django.contrib.sessions.backends.base import SessionBase
 
 __all__ = [
-    "AsyncDjangoCache",
-    "AsyncDjangoReplayGuard",
-    "DjangoCache",
-    "DjangoReplayGuard",
+    "AsyncEVPCache",
+    "AsyncEVPReplayGuard",
+    "EVPCache",
+    "EVPReplayGuard",
     "aget_nonce",
     "averify_request",
     "get_nonce",
@@ -176,13 +176,13 @@ class _CacheBase:
         return self.prefix + _digest(key)
 
 
-class DjangoCache(_CacheBase):
+class EVPCache(_CacheBase):
     """A :class:`~pyevp.Cache` backed by one of Django's ``CACHES``.
 
     Use a backend shared between workers (Redis, Memcached, database) for the
     cache to help; ``locmem`` is per process like :class:`~pyevp.InMemoryCache`.
     An evicted entry is simply fetched again.  With :class:`~pyevp.AsyncVerifier`,
-    use :class:`AsyncDjangoCache`, which does not block the event loop.
+    use :class:`AsyncEVPCache`, which does not block the event loop.
     """
 
     def get(self, key: str) -> CacheEntry | None:
@@ -193,10 +193,10 @@ class DjangoCache(_CacheBase):
         caches[self.alias].set(self._key(key), entry, timeout=ttl.total_seconds())
 
 
-class AsyncDjangoCache(_CacheBase):
+class AsyncEVPCache(_CacheBase):
     """An :class:`~pyevp.AsyncCache` using Django's async cache API (``aget`` / ``aset``).
 
-    Takes the same arguments as :class:`DjangoCache` and shares its entries.
+    Takes the same arguments as :class:`EVPCache` and shares its entries.
     """
 
     async def get(self, key: str) -> CacheEntry | None:
@@ -238,23 +238,23 @@ class _GuardBase:
 
 
 _NESTED = (
-    "DjangoReplayGuard must commit its record on its own, but database {using!r} is inside "
+    "EVPReplayGuard must commit its record on its own, but database {using!r} is inside "
     "an atomic block (ATOMIC_REQUESTS or transaction.atomic()); a rollback there would "
     "forget the token.  Give the guard its own alias for the same database with "
-    "ATOMIC_REQUESTS off, e.g. DjangoReplayGuard(using='evp'), or verify outside the "
+    "ATOMIC_REQUESTS off, e.g. EVPReplayGuard(using='evp'), or verify outside the "
     "transaction."
 )
 
 
 _MANUAL = (
-    "DjangoReplayGuard must commit its record on its own, but autocommit is off on "
+    "EVPReplayGuard must commit its record on its own, but autocommit is off on "
     "database {using!r} (AUTOCOMMIT=False or transaction.set_autocommit(False)); a "
     "rollback there would forget the token.  Give the guard its own alias for the same "
-    "database with AUTOCOMMIT on, e.g. DjangoReplayGuard(using='evp')."
+    "database with AUTOCOMMIT on, e.g. EVPReplayGuard(using='evp')."
 )
 
 
-class DjangoReplayGuard(_GuardBase):
+class EVPReplayGuard(_GuardBase):
     """A :class:`~pyevp.ReplayGuard` storing accepted tokens in the database.
 
     Each token is a row keyed by its digest until the token expires; a second
@@ -277,8 +277,8 @@ class DjangoReplayGuard(_GuardBase):
         return self._mark(key, expires_at)
 
 
-class AsyncDjangoReplayGuard(_GuardBase):
-    """:class:`DjangoReplayGuard` for :class:`~pyevp.AsyncVerifier`.
+class AsyncEVPReplayGuard(_GuardBase):
+    """:class:`EVPReplayGuard` for :class:`~pyevp.AsyncVerifier`.
 
     The database work runs in Django's thread for synchronous code.
     """

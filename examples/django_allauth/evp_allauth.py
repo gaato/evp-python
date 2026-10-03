@@ -20,7 +20,7 @@ from django.conf import settings
 from django.http import HttpRequest
 
 from pyevp import EVPError, Verifier
-from pyevp.contrib.django import DjangoCache, DjangoReplayGuard, verify_request
+from pyevp.contrib.django import EVPCache, EVPReplayGuard, verify_request
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 @cache
 def get_verifier() -> Verifier:
     return Verifier.default(
-        audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoReplayGuard()
+        audience=settings.EVP_ORIGIN, cache=EVPCache(), replay_guard=EVPReplayGuard()
     )
 
 

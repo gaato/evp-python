@@ -20,13 +20,13 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 
 from pyevp import EVPError, Verifier
-from pyevp.contrib.django import DjangoCache, DjangoReplayGuard, verify_request
+from pyevp.contrib.django import EVPCache, EVPReplayGuard, verify_request
 
 
 @cache
 def get_verifier() -> Verifier:
     return Verifier.default(
-        audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoReplayGuard()
+        audience=settings.EVP_ORIGIN, cache=EVPCache(), replay_guard=EVPReplayGuard()
     )
 
 

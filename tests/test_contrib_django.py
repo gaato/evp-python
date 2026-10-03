@@ -31,10 +31,10 @@ from pyevp import (
     Verifier,
 )
 from pyevp.contrib.django import (
-    AsyncDjangoCache,
-    AsyncDjangoReplayGuard,
-    DjangoCache,
-    DjangoReplayGuard,
+    AsyncEVPCache,
+    AsyncEVPReplayGuard,
+    EVPCache,
+    EVPReplayGuard,
     aget_nonce,
     averify_request,
     get_nonce,
@@ -70,10 +70,10 @@ def _clean() -> None:
 
 
 def test_satisfies_protocols() -> None:
-    cache: Cache = DjangoCache()
-    async_cache: AsyncCache = AsyncDjangoCache()
-    guard: ReplayGuard = DjangoReplayGuard()
-    async_guard: AsyncReplayGuard = AsyncDjangoReplayGuard()
+    cache: Cache = EVPCache()
+    async_cache: AsyncCache = AsyncEVPCache()
+    guard: ReplayGuard = EVPReplayGuard()
+    async_guard: AsyncReplayGuard = AsyncEVPReplayGuard()
     assert isinstance(guard, ReplayGuard)
     assert isinstance(async_guard, AsyncReplayGuard)
     assert cache.get("missing") is None
@@ -89,7 +89,7 @@ def test_migrations_match_models() -> None:
 
 @pytest.mark.parametrize("alias", ["default", "db"])
 def test_cache_round_trip(alias: str, clock: FixedClock) -> None:
-    cache = DjangoCache(alias)
+    cache = EVPCache(alias)
     entry = CacheEntry({"issuer": "https://issuer.example"}, clock())
     cache.set("https://issuer.example/meta", entry, timedelta(minutes=10))
     assert cache.get("https://issuer.example/meta") == entry
@@ -99,7 +99,7 @@ def test_cache_round_trip(alias: str, clock: FixedClock) -> None:
 def test_cache_keys_have_a_fixed_length(clock: FixedClock) -> None:
     # Memcached rejects keys over 250 bytes; Django warns about them on every backend,
     # which pytest turns into an error here.
-    cache = DjangoCache()
+    cache = EVPCache()
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         cache.set(LONG_URL, CacheEntry(1, clock()), timedelta(minutes=10))
@@ -108,14 +108,14 @@ def test_cache_keys_have_a_fixed_length(clock: FixedClock) -> None:
 
 
 def test_cache_alias_and_prefix(clock: FixedClock) -> None:
-    DjangoCache("db", prefix="x:").set("meta", CacheEntry(1, clock()), timedelta(minutes=10))
-    assert DjangoCache("db", prefix="x:").get("meta") is not None
-    assert DjangoCache("db").get("meta") is None
-    assert DjangoCache("default", prefix="x:").get("meta") is None
+    EVPCache("db", prefix="x:").set("meta", CacheEntry(1, clock()), timedelta(minutes=10))
+    assert EVPCache("db", prefix="x:").get("meta") is not None
+    assert EVPCache("db").get("meta") is None
+    assert EVPCache("default", prefix="x:").get("meta") is None
 
 
 def test_cache_ignores_foreign_values() -> None:
-    cache = DjangoCache()
+    cache = EVPCache()
     caches["default"].set(cache._key("meta"), "not an entry")
     assert cache.get("meta") is None
 
@@ -123,23 +123,23 @@ def test_cache_ignores_foreign_values() -> None:
 def test_cache_passes_ttl(monkeypatch: pytest.MonkeyPatch, clock: FixedClock) -> None:
     seen: list[Any] = []
     monkeypatch.setattr(caches["default"], "set", lambda *a, **kw: seen.append(kw["timeout"]))
-    DjangoCache().set("meta", CacheEntry(1, clock()), timedelta(minutes=10))
+    EVPCache().set("meta", CacheEntry(1, clock()), timedelta(minutes=10))
     assert seen == [600]
 
 
 @pytest.mark.anyio
 async def test_async_cache_shares_entries(clock: FixedClock) -> None:
     entry = CacheEntry({"issuer": "https://issuer.example"}, clock())
-    await AsyncDjangoCache("db").set(LONG_URL, entry, timedelta(minutes=10))
-    assert await AsyncDjangoCache("db").get(LONG_URL) == entry
-    assert await AsyncDjangoCache("db").get("missing") is None
+    await AsyncEVPCache("db").set(LONG_URL, entry, timedelta(minutes=10))
+    assert await AsyncEVPCache("db").get(LONG_URL) == entry
+    assert await AsyncEVPCache("db").get("missing") is None
 
 
 # --- replay guard ----------------------------------------------------------------------
 
 
 def test_replay_guard(clock: FixedClock) -> None:
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     expires = clock() + timedelta(minutes=5)
     assert guard.mark_used("k", expires) is True
     assert guard.mark_used("k", expires) is False
@@ -149,7 +149,7 @@ def test_replay_guard(clock: FixedClock) -> None:
 
 def test_records_are_not_evicted_by_volume(clock: FixedClock) -> None:
     # A cache would cull here (Django's default MAX_ENTRIES is 300) and forget "k".
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     expires = clock() + timedelta(minutes=5)
     assert guard.mark_used("k", expires) is True
     for i in range(400):
@@ -158,7 +158,7 @@ def test_records_are_not_evicted_by_volume(clock: FixedClock) -> None:
 
 
 def test_expired_records_are_purged(clock: FixedClock) -> None:
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     guard.mark_used("old", clock() + timedelta(minutes=5))
     clock.advance(timedelta(minutes=6))
     guard.mark_used("new", clock() + timedelta(minutes=5))
@@ -166,14 +166,14 @@ def test_expired_records_are_purged(clock: FixedClock) -> None:
 
 
 def test_arbitrary_keys_fit(clock: FixedClock) -> None:
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     assert guard.mark_used("x" * 1000, clock() + timedelta(minutes=5)) is True
     assert guard.mark_used("x" * 1000, clock() + timedelta(minutes=5)) is False
 
 
 def test_without_use_tz(clock: FixedClock) -> None:
     with override_settings(USE_TZ=False):
-        guard = DjangoReplayGuard(clock=clock)
+        guard = EVPReplayGuard(clock=clock)
         expires = clock() + timedelta(minutes=5)
         assert guard.mark_used("k", expires) is True
         assert guard.mark_used("k", expires) is False
@@ -188,12 +188,12 @@ def test_database_errors_propagate(monkeypatch: pytest.MonkeyPatch, clock: Fixed
 
     monkeypatch.setattr(UsedToken.objects, "using", broken)
     with pytest.raises(RuntimeError):
-        DjangoReplayGuard(clock=clock).mark_used("k", clock() + timedelta(minutes=5))
+        EVPReplayGuard(clock=clock).mark_used("k", clock() + timedelta(minutes=5))
 
 
 def test_refuses_to_run_inside_a_transaction(clock: FixedClock) -> None:
     # A savepoint would be rolled back with the caller's transaction, forgetting the token.
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     with pytest.raises(RuntimeError, match="ATOMIC_REQUESTS"), transaction.atomic():
         guard.mark_used("k", clock() + timedelta(minutes=5))
     assert not UsedToken.objects.exists()
@@ -201,7 +201,7 @@ def test_refuses_to_run_inside_a_transaction(clock: FixedClock) -> None:
 
 def test_outer_rollback_does_not_forget_tokens(issuer: FakeIssuer, token: str, nonce: str) -> None:
     verifier = make_verifier(
-        issuer, audience=AUDIENCE, replay_guard=DjangoReplayGuard("replay", clock=issuer.clock)
+        issuer, audience=AUDIENCE, replay_guard=EVPReplayGuard("replay", clock=issuer.clock)
     )
     with transaction.atomic():
         assert verifier.verify(token, nonce=nonce, email=EMAIL).email == EMAIL
@@ -223,7 +223,7 @@ def _manual_transaction(using: str = "default") -> Iterator[None]:
 
 
 def test_refuses_to_run_with_autocommit_off(clock: FixedClock) -> None:
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     expires = clock() + timedelta(minutes=5)
     with _manual_transaction():
         UsedToken.objects.create(key="earlier-write", expires_at=expires)
@@ -234,7 +234,7 @@ def test_refuses_to_run_with_autocommit_off(clock: FixedClock) -> None:
 
 def test_manual_rollback_does_not_reopen_tokens(issuer: FakeIssuer, token: str, nonce: str) -> None:
     verifier = make_verifier(
-        issuer, audience=AUDIENCE, replay_guard=DjangoReplayGuard(clock=issuer.clock)
+        issuer, audience=AUDIENCE, replay_guard=EVPReplayGuard(clock=issuer.clock)
     )
     with _manual_transaction():
         UsedToken.objects.create(key="earlier-write", expires_at=issuer.clock())
@@ -251,7 +251,7 @@ def test_dedicated_alias_survives_manual_rollback(
     issuer: FakeIssuer, token: str, nonce: str
 ) -> None:
     verifier = make_verifier(
-        issuer, audience=AUDIENCE, replay_guard=DjangoReplayGuard("replay", clock=issuer.clock)
+        issuer, audience=AUDIENCE, replay_guard=EVPReplayGuard("replay", clock=issuer.clock)
     )
     with _manual_transaction():
         assert verifier.verify(token, nonce=nonce, email=EMAIL).email == EMAIL
@@ -264,7 +264,7 @@ def test_works_inside_django_test_case_transactions(clock: FixedClock) -> None:
     # django.test.TestCase wraps each test in atomic blocks it marks like this.
     outer = transaction.atomic()
     outer._from_testcase = True
-    guard = DjangoReplayGuard(clock=clock)
+    guard = EVPReplayGuard(clock=clock)
     with outer:
         assert guard.mark_used("k", clock() + timedelta(minutes=5)) is True
         assert guard.mark_used("k", clock() + timedelta(minutes=5)) is False
@@ -272,7 +272,7 @@ def test_works_inside_django_test_case_transactions(clock: FixedClock) -> None:
 
 @pytest.mark.anyio
 async def test_async_replay_guard(clock: FixedClock) -> None:
-    guard = AsyncDjangoReplayGuard(clock=clock)
+    guard = AsyncEVPReplayGuard(clock=clock)
     expires = clock() + timedelta(minutes=5)
     assert await guard.mark_used("k", expires) is True
     assert await guard.mark_used("k", expires) is False
@@ -285,8 +285,8 @@ def test_verifier_end_to_end(issuer: FakeIssuer, token: str, nonce: str) -> None
     verifier = make_verifier(
         issuer,
         audience=AUDIENCE,
-        cache=DjangoCache("db"),
-        replay_guard=DjangoReplayGuard(clock=issuer.clock),
+        cache=EVPCache("db"),
+        replay_guard=EVPReplayGuard(clock=issuer.clock),
     )
     assert verifier.verify(token, nonce=nonce, email=EMAIL).email == EMAIL
     with pytest.raises(TokenError) as exc:
@@ -302,8 +302,8 @@ async def test_async_verifier_with_database_cache(
     verifier = make_async_verifier(
         issuer,
         audience=AUDIENCE,
-        cache=AsyncDjangoCache("db"),
-        replay_guard=AsyncDjangoReplayGuard(clock=issuer.clock),
+        cache=AsyncEVPCache("db"),
+        replay_guard=AsyncEVPReplayGuard(clock=issuer.clock),
     )
     assert (await verifier.verify(token, nonce=nonce, email=EMAIL)).email == EMAIL
     with pytest.raises(TokenError) as exc:
@@ -374,7 +374,7 @@ def test_each_request_gets_a_new_nonce() -> None:
 
 
 def test_verify_request(issuer: FakeIssuer, browser: FakeBrowser) -> None:
-    verifier = make_verifier(issuer, audience=AUDIENCE, replay_guard=DjangoReplayGuard())
+    verifier = make_verifier(issuer, audience=AUDIENCE, replay_guard=EVPReplayGuard())
     page, nonce = _page()
     token = _present(issuer, browser, nonce)
     request = _submit(page, evt=token)
@@ -428,7 +428,7 @@ def test_verify_request_custom_field_and_audience(issuer: FakeIssuer, browser: F
 @pytest.mark.anyio
 async def test_async_verify_request(issuer: FakeIssuer, browser: FakeBrowser) -> None:
     verifier = make_async_verifier(
-        issuer, audience=AUDIENCE, replay_guard=AsyncDjangoReplayGuard(clock=issuer.clock)
+        issuer, audience=AUDIENCE, replay_guard=AsyncEVPReplayGuard(clock=issuer.clock)
     )
     page = await sync_to_async(_with_session)(RequestFactory().get("/"))
     nonce = await aget_nonce(page)

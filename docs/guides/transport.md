@@ -104,7 +104,7 @@ UrllibFetcher(handlers=[urllib.request.HTTPSHandler(context=ssl_context)])
 
 Issuer metadata and key sets are cached for 10 minutes (`cache_ttl`) in a process-local
 {class}`~pyevp.InMemoryCache`. Pass any {class}`~pyevp.Cache` implementation to share it between
-workers; {class}`pyevp.contrib.django.DjangoCache` is one backed by Django's cache.
+workers; {class}`pyevp.contrib.django.EVPCache` is one backed by Django's cache.
 {class}`~pyevp.AsyncVerifier` also accepts an {class}`~pyevp.AsyncCache`, whose methods are
 coroutines, for stores that must not be called on the event loop. When a signature does not verify,
 the keys are fetched again to pick up key rotation, at most once per `min_refresh_interval`

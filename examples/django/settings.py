@@ -17,7 +17,7 @@ EVP_ORIGIN = os.environ.get("EVP_ORIGIN", "http://localhost:8000")
 
 INSTALLED_APPS = [
     "django.contrib.sessions",
-    "pyevp.contrib.django",  # {% load pyevp %} and DjangoReplayGuard's table
+    "pyevp.contrib.django",  # {% load pyevp %} and EVPReplayGuard's table
 ]
 
 MIDDLEWARE = [

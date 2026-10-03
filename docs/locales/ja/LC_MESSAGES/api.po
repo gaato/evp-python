@@ -784,17 +784,17 @@ msgstr "``{% load pyevp %}`` と ``{% evp_token_input %}`` はトークン用の
 
 #: of pyevp.contrib.django:7
 msgid ""
-":class:`DjangoCache` / :class:`AsyncDjangoCache` share issuer metadata "
+":class:`EVPCache` / :class:`AsyncEVPCache` share issuer metadata "
 "and key sets between workers through Django's cache framework."
 msgstr ""
-"{class}`DjangoCache` と {class}`AsyncDjangoCache` は、Django "
+"{class}`EVPCache` と {class}`AsyncEVPCache` は、Django "
 "のキャッシュフレームワークを通じて、発行者のメタデータと鍵セットをワーカー間で共有します。"
 
 #: of pyevp.contrib.django:9
 msgid ""
-":class:`DjangoReplayGuard` / :class:`AsyncDjangoReplayGuard` remember "
+":class:`EVPReplayGuard` / :class:`AsyncEVPReplayGuard` remember "
 "accepted tokens in a database table."
-msgstr "{class}`DjangoReplayGuard` と {class}`AsyncDjangoReplayGuard` は、受け入れたトークンをデータベースのテーブルに記録します。"
+msgstr "{class}`EVPReplayGuard` と {class}`AsyncEVPReplayGuard` は、受け入れたトークンをデータベースのテーブルに記録します。"
 
 #: of pyevp.contrib.django:27
 msgid ""
@@ -806,7 +806,7 @@ msgstr "キャッシュとデータベースは呼び出しのたびに参照す
 msgid "For running an issuer, see :mod:`pyevp.contrib.django.issuer`."
 msgstr "発行者を運用する場合は {mod}`pyevp.contrib.django.issuer` を参照してください。"
 
-#: of pyevp.contrib.django.AsyncDjangoCache:1
+#: of pyevp.contrib.django.AsyncEVPCache:1
 msgid ""
 "An :class:`~pyevp.AsyncCache` using Django's async cache API (``aget`` / "
 "``aset``)."
@@ -814,40 +814,40 @@ msgstr ""
 "Django の非同期キャッシュ API（``aget`` と ``aset``）を使う {class}`~pyevp.AsyncCache` "
 "です。"
 
-#: of pyevp.contrib.django.AsyncDjangoCache:3
-msgid "Takes the same arguments as :class:`DjangoCache` and shares its entries."
-msgstr "{class}`DjangoCache` と同じ引数を取り、そのエントリーを共有します。"
+#: of pyevp.contrib.django.AsyncEVPCache:3
+msgid "Takes the same arguments as :class:`EVPCache` and shares its entries."
+msgstr "{class}`EVPCache` と同じ引数を取り、そのエントリーを共有します。"
 
-#: of pyevp.contrib.django.AsyncDjangoReplayGuard:1
-msgid ":class:`DjangoReplayGuard` for :class:`~pyevp.AsyncVerifier`."
-msgstr "{class}`~pyevp.AsyncVerifier` 用の {class}`DjangoReplayGuard` です。"
+#: of pyevp.contrib.django.AsyncEVPReplayGuard:1
+msgid ":class:`EVPReplayGuard` for :class:`~pyevp.AsyncVerifier`."
+msgstr "{class}`~pyevp.AsyncVerifier` 用の {class}`EVPReplayGuard` です。"
 
-#: of pyevp.contrib.django.AsyncDjangoReplayGuard:3
+#: of pyevp.contrib.django.AsyncEVPReplayGuard:3
 msgid "The database work runs in Django's thread for synchronous code."
 msgstr "データベースの処理は、Django が同期コード用に使うスレッドで実行します。"
 
-#: of pyevp.contrib.django.DjangoCache:1
+#: of pyevp.contrib.django.EVPCache:1
 msgid "A :class:`~pyevp.Cache` backed by one of Django's ``CACHES``."
 msgstr "Django の ``CACHES`` のいずれかを使う {class}`~pyevp.Cache` です。"
 
-#: of pyevp.contrib.django.DjangoCache:3
+#: of pyevp.contrib.django.EVPCache:3
 msgid ""
 "Use a backend shared between workers (Redis, Memcached, database) for the"
 " cache to help; ``locmem`` is per process like "
 ":class:`~pyevp.InMemoryCache`. An evicted entry is simply fetched again."
-"  With :class:`~pyevp.AsyncVerifier`, use :class:`AsyncDjangoCache`, "
+"  With :class:`~pyevp.AsyncVerifier`, use :class:`AsyncEVPCache`, "
 "which does not block the event loop."
 msgstr ""
 "キャッシュを役立てるには、ワーカー間で共有されるバックエンド（Redis、Memcached、データベース）を使ってください。``locmem``"
 " は {class}`~pyevp.InMemoryCache` "
 "と同じくプロセスごとです。追い出されたエントリーは取得し直すだけです。{class}`~pyevp.AsyncVerifier` "
-"では、イベントループをブロックしない {class}`AsyncDjangoCache` を使ってください。"
+"では、イベントループをブロックしない {class}`AsyncEVPCache` を使ってください。"
 
-#: of pyevp.contrib.django.DjangoReplayGuard:1
+#: of pyevp.contrib.django.EVPReplayGuard:1
 msgid "A :class:`~pyevp.ReplayGuard` storing accepted tokens in the database."
 msgstr "受け入れたトークンをデータベースに記録する {class}`~pyevp.ReplayGuard` です。"
 
-#: of pyevp.contrib.django.DjangoReplayGuard:3
+#: of pyevp.contrib.django.EVPReplayGuard:3
 msgid ""
 "Each token is a row keyed by its digest until the token expires; a second"
 " insert of the same key fails on the primary key, so concurrent workers "
@@ -858,7 +858,7 @@ msgstr ""
 "各トークンは、期限が切れるまでダイジェストをキーとする 1 行として残ります。同じキーの 2 "
 "回目の挿入は主キーの制約で失敗するので、並行して動くワーカーが同じトークンを両方とも受け入れることはありません。キャッシュと違ってテーブルは行を早めに追い出さず、データベースのエラーはそのまま伝わるので、検証は安全側に失敗します。期限切れの行は、新しいトークンを記録するときに削除します。"
 
-#: of pyevp.contrib.django.DjangoReplayGuard:9
+#: of pyevp.contrib.django.EVPReplayGuard:9
 msgid ""
 "Each record is committed immediately in its own transaction, so a later "
 "rollback of the request cannot undo it.  Called inside a transaction on "
@@ -872,7 +872,7 @@ msgstr ""
 "を送出します。その場合は、同じデータベースを指し、``ATOMIC_REQUESTS`` がオフで autocommit がオンの別のエイリアスを"
 " ``using`` に指定してください。Django の ``TestCase`` のトランザクションは例外として扱います。"
 
-#: of pyevp.contrib.django.DjangoReplayGuard:16
+#: of pyevp.contrib.django.EVPReplayGuard:16
 msgid ""
 "Requires ``\"pyevp.contrib.django\"`` in ``INSTALLED_APPS`` and "
 "``migrate``."
@@ -997,11 +997,11 @@ msgstr "発行者の ``issuance_endpoint`` です。アドレスを管理して�
 msgid ""
 "Exempt from CSRF protection and from ``ATOMIC_REQUESTS``; use a "
 "synchronous replay guard such as "
-":class:`~pyevp.contrib.django.DjangoReplayGuard`. Put per-IP rate "
+":class:`~pyevp.contrib.django.EVPReplayGuard`. Put per-IP rate "
 "limiting in front of it."
 msgstr ""
 "CSRF 保護と ``ATOMIC_REQUESTS`` "
-"の対象外です。{class}`~pyevp.contrib.django.DjangoReplayGuard` "
+"の対象外です。{class}`~pyevp.contrib.django.EVPReplayGuard` "
 "などの同期のリプレイガードを使ってください。前段に IP アドレスごとのレート制限を置いてください。"
 
 #: of pyevp.contrib.django.issuer.IssuanceView.as_view:1

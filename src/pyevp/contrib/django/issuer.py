@@ -158,7 +158,7 @@ class IssuanceView(_IssuerView):
     """The issuer's ``issuance_endpoint``: an EVT for a user who controls the address.
 
     Exempt from CSRF protection and from ``ATOMIC_REQUESTS``; use a synchronous
-    replay guard such as :class:`~pyevp.contrib.django.DjangoReplayGuard`.
+    replay guard such as :class:`~pyevp.contrib.django.EVPReplayGuard`.
     Put per-IP rate limiting in front of it.
     """
 
@@ -170,7 +170,7 @@ class IssuanceView(_IssuerView):
         # A forged cross-site POST cannot pass: Sec-Fetch-Dest: email-verification can only
         # come from the browser itself, and a JSON body needs a CORS preflight.
         view = csrf_exempt(view)
-        # The replay guard must commit its record on its own; see DjangoReplayGuard.
+        # The replay guard must commit its record on its own; see EVPReplayGuard.
         view._non_atomic_requests = set(settings.DATABASES)
         return view
 

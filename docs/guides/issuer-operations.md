@@ -193,8 +193,8 @@ hooks, such as `AccountsView.as_view(site=evp)`.
 {class}`~pyevp.contrib.django.issuer.IssuanceView` is always exempt from CSRF checks and from
 `ATOMIC_REQUESTS`. A forged cross-site request cannot carry `Sec-Fetch-Dest:
 email-verification` or a valid signature. The exemption from `ATOMIC_REQUESTS` lets
-{class}`~pyevp.contrib.django.DjangoReplayGuard` commit its record on its own, so pass
-`replay_guard=DjangoReplayGuard()` to the `Issuer` without a second database alias. The view is
+{class}`~pyevp.contrib.django.EVPReplayGuard` commit its record on its own, so pass
+`replay_guard=EVPReplayGuard()` to the `Issuer` without a second database alias. The view is
 synchronous, so use the synchronous guard. Bodies over 16 KiB are refused before they are read.
 
 Settings:

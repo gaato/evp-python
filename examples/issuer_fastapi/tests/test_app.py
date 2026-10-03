@@ -15,6 +15,7 @@ from pyevp.testing import FakeBrowser, FixedClock, InMemoryDns, InMemoryHttp
 
 PUBLIC_URL = "https://issuer.example"
 RP = "https://rp.example"
+SAME_ORIGIN = {"Origin": PUBLIC_URL, "Sec-Fetch-Site": "same-origin"}
 
 
 @pytest.fixture
@@ -49,7 +50,7 @@ def _issue(client: TestClient, browser: FakeBrowser, email: str) -> httpx2.Respo
 def _login(
     client: TestClient, email: str = "alice@example.com", password: str = "hunter2"
 ) -> httpx2.Response:
-    return client.post("/login", data={"email": email, "password": password})
+    return client.post("/login", data={"email": email, "password": password}, headers=SAME_ORIGIN)
 
 
 def test_documents(client: TestClient, issuer: Issuer) -> None:
@@ -95,7 +96,7 @@ def test_failures_look_the_same(client: TestClient, clock: FixedClock) -> None:
 def test_login_status(client: TestClient, clock: FixedClock) -> None:
     login = _login(client)
     assert login.headers["set-login"] == "logged-in"
-    logout = client.post("/logout")
+    logout = client.post("/logout", headers=SAME_ORIGIN)
     assert logout.headers["set-login"] == "logged-out"
     assert _issue(client, FakeBrowser(clock=clock), "alice@example.com").status_code == 401
 
@@ -114,6 +115,40 @@ def test_fedcm_documents(client: TestClient) -> None:
             {"id": "alice@example.com", "email": "alice@example.com", "name": "alice@example.com"}
         ]
     }
+
+
+def _signed_in_as(client: TestClient) -> str | None:
+    response = client.get("/fedcm/accounts", headers={"Sec-Fetch-Dest": "webidentity"})
+    return response.json()["accounts"][0]["id"] if response.status_code == 200 else None
+
+
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Origin": RP, "Sec-Fetch-Site": "cross-site"},
+        {"Origin": PUBLIC_URL, "Sec-Fetch-Site": "same-site"},
+        {"Sec-Fetch-Site": "cross-site"},
+        {"Origin": RP},
+        {"Origin": "null"},
+        {},
+    ],
+)
+def test_cross_site_login_and_logout_are_refused(
+    client: TestClient, headers: dict[str, str]
+) -> None:
+    # Login CSRF would sign the visitor in to the attacker's account.
+    data = {"email": "alice@example.com", "password": "hunter2"}
+    assert client.post("/login", data=data, headers=headers).status_code == 403
+    assert _signed_in_as(client) is None
+    _login(client)
+    assert client.post("/logout", headers=headers).status_code == 403
+    assert _signed_in_as(client) == "alice@example.com"
+
+
+def test_same_origin_without_fetch_metadata(client: TestClient) -> None:
+    data = {"email": "alice@example.com", "password": "hunter2"}
+    assert client.post("/login", data=data, headers={"Origin": PUBLIC_URL}).status_code == 200
+    assert _signed_in_as(client) == "alice@example.com"
 
 
 def test_bad_password(client: TestClient) -> None:

@@ -142,6 +142,9 @@ and then stops without telling the page why.
   `navigator.login.setStatus("logged-in")`), and `logged-out` on logout.
 - **Cookies.** Both the accounts request and the issuance request are cross-site from the relying
   party, so the session cookie needs `SameSite=None; Secure`. Scope it to the issuer's origin.
+  Browsers then send it with cross-site form posts as well, so protect login, logout and other
+  requests that change the session against CSRF (a CSRF token, or checking `Sec-Fetch-Site` /
+  `Origin`). Otherwise another site can sign visitors in to an account it controls.
 - **EVT header.** Chrome accepts only `EdDSA`, `ES256` and `RS256` in the EVT header, not the
   `Ed25519` the draft requires. The default `chrome-153` profile therefore writes `EdDSA` for
   Ed25519 keys, as Gmail does. Relying parties using this library's default profile accept

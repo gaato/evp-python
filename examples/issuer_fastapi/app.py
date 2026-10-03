@@ -28,6 +28,7 @@ import html
 import json
 import os
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -55,8 +56,12 @@ SESSION_USER = "user"
 def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) -> FastAPI:
     """``users`` maps each email address to its (demo) password."""
     app = FastAPI()
+    endpoint = urlsplit(issuer.issuance_endpoint)
+    origin = f"{endpoint.scheme}://{endpoint.netloc}"
     # Chrome sends the issuer's cookies with its FedCM accounts request and the issuance
     # request, both cross-site from the relying party: the cookie needs SameSite=None.
+    # Browsers then send it with cross-site form posts too, so the endpoints that change
+    # the session check where the request comes from (see _same_origin).
     app.add_middleware(
         SessionMiddleware, secret_key=session_secret, same_site="none", https_only=True
     )
@@ -119,6 +124,8 @@ def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) ->
     async def login(
         request: Request, email: Annotated[str, Form()], password: Annotated[str, Form()]
     ) -> Response:
+        if not _same_origin(request, origin):
+            return HTMLResponse("<p>Cross-site request refused</p>", status_code=403)
         expected = users.get(email, "")
         if not hmac.compare_digest(expected.encode(), password.encode()) or not expected:
             return HTMLResponse(f"<p>Wrong password for {html.escape(email)}</p>", status_code=401)
@@ -132,10 +139,25 @@ def create_app(issuer: Issuer, users: dict[str, str], *, session_secret: str) ->
 
     @app.post("/logout")
     async def logout(request: Request) -> Response:
+        if not _same_origin(request, origin):
+            return HTMLResponse("<p>Cross-site request refused</p>", status_code=403)
         request.session.clear()
         return HTMLResponse("<p>Logged out</p>", headers={"Set-Login": "logged-out"})
 
     return app
+
+
+def _same_origin(request: Request, origin: str) -> bool:
+    """Whether a browser sent ``request`` from this app's own pages.
+
+    Otherwise another site could log visitors in to an account of its choosing (login
+    CSRF), so their next EVT asserts that address.  Browsers send ``Sec-Fetch-Site``;
+    older ones only ``Origin``.  A request with neither is refused.
+    """
+    site = request.headers.get("sec-fetch-site")
+    if site is not None:
+        return site == "same-origin"
+    return request.headers.get("origin") == origin
 
 
 def _response(result: IssuanceResponse) -> Response:

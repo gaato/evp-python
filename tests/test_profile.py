@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import dataclasses
+import typing
 from datetime import timedelta
 
 import pytest
 
 from pyevp import DEFAULT_PROFILE, EmailComparison, Profile
+from pyevp.issuer.profile import IssuanceProfile, IssuanceProfileChanges
+from pyevp.profile import ProfileChanges
 
 
 def test_default_is_compat() -> None:
@@ -16,6 +19,20 @@ def test_replace_returns_new_profile() -> None:
     custom = DEFAULT_PROFILE.replace(max_token_age=timedelta(minutes=1))
     assert custom.max_token_age == timedelta(minutes=1)
     assert DEFAULT_PROFILE.max_token_age == timedelta(minutes=5)
+
+
+@pytest.mark.parametrize(
+    ("profile", "changes"),
+    [(Profile, ProfileChanges), (IssuanceProfile, IssuanceProfileChanges)],
+)
+def test_replace_arguments_match_the_fields(profile: type, changes: type) -> None:
+    hints = typing.get_type_hints
+    assert list(hints(changes).items()) == list(hints(profile).items())
+
+
+def test_replace_refuses_unknown_fields() -> None:
+    with pytest.raises(TypeError):
+        DEFAULT_PROFILE.replace(max_token_agee=timedelta(minutes=1))
 
 
 def test_profiles_are_immutable() -> None:

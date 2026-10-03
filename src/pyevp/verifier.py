@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from contextlib import AsyncExitStack, ExitStack, contextmanager
 from datetime import datetime, timedelta
 from types import TracebackType
-from typing import Any, Self
+from typing import Self
 from urllib.parse import urlsplit
 
 from pyevp.cache import AsyncCache, Cache, CacheEntry, InMemoryCache
@@ -196,27 +196,52 @@ class Verifier(_Base):
         self._cache = cache if cache is not None else InMemoryCache(clock=clock)
 
     @classmethod
-    def default(cls, *, audience: str, **kwargs: Any) -> Self:
+    def default(
+        cls,
+        *,
+        audience: str,
+        resolver: TxtResolver | None = None,
+        fetcher: JsonFetcher | None = None,
+        profile: Profile = DEFAULT_PROFILE,
+        cache: Cache | None = None,
+        clock: Clock = system_clock,
+        cache_ttl: timedelta = timedelta(minutes=10),
+        min_refresh_interval: timedelta = timedelta(minutes=1),
+        replay_guard: ReplayGuard | None = None,
+        observer: Observer | None = None,
+    ) -> Self:
         """Build a verifier using dnspython and httpx (``pip install pyevp[all]``).
 
-        Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
+        ``resolver`` and ``fetcher`` default to those adapters, which :meth:`close` closes;
+        the other arguments are the constructor's.
         """
         owned: list[object] = []
-        if "resolver" not in kwargs:
+        if resolver is None:
             try:
                 from pyevp.adapters.dnspython import DnsPythonResolver  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "dnspython") from exc
-            kwargs["resolver"] = DnsPythonResolver()
-            owned.append(kwargs["resolver"])
-        if "fetcher" not in kwargs:
+            resolver = DnsPythonResolver()
+            owned.append(resolver)
+        if fetcher is None:
             try:
                 from pyevp.adapters.httpx import HttpxFetcher  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "httpx2 or httpx") from exc
-            kwargs["fetcher"] = HttpxFetcher()
-            owned.append(kwargs["fetcher"])
-        verifier = cls(audience=audience, **kwargs)
+            fetcher = HttpxFetcher()
+            owned.append(fetcher)
+        verifier = cls(
+            audience=audience,
+            resolver=resolver,
+            fetcher=fetcher,
+            profile=profile,
+            cache=cache,
+            clock=clock,
+            cache_ttl=cache_ttl,
+            min_refresh_interval=min_refresh_interval,
+            replay_guard=replay_guard,
+            observer=observer,
+        )
         verifier._owned = tuple(owned)
         return verifier
 
@@ -338,27 +363,52 @@ class AsyncVerifier(_Base):
         self._cache = cache if cache is not None else InMemoryCache(clock=clock)
 
     @classmethod
-    def default(cls, *, audience: str, **kwargs: Any) -> Self:
+    def default(
+        cls,
+        *,
+        audience: str,
+        resolver: AsyncTxtResolver | None = None,
+        fetcher: AsyncJsonFetcher | None = None,
+        profile: Profile = DEFAULT_PROFILE,
+        cache: Cache | AsyncCache | None = None,
+        clock: Clock = system_clock,
+        cache_ttl: timedelta = timedelta(minutes=10),
+        min_refresh_interval: timedelta = timedelta(minutes=1),
+        replay_guard: ReplayGuard | AsyncReplayGuard | None = None,
+        observer: Observer | None = None,
+    ) -> Self:
         """Build a verifier using dnspython and httpx (``pip install pyevp[all]``).
 
-        Any constructor argument, including ``resolver`` / ``fetcher``, can be overridden.
+        ``resolver`` and ``fetcher`` default to those adapters, which :meth:`aclose` closes;
+        the other arguments are the constructor's.
         """
         owned: list[object] = []
-        if "resolver" not in kwargs:
+        if resolver is None:
             try:
                 from pyevp.adapters.dnspython import AsyncDnsPythonResolver  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "dnspython") from exc
-            kwargs["resolver"] = AsyncDnsPythonResolver()
-            owned.append(kwargs["resolver"])
-        if "fetcher" not in kwargs:
+            resolver = AsyncDnsPythonResolver()
+            owned.append(resolver)
+        if fetcher is None:
             try:
                 from pyevp.adapters.httpx import AsyncHttpxFetcher  # noqa: PLC0415
             except ImportError as exc:
                 raise _missing_extras(cls, "httpx2 or httpx") from exc
-            kwargs["fetcher"] = AsyncHttpxFetcher()
-            owned.append(kwargs["fetcher"])
-        verifier = cls(audience=audience, **kwargs)
+            fetcher = AsyncHttpxFetcher()
+            owned.append(fetcher)
+        verifier = cls(
+            audience=audience,
+            resolver=resolver,
+            fetcher=fetcher,
+            profile=profile,
+            cache=cache,
+            clock=clock,
+            cache_ttl=cache_ttl,
+            min_refresh_interval=min_refresh_interval,
+            replay_guard=replay_guard,
+            observer=observer,
+        )
         verifier._owned = tuple(owned)
         return verifier
 

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Any, Self
+from typing import Self, TypedDict, Unpack
 
 from pyevp._email import EmailComparison, emails_match
 
@@ -24,6 +24,7 @@ __all__ = [
     "EmailComparison",
     "IssuerFormat",
     "Profile",
+    "ProfileChanges",
 ]
 
 
@@ -118,9 +119,29 @@ class Profile:
         """
         return emails_match(asserted, submitted, self.email_comparison)
 
-    def replace(self, **changes: Any) -> Self:
+    def replace(self, **changes: Unpack[ProfileChanges]) -> Self:
         """Return a copy with some fields changed (``dataclasses.replace``)."""
         return dataclasses.replace(self, **changes)
+
+
+class ProfileChanges(TypedDict, total=False):
+    """The fields of :class:`Profile`, as keyword arguments of :meth:`Profile.replace`."""
+
+    name: str
+    evt_types: frozenset[str]
+    kb_types: frozenset[str]
+    evt_algorithms: frozenset[str]
+    kb_algorithms: frozenset[str]
+    require_kid: bool
+    require_cnf_alg: bool
+    issuer_format: IssuerFormat
+    email_comparison: EmailComparison
+    max_token_age: timedelta
+    clock_skew: timedelta
+    require_exp: bool
+    allow_disclosures: bool
+    dns_label: str
+    metadata_path: str
 
 
 PROFILES: Mapping[str, Profile] = MappingProxyType(

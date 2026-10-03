@@ -12,9 +12,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from types import MappingProxyType
-from typing import Any, Self
+from typing import Self, TypedDict, Unpack
 
-__all__ = ["DEFAULT_ISSUANCE_PROFILE", "ISSUANCE_PROFILES", "IssuanceProfile"]
+__all__ = [
+    "DEFAULT_ISSUANCE_PROFILE",
+    "ISSUANCE_PROFILES",
+    "IssuanceProfile",
+    "IssuanceProfileChanges",
+]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -67,8 +72,21 @@ class IssuanceProfile:
             known = ", ".join(ISSUANCE_PROFILES)
             raise ValueError(f"unknown issuance profile {name!r}; known: {known}") from None
 
-    def replace(self, **changes: Any) -> Self:
+    def replace(self, **changes: Unpack[IssuanceProfileChanges]) -> Self:
+        """Return a copy with some fields changed (``dataclasses.replace``)."""
         return dataclasses.replace(self, **changes)
+
+
+class IssuanceProfileChanges(TypedDict, total=False):
+    """The fields of :class:`IssuanceProfile`, as keyword arguments of its ``replace``."""
+
+    name: str
+    request_algorithms: frozenset[str]
+    require_request_key_alg: bool
+    max_request_age: timedelta
+    require_sec_fetch_dest: bool
+    evt_type: str
+    polymorphic_eddsa_header: bool
 
 
 ISSUANCE_PROFILES: Mapping[str, IssuanceProfile] = MappingProxyType(

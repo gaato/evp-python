@@ -16,6 +16,8 @@ from enum import StrEnum
 from types import MappingProxyType
 from typing import Any, Self
 
+from pyevp._email import EmailComparison, emails_match
+
 __all__ = [
     "DEFAULT_PROFILE",
     "PROFILES",
@@ -33,13 +35,6 @@ class IssuerFormat(StrEnum):
     ORIGIN = "origin"
     """HTTPS origin, e.g. ``https://accounts.google.com`` (draft-hardt -02)."""
     ANY = "any"
-
-
-class EmailComparison(StrEnum):
-    EXACT = "exact"
-    """Byte-for-byte (IETF draft)."""
-    CASE_INSENSITIVE = "case_insensitive"
-    """Unicode case-folded (W3C Email Verification API)."""
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -114,6 +109,14 @@ class Profile:
             return PROFILES[name]
         except KeyError:
             raise ValueError(f"unknown profile {name!r}; known: {', '.join(PROFILES)}") from None
+
+    def emails_match(self, asserted: str, submitted: str) -> bool:
+        """Compare two addresses the way verification does (see :class:`EmailComparison`).
+
+        Use it when looking up the account for a verified address, so that lookup and
+        verification agree on which addresses are the same.
+        """
+        return emails_match(asserted, submitted, self.email_comparison)
 
     def replace(self, **changes: Any) -> Self:
         """Return a copy with some fields changed (``dataclasses.replace``)."""

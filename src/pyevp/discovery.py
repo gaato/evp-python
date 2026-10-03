@@ -7,9 +7,8 @@ from collections.abc import Sequence
 from typing import Any
 from urllib.parse import urlsplit
 
-import idna
-
 from pyevp import _jose
+from pyevp._email import email_domain
 from pyevp.errors import DiscoveryError, ErrorCode
 from pyevp.profile import IssuerFormat, Profile
 from pyevp.types import IssuerMetadata, JSONObject
@@ -49,23 +48,6 @@ def is_public_hostname(host: str) -> bool:
     if "." not in name:
         return False
     return not any(name == s or name.endswith("." + s) for s in _PRIVATE_SUFFIXES)
-
-
-def email_domain(email: str) -> str:
-    """Return the DNS (A-label) form of the domain part of ``email``.
-
-    Internationalised domains are mapped with UTS #46 / IDNA2008, as browsers do.
-    Python's ``"idna"`` codec implements IDNA2003, which maps some names onto other
-    domains (``faß.example`` → ``fass.example``).  Raises :class:`UnicodeError` for
-    invalid internationalised domains.
-    """
-    local, sep, domain = email.rpartition("@")
-    if not sep or not local or not domain:
-        raise ValueError(f"not an email address: {email!r}")
-    domain = domain.rstrip(".")
-    if domain.isascii():
-        return domain.lower()
-    return idna.encode(domain, uts46=True).decode("ascii")
 
 
 def txt_name_for(email: str, profile: Profile) -> str:

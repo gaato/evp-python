@@ -17,7 +17,8 @@ ALICE = "alice@example.com"
 
 @pytest.fixture
 def issuer() -> Iterator[FakeIssuer]:
-    issuer = FakeIssuer()
+    # Also authoritative for faß.example, a different domain from fass.example.
+    issuer = FakeIssuer(email_domains=("example.com", "xn--fa-hia.example"))
     verifier = make_async_verifier(
         issuer, audience=example.ORIGIN, replay_guard=InMemoryReplayGuard(clock=issuer.clock)
     )
@@ -110,6 +111,17 @@ def test_token_for_another_address_sends_the_email(client: TestClient, issuer: F
     reply = _recover(client, ALICE, _token(client, issuer, "mallory@example.com"))
     assert reply == {"message": example.GENERIC_REPLY}
     assert len(OUTBOX) == 1
+
+
+def test_token_for_a_case_folded_domain_sends_the_email(
+    client: TestClient, issuer: FakeIssuer
+) -> None:
+    # "faß".casefold() is "fass", but the two are different DNS names and owners.
+    victim = "a@fass.example"
+    USERS[victim] = User(victim)
+    reply = _recover(client, victim, _token(client, issuer, "a@faß.example"))
+    assert reply == {"message": example.GENERIC_REPLY}
+    assert [address for address, _ in OUTBOX] == [victim]
 
 
 def test_inactive_user_gets_nothing(client: TestClient, issuer: FakeIssuer) -> None:

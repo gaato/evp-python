@@ -1,5 +1,6 @@
 """Relying-party verification for the Email Verification Protocol (EVP)."""
 
+from pyevp._email import emails_match
 from pyevp.cache import AsyncCache, Cache, CacheEntry, InMemoryCache, NullCache
 from pyevp.errors import DiscoveryError, ErrorCode, EVPError, PolicyError, TokenError
 from pyevp.nonce import generate_nonce, nonces_equal
@@ -40,6 +41,7 @@ __all__ = [
     "VerificationEvent",
     "VerifiedEmail",
     "Verifier",
+    "emails_match",
     "generate_nonce",
     "nonces_equal",
 ]

@@ -18,7 +18,7 @@ from typing import Any, Literal, TypeAlias
 
 from pyevp import _jose, discovery
 from pyevp.errors import DiscoveryError, ErrorCode, PolicyError, TokenError
-from pyevp.profile import EmailComparison, Profile
+from pyevp.profile import Profile
 from pyevp.token import ParsedToken, compute_sd_hash, parse_token
 from pyevp.types import JSONObject, VerifiedEmail
 
@@ -223,16 +223,8 @@ def verify_evt_signature(token: ParsedToken, keys: Sequence[JSONObject], profile
         raise TokenError(ErrorCode.EVT_SIGNATURE_INVALID, "EVT signature is invalid")
 
 
-def emails_match(asserted: str, submitted: str, comparison: EmailComparison) -> bool:
-    if comparison is EmailComparison.CASE_INSENSITIVE:
-        return asserted.casefold() == submitted.casefold()
-    return asserted == submitted
-
-
 def check_email(asserted: str, submitted: str | None, profile: Profile) -> None:
-    if submitted is not None and not emails_match(
-        asserted, submitted.strip(), profile.email_comparison
-    ):
+    if submitted is not None and not profile.emails_match(asserted, submitted.strip()):
         raise PolicyError(ErrorCode.EMAIL_MISMATCH, "token email does not match submitted email")
 
 

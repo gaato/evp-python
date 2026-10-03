@@ -10,7 +10,15 @@ from typing import Any, Literal, TypeAlias
 import anyio
 import pytest
 
-from pyevp import DEFAULT_PROFILE, ErrorCode, EVPError, Profile, Verifier
+from pyevp import (
+    DEFAULT_PROFILE,
+    EmailComparison,
+    ErrorCode,
+    EVPError,
+    Profile,
+    Verifier,
+    emails_match,
+)
 from pyevp._jose import b64url_encode
 from pyevp.core import FetchJson, ResolveTxt, verification_steps
 from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, make_async_verifier, make_verifier
@@ -334,6 +342,47 @@ def test_idn_domain_is_not_folded_to_another_domain(
     with pytest.raises(EVPError) as exc:
         make_verifier(issuer, audience=AUDIENCE).verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.ISSUER_DISCOVERY_FAILED
+
+
+@pytest.mark.parametrize(
+    ("asserted", "submitted", "ok"),
+    [
+        ("alice@example.com", "ALICE@EXAMPLE.com", True),
+        ("a@Bücher.example", "a@xn--bcher-kva.example", True),
+        ("Straße@example.com", "STRASSE@example.com", True),
+        ("a@faß.example", "a@fass.example", False),
+        ("a@fass.example", "a@FASS.example", True),
+        ("a@example.com", "a@example.com.", False),
+        ("a@example.com", "b@example.com", False),
+        ("a@\u0300x.example", "a@\u0300x.example", False),  # invalid IDNA2008 label
+        ("a@example.com", "example.com", False),
+    ],
+)
+def test_case_insensitive_emails_match(asserted: str, submitted: str, ok: bool) -> None:
+    profile = Profile.compat_2026_10()
+    assert emails_match(asserted, submitted, EmailComparison.CASE_INSENSITIVE) is ok
+    assert profile.emails_match(asserted, submitted) is ok
+
+
+def test_exact_emails_match() -> None:
+    profile = Profile.draft_hardt_02()
+    assert profile.emails_match("a@example.com", "a@example.com")
+    assert not profile.emails_match("a@example.com", "A@example.com")
+
+
+def test_case_folding_does_not_merge_domains(
+    browser: FakeBrowser, nonce: str, clock: FixedClock
+) -> None:
+    # The holder of a@faß.example must not pass for a@fass.example, another DNS name.
+    issuer = FakeIssuer(email_domains=("xn--fa-hia.example",), clock=clock)
+    token = browser.present(
+        issuer.issue("a@faß.example", browser.public_jwk), audience=AUDIENCE, nonce=nonce
+    )
+    verifier = make_verifier(issuer, audience=AUDIENCE)
+    assert verifier.verify(token, nonce=nonce, email="A@FAß.example").email == "a@faß.example"
+    with pytest.raises(EVPError) as exc:
+        verifier.verify(token, nonce=nonce, email="a@fass.example")
+    assert exc.value.code is ErrorCode.EMAIL_MISMATCH
 
 
 def test_holder_key_without_verify_op_is_refused(

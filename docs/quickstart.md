@@ -80,6 +80,12 @@ example a form sent with `fetch()`: its next submission still has a nonce to che
 
 `AsyncVerifier` has the same API: `await verifier.verify(...)`.
 
+`result.email` is the address the issuer asserted. Under the default profile it may differ from
+the submitted one in case. To find the account, compare addresses with
+{meth}`verifier.profile.emails_match() <pyevp.Profile.emails_match>`, which applies the same rule
+as verification: the local part is case-folded, and domains are compared as DNS names, so
+`faß.example` and `fass.example` stay different.
+
 (handle-failures)=
 
 ## 3. Handle failures

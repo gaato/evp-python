@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 10:54+0900\n"
+"POT-Creation-Date: 2026-10-03 23:44+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -1103,15 +1103,15 @@ msgstr ""
 "{class}`IssuerSite` は、Chrome "
 "が発行者に求めるものをすべて提供します。どのアドレスにトークンを発行するかは、ログイン中の Django ユーザーで決まります。"
 
-#: of pyevp.contrib.django.issuer:12
+#: of pyevp.contrib.django.issuer:16
 msgid ""
-"Subclass it to choose the issuer per request "
-"(:meth:`IssuerSite.get_issuer`) or the addresses a user may get tokens "
-"for (:meth:`IssuerSite.user_emails`).  Each endpoint is also a view of "
-"its own, for mounting it somewhere else::"
-msgstr "サブクラスを作れば、リクエストごとに発行者を選んだり（{meth}`IssuerSite.get_issuer`）、ユーザーがトークンを受け取れるアドレスを選んだり（{meth}`IssuerSite.user_emails`）できます。各エンドポイントはそれぞれ単独のビューでもあるので、別の場所にマウントできます。"
+"Subclass it to say which addresses a user may get tokens for "
+"(:meth:`IssuerSite.user_emails`, required) and, optionally, to choose the"
+" issuer per request (:meth:`IssuerSite.get_issuer`).  Each endpoint is "
+"also a view of its own, for mounting it somewhere else::"
+msgstr "サブクラスを作り、ユーザーがトークンを受け取れるアドレスを指定します（{meth}`IssuerSite.user_emails`、必須）。必要なら、リクエストごとに発行者を選ぶこともできます（{meth}`IssuerSite.get_issuer`）。各エンドポイントはそれぞれ単独のビューでもあるので、別の場所にマウントできます。"
 
-#: of pyevp.contrib.django.issuer:18
+#: of pyevp.contrib.django.issuer:23
 msgid ""
 "The session cookie must be ``SameSite=None; Secure``, because Chrome's "
 "requests to the issuer are cross-site; a system check warns otherwise.  "
@@ -1186,9 +1186,16 @@ msgstr "サインイン中のユーザーがトークンを受け取れるアド
 
 #: of pyevp.contrib.django.issuer.IssuerSite.user_emails:3
 msgid ""
-"The default is the user model's email field.  Return only addresses the "
-"user has proven control of."
-msgstr "既定ではユーザーモデルのメールフィールドを使います。ユーザーが管理していると確認済みのアドレスだけを返してください。"
+"Override this.  A token tells relying parties that the user controls the "
+"address, so return only addresses whose mail the user actually receives, "
+"for example the verified addresses of django-allauth, or what your mail "
+"server delivers to the user's mailbox.  A user model's email field is not"
+" that unless your sign-up flow verified it, which is why there is no "
+"default."
+msgstr ""
+"オーバーライドしてください。トークンはユーザーがそのアドレスを管理していることを RP "
+"に伝えるので、ユーザーが実際にメールを受け取れるアドレスだけを返します。たとえば django-allauth "
+"の検証済みアドレスや、メールサーバーがユーザーのメールボックスに配送するアドレスです。ユーザーモデルのメールアドレス欄は、サインアップ時に検証していない限りこれに当たりません。そのため既定の実装はありません。"
 
 #: of pyevp.contrib.django.issuer.IssuerSite.owns:1
 msgid ""
@@ -1374,8 +1381,18 @@ msgstr "追加で公開する公開鍵の JWK。ローテーション前の次�
 #: of pyevp.issuer.core.Issuer:10
 msgid ""
 "domains EVTs may be issued for.  Requests for any other domain are "
-"refused with ``authentication_required``."
-msgstr "EVT を発行してよいドメイン。それ以外のドメインのリクエストは ``authentication_required`` で拒否します。"
+"refused with ``authentication_required``.  Pass a callable returning the "
+"current domains when they change at runtime, for example when they live "
+"in a database.  It is called whenever the domains are needed, may return "
+"none, and names that are not valid domains are skipped with a warning."
+msgstr ""
+"EVT を発行してよいドメインです。それ以外のドメインへの要求は `authentication_required` "
+"で拒否します。データベースで管理しているなど、ドメインが実行中に変わる場合は、現在のドメインを返す callable "
+"を渡します。ドメインが必要になるたびに呼び出され、空を返してもかまいません。ドメインとして正しくない名前は警告を出して読み飛ばします。"
+
+#: of pyevp.issuer.Issuer.email_domains:1
+msgid "The domains EVTs may be issued for now, as lowercase A-labels."
+msgstr "現時点で EVT を発行してよいドメインです。小文字の A ラベルで表します。"
 
 #: of pyevp.issuer.core.Issuer.metadata_document:1
 #, python-brace-format
@@ -1542,4 +1559,16 @@ msgstr "``issuers`` を配信するメモリー上の DNS と HTTP につない�
 
 #~ msgid "on any failure; see ``.code``."
 #~ msgstr "失敗したとき。``.code`` を参照してください。"
+
+#~ msgid ""
+#~ "The default is the user model's "
+#~ "email field.  Return only addresses the"
+#~ " user has proven control of."
+#~ msgstr "既定ではユーザーモデルのメールフィールドを使います。ユーザーが管理していると確認済みのアドレスだけを返してください。"
+
+#~ msgid ""
+#~ "domains EVTs may be issued for.  "
+#~ "Requests for any other domain are "
+#~ "refused with ``authentication_required``."
+#~ msgstr "EVT を発行してよいドメイン。それ以外のドメインのリクエストは ``authentication_required`` で拒否します。"
 

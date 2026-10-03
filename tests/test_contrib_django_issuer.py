@@ -52,6 +52,14 @@ def _clean() -> None:
     UsedToken.objects.all().delete()
 
 
+class EmailSite(IssuerSite):
+    """The tests create each user with an address they own."""
+
+    def user_emails(self, request: HttpRequest) -> list[str]:
+        user = getattr(request, "user", None)
+        return [user.email] if user is not None and user.is_authenticated and user.email else []
+
+
 def _make_issuer(clock: FixedClock, **kwargs: Any) -> Issuer:
     return Issuer(
         issuer=ORIGIN,
@@ -77,7 +85,7 @@ def _mount(*patterns: Any) -> Any:
 
 @pytest.fixture
 def site(issuer: Issuer) -> Iterator[IssuerSite]:
-    site = IssuerSite(issuer, login_url="/accounts/login/")
+    site = EmailSite(issuer, login_url="/accounts/login/")
     with _mount(*site.urls):
         yield site
 
@@ -197,7 +205,7 @@ def test_replay_guard_under_atomic_requests(
     request = FakeBrowser(clock=clock).issuance_request(EMAIL, endpoint=ISSUANCE)
     headers = dict(request["headers"])
     content_type = headers.pop("Content-Type")
-    with _mount(*IssuerSite(issuer).urls):
+    with _mount(*EmailSite(issuer).urls):
         responses = [
             client.post(
                 "/email-verification/issuance",
@@ -225,7 +233,7 @@ def test_accounts_endpoint(client: Client) -> None:
 def test_hooks_choose_issuer_and_addresses(client: Client, clock: FixedClock) -> None:
     issuers = {"issuer.example": _make_issuer(clock)}
 
-    class BrandSite(IssuerSite):
+    class BrandSite(EmailSite):
         def get_issuer(self, request: HttpRequest) -> Issuer:
             return issuers[request.get_host()]
 
@@ -243,7 +251,7 @@ def test_hooks_choose_issuer_and_addresses(client: Client, clock: FixedClock) ->
 def test_views_mount_on_their_own(client: Client, issuer: Issuer) -> None:
     from django.urls import path  # noqa: PLC0415
 
-    site = IssuerSite(issuer)
+    site = EmailSite(issuer)
     with _mount(path("custom/accounts", AccountsView.as_view(site=site))):
         _login(client)
         response = client.get("/custom/accounts", headers={"Sec-Fetch-Dest": "webidentity"})
@@ -260,16 +268,21 @@ def test_paths_must_match_the_issuer(clock: FixedClock) -> None:
         clock=clock,
     )
     with pytest.raises(ImproperlyConfigured, match="/evp/issue"):
-        IssuerSite(issuer)
+        EmailSite(issuer)
 
-    class Site(IssuerSite):
+    class Site(EmailSite):
         issuance_path = "evp/issue"
 
     assert Site(issuer).issuer is issuer
 
 
+def test_user_emails_must_be_overridden(issuer: Issuer) -> None:
+    with pytest.raises(ImproperlyConfigured, match="user_emails"):
+        IssuerSite(issuer)
+
+
 def test_site_without_issuer(client: Client) -> None:
-    with _mount(*IssuerSite().urls), pytest.raises(ImproperlyConfigured):
+    with _mount(*EmailSite().urls), pytest.raises(ImproperlyConfigured):
         client.get("/.well-known/email-verification")
 
 
@@ -284,7 +297,7 @@ def test_login_status_middleware(client: Client) -> None:
 
 
 def test_session_cookie_checks(issuer: Issuer) -> None:
-    site = IssuerSite(issuer)
+    site = EmailSite(issuer)
     assert check_session_cookie() == []
     with override_settings(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=False):
         ids = [m.id for m in check_session_cookie()]

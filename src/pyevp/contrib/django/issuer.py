@@ -6,12 +6,17 @@ logged-in Django user deciding which addresses get tokens::
     # urls.py, on the issuer's origin
     from pyevp.contrib.django.issuer import IssuerSite
 
-    evp = IssuerSite(issuer)          # a pyevp.issuer.Issuer
+    class Site(IssuerSite):
+        def user_emails(self, request):
+            ...                       # addresses whose mail the user receives
+
+    evp = Site(issuer)                # a pyevp.issuer.Issuer
     urlpatterns = [path("", include(evp.urls)), ...]
 
-Subclass it to choose the issuer per request (:meth:`IssuerSite.get_issuer`) or
-the addresses a user may get tokens for (:meth:`IssuerSite.user_emails`).  Each
-endpoint is also a view of its own, for mounting it somewhere else::
+Subclass it to say which addresses a user may get tokens for
+(:meth:`IssuerSite.user_emails`, required) and, optionally, to choose the issuer
+per request (:meth:`IssuerSite.get_issuer`).  Each endpoint is also a view of
+its own, for mounting it somewhere else::
 
     path("fedcm/accounts", AccountsView.as_view(site=evp))
 
@@ -60,6 +65,10 @@ _MAX_BODY = 16 * 1024
 _sites: weakref.WeakSet[IssuerSite] = weakref.WeakSet()
 
 
+def _overrides(cls: type, name: str) -> bool:
+    return getattr(cls, name) is not getattr(IssuerSite, name)
+
+
 class IssuerSite:
     """The issuer's endpoints, bound to one :class:`~pyevp.issuer.Issuer` or chosen per request.
 
@@ -88,6 +97,11 @@ class IssuerSite:
                     raise ImproperlyConfigured(f"{url} is not served at /{route}")
         self.issuer = issuer
         self.login_url = login_url
+        if not _overrides(type(self), "user_emails"):
+            raise ImproperlyConfigured(
+                "subclass IssuerSite and override user_emails() with the addresses whose "
+                "mail the signed-in user receives"
+            )
         _sites.add(self)
 
     # --- hooks ---
@@ -101,14 +115,13 @@ class IssuerSite:
     def user_emails(self, request: HttpRequest) -> Sequence[str]:
         """Addresses the signed-in user may get tokens for; empty without a session.
 
-        The default is the user model's email field.  Return only addresses the
-        user has proven control of.
+        Override this.  A token tells relying parties that the user controls the address, so
+        return only addresses whose mail the user actually receives, for example the
+        verified addresses of django-allauth, or what your mail server delivers to the
+        user's mailbox.  A user model's email field is not that unless your sign-up flow
+        verified it, which is why there is no default.
         """
-        user = getattr(request, "user", None)
-        if user is None or not user.is_authenticated:
-            return []
-        email = getattr(user, user.get_email_field_name(), "")
-        return [email] if email else []
+        raise NotImplementedError
 
     def owns(self, request: HttpRequest, email: str) -> bool:
         """Whether the signed-in user controls ``email``, compared case-insensitively."""

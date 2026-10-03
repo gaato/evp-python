@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 10:54+0900\n"
+"POT-Creation-Date: 2026-10-03 23:44+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -117,6 +117,18 @@ msgstr "署名鍵を生成し、秘密鍵の JWK はシークレットストア�
 
 #: ../../guides/issuer-operations.md:53
 msgid ""
+"When the domains change at runtime, as on a hosting platform where they "
+"live in a database, pass a callable instead of a list. It is called for "
+"every request and for `dns_txt_records()`, it may return nothing, and "
+"names that are not valid domains are skipped with a warning rather than "
+"taking the issuer down."
+msgstr ""
+"ホスティング基盤のようにドメインをデータベースで管理していて、実行中に変わる場合は、リストの代わりに callable "
+"を渡します。リクエストのたびと `dns_txt_records()` "
+"の呼び出し時に呼ばれ、何も返さなくてもかまいません。ドメインとして正しくない名前があっても発行者全体は止まらず、警告を出して読み飛ばします。"
+
+#: ../../guides/issuer-operations.md:66
+msgid ""
 "`issuance_endpoint` must be the exact public URL. The request signature "
 "covers its authority and path. They are compared with this configured "
 "value, never with the `Host` header, so the issuer works behind a reverse"
@@ -126,15 +138,15 @@ msgstr ""
 "とパスを対象にしており、これらは `Host` "
 "ヘッダーではなく、常にこの設定値と比較されます。そのため、リバースプロキシの背後でも発行者は動作し、別のサーバー向けに作られた署名は拒否されます。"
 
-#: ../../guides/issuer-operations.md:57
+#: ../../guides/issuer-operations.md:70
 msgid "Print what to publish, then check it as relying parties will see it:"
 msgstr "公開する内容を出力し、リライングパーティー（RP）から見える状態を確認します。"
 
-#: ../../guides/issuer-operations.md:67
+#: ../../guides/issuer-operations.md:80
 msgid "Handle a request"
 msgstr "リクエストの処理"
 
-#: ../../guides/issuer-operations.md:82
+#: ../../guides/issuer-operations.md:95
 msgid ""
 "`parse_request` checks the method, `Content-Type`, `Sec-Fetch-Dest`, "
 "`Content-Digest`, the signature and its freshness, the JSON body and the "
@@ -149,7 +161,7 @@ msgstr ""
 "value)` のペアで渡してください。同じ名前のヘッダー行が複数あっても、まとめられずに別々のまま扱われます。非同期のリプレイガードを使う場合は"
 " `aparse_request` を使います。"
 
-#: ../../guides/issuer-operations.md:88
+#: ../../guides/issuer-operations.md:101
 msgid ""
 "`request.email` is exactly what the browser sent. The EVT asserts that "
 "string, and relying parties compare it with what the user typed. If your "
@@ -160,11 +172,81 @@ msgstr ""
 "はそれをユーザーが入力したものと比較します。アカウント側でアドレスの大文字と小文字を区別しない場合は、`owns` "
 "の中でそのように比較してください。ただし、`request.email` を書き換えてはいけません。"
 
-#: ../../guides/issuer-operations.md:92
+#: ../../guides/issuer-operations.md:107
+msgid "Deciding who gets a token"
+msgstr "トークンを誰に発行するか"
+
+#: ../../guides/issuer-operations.md:109
+msgid ""
+"An EVT tells any relying party that the signed-in user controls the "
+"address, so it must prove no more than a verification email would. The "
+"rule that holds up is **issue for an address only if mail sent to it "
+"reaches this user**. Derive that from your mail system's delivery logic, "
+"not from your account model or from what the user may send as. It is easy"
+" to get subtly wrong:"
+msgstr ""
+"EVT は、サインイン中のユーザーがそのアドレスを管理していることをあらゆる RP "
+"に伝えます。そのため、確認メールで証明できる以上のことを証明してはいけません。成り立つ規則は、"
+"**そのアドレス宛てのメールがこのユーザーに届く場合にだけ発行する**"
+"というものです。これはアカウントのモデルや、ユーザーが送信者として名乗れるアドレスからではなく、メールシステムの配送ロジックから導きます。次のように、細かいところで誤りやすい規則です。"
+
+#: ../../guides/issuer-operations.md:114
+msgid ""
+"**Aliases and forwards.** Follow aliases the way the MTA expands them, "
+"nested aliases and domain aliases included. An address the user forwards "
+"elsewhere without keeping a copy no longer reaches them. An address whose"
+" expansion loops is delivered to nobody."
+msgstr ""
+"**エイリアスと転送**。エイリアスは、入れ子のエイリアスやドメインエイリアスも含めて MTA "
+"と同じように展開します。ユーザーがコピーを残さずに別の宛先へ転送しているアドレスは、もうそのユーザーには届きません。展開がループするアドレスは、誰にも配送されません。"
+
+#: ../../guides/issuer-operations.md:117
+msgid ""
+"**Shared aliases.** Every recipient of `team@` reads its mail, so each of"
+" them may get a token for it, exactly as each could click a link sent "
+"there."
+msgstr ""
+"**共有エイリアス**。`team@` "
+"の受信者は全員がそのメールを読めるので、それぞれがトークンを受け取ってかまいません。そこへ送られたリンクを全員がクリックできるのと同じです。"
+
+#: ../../guides/issuer-operations.md:119
+msgid ""
+"**Catch-alls.** `*@example.com` cannot be listed in the FedCM accounts "
+"response, so Chrome never asks for those addresses. Leave them out."
+msgstr ""
+"**キャッチオール**。`*@example.com` は FedCM の accounts レスポンスに列挙できないので、Chrome "
+"がそれらのアドレスを要求することはありません。対象から外してください。"
+
+#: ../../guides/issuer-operations.md:121
+msgid ""
+"**Send-as permissions** (sender addresses, \"send as\" delegations) are "
+"about sending. They do not count."
+msgstr "**送信者としての権限**（送信元アドレスや「代理送信」の委任）は送信に関するものです。数に入れません。"
+
+#: ../../guides/issuer-operations.md:123
+msgid ""
+"**Domain names.** EVP requests carry A-labels in lowercase. If your data "
+"can hold one domain under two spellings (`bücher.example` and `xn--bcher-"
+"kva.example`, or a domain alias named like another tenant's domain), "
+"whoever controls one spelling could claim the other's addresses. Compare "
+"canonical names, and refuse names that are ambiguous."
+msgstr ""
+"**ドメイン名**。EVP の要求には小文字の A ラベルが入ります。1 つのドメインが 2 "
+"通りの綴りでデータに入りうる場合（`bücher.example` と `xn--bcher-"
+"kva.example`、あるいは別のテナントのドメインと同じ名前のドメインエイリアス）、一方の綴りを管理する人がもう一方のアドレスを名乗れてしまいます。正規化した名前で比較し、どちらとも取れる名前は拒否してください。"
+
+#: ../../guides/issuer-operations.md:127
+msgid ""
+"**Accounts.** Nothing for disabled accounts or disabled domains, nothing "
+"for a session that is halfway through two-factor authentication, and "
+"nothing for administrators just because their account has an email field."
+msgstr "**アカウント**。無効なアカウントや無効なドメインには発行しません。二要素認証の途中にあるセッションにも、アカウントにメールアドレス欄があるだけの管理者にも発行しません。"
+
+#: ../../guides/issuer-operations.md:131
 msgid "Preventing account enumeration"
 msgstr "アカウント列挙の防止"
 
-#: ../../guides/issuer-operations.md:94
+#: ../../guides/issuer-operations.md:133
 msgid ""
 "The draft requires the same response whether the address does not exist, "
 "nobody is logged in, or someone else is. Raise "
@@ -178,21 +260,21 @@ msgstr ""
 "を送出してください。そのボディは固定されており、`parse_request` も `email_domains` "
 "に含まれないアドレスに対してこれを使います。それぞれの経路で行う処理の量もそろえてください。たとえば、アドレスが有効に見えるときだけデータベースに問い合わせる、といった実装は避けてください。"
 
-#: ../../guides/issuer-operations.md:100
+#: ../../guides/issuer-operations.md:139
 msgid ""
 "Error responses only ever carry a fixed description per code. The "
 "detailed reason is in the exception message for your logs."
 msgstr "エラー応答には、コードごとに固定された説明しか含まれません。詳しい理由は、ログ用に例外メッセージに入っています。"
 
-#: ../../guides/issuer-operations.md:103
+#: ../../guides/issuer-operations.md:142
 msgid "Keys and rotation"
 msgstr "鍵とローテーション"
 
-#: ../../guides/issuer-operations.md:105
+#: ../../guides/issuer-operations.md:144
 msgid "Every key has a `kid`, and every EVT names the key that signed it."
 msgstr "どの鍵にも `kid` があり、どの EVT にも、それに署名した鍵が示されています。"
 
-#: ../../guides/issuer-operations.md:106
+#: ../../guides/issuer-operations.md:145
 msgid ""
 "To rotate, publish the next key before using it. Pass it in "
 "`published_keys=[...]` until relying parties' caches (minutes) have "
@@ -201,7 +283,7 @@ msgstr ""
 "ローテーションするときは、次の鍵を使い始める前に公開しておきます。RP のキャッシュ（数分）に行き渡るまでは "
 "`published_keys=[...]` に渡しておき、その後で `signer` にします。"
 
-#: ../../guides/issuer-operations.md:108
+#: ../../guides/issuer-operations.md:147
 msgid ""
 "Keep publishing the retired public key until no token it signed can still"
 " be presented. Relying parties accept EVTs for about five minutes, so a "
@@ -210,7 +292,7 @@ msgstr ""
 "使わなくなった公開鍵は、それで署名されたトークンが提示されうる間は公開し続けます。RP が EVT を受け入れるのはおよそ 5 分間なので、1 "
 "日あれば十分です。"
 
-#: ../../guides/issuer-operations.md:110
+#: ../../guides/issuer-operations.md:149
 #, python-brace-format
 msgid ""
 "Keys that never leave a KMS or HSM implement "
@@ -221,11 +303,11 @@ msgstr ""
 "`alg`、`kid`、`public_jwk` と、JWS のエンコーディングで返す `sign(signing_input) -> "
 "bytes`（ES256 では生の `r || s`）です。"
 
-#: ../../guides/issuer-operations.md:113
+#: ../../guides/issuer-operations.md:152
 msgid "Replay and rate limiting"
 msgstr "リプレイとレート制限"
 
-#: ../../guides/issuer-operations.md:115
+#: ../../guides/issuer-operations.md:154
 #, python-brace-format
 msgid ""
 "A signed request is only accepted within 300 seconds of its `created` "
@@ -240,7 +322,7 @@ msgstr ""
 "回目に受け取ったときに拒否します。ガードは署名のバイト列ではなく署名対象の内容をキーにするため、ES256 "
 "の署名をエンコードし直してもすり抜けられません。{doc}`replay` で説明しているとおり、共有ストアを使ってください。"
 
-#: ../../guides/issuer-operations.md:121
+#: ../../guides/issuer-operations.md:160
 #, python-brace-format
 msgid ""
 "Rate-limit the issuance endpoint per IP address in front of the "
@@ -252,11 +334,11 @@ msgstr ""
 "は、受け付けたリクエストと拒否したリクエスト（リプレイとして拒否したものを含む）、発行したトークンのそれぞれについて "
 "{class}`pyevp.issuer.IssuanceEvent` を受け取ります。メトリクスや監査ログに利用できます。"
 
-#: ../../guides/issuer-operations.md:127
+#: ../../guides/issuer-operations.md:166
 msgid "What Chrome requires beyond the draft"
 msgstr "Chrome がドラフト以上に求めること"
 
-#: ../../guides/issuer-operations.md:129
+#: ../../guides/issuer-operations.md:168
 msgid ""
 "Chrome 154 does more than the draft describes. Without the following, it "
 "fetches the metadata and then stops without telling the page why."
@@ -264,7 +346,7 @@ msgstr ""
 "Chrome 154 "
 "は、ドラフトに書かれている以上のことを行います。以下が揃っていないと、メタデータを取得したあと、ページに理由を伝えないまま処理を止めてしまいます。"
 
-#: ../../guides/issuer-operations.md:132
+#: ../../guides/issuer-operations.md:171
 msgid ""
 "**FedCM account check.** Before issuing, Chrome fetches "
 "`https://<registrable domain of the issuer>/.well-known/web-identity`. "
@@ -287,17 +369,22 @@ msgstr ""
 "`pyevp.issuer.accounts_document([...])` "
 "で応答してください。入力されたアドレスは、その中に含まれていなければなりません。"
 
-#: ../../guides/issuer-operations.md:140
+#: ../../guides/issuer-operations.md:179
 msgid ""
 "**Login status.** Chrome skips issuers it knows the user is signed out "
 "of. Send `Set-Login: logged-in` on a page response after login (or call "
-"`navigator.login.setStatus(\"logged-in\")`), and `logged-out` on logout."
+"`navigator.login.setStatus(\"logged-in\")`), and `logged-out` on logout. "
+"A single-page app that logs out through an API call or an OpenID Connect "
+"logout redirect may never serve a page response from the issuer's origin;"
+" call `navigator.login.setStatus(\"logged-out\")` from the app then."
 msgstr ""
 "**ログイン状態**。Chrome は、ユーザーがサインアウトしているとわかっている発行者をスキップします。ログイン後のページのレスポンスで "
 "`Set-Login: logged-in` を送り（または `navigator.login.setStatus(\"logged-in\")`"
-" を呼び出し）、ログアウト時には `logged-out` を送ってください。"
+" を呼び出し）、ログアウト時には `logged-out` を送ってください。API 呼び出しや OpenID Connect "
+"のログアウトリダイレクトでログアウトするシングルページアプリケーション（SPA）は、発行者のオリジンからページのレスポンスを一度も返さないことがあります。その場合はアプリから"
+" `navigator.login.setStatus(\"logged-out\")` を呼び出してください。"
 
-#: ../../guides/issuer-operations.md:143
+#: ../../guides/issuer-operations.md:185
 msgid ""
 "**Cookies.** Both the accounts request and the issuance request are "
 "cross-site from the relying party, so the session cookie needs "
@@ -305,15 +392,19 @@ msgid ""
 "send it with cross-site form posts as well, so protect login, logout and "
 "other requests that change the session against CSRF (a CSRF token, or "
 "checking `Sec-Fetch-Site` / `Origin`). Otherwise another site can sign "
-"visitors in to an account it controls."
+"visitors in to an account it controls. When the issuer shares its session"
+" with an existing application, this applies to the whole application. "
+"Also keep in mind that a long-lived \"remember me\" session keeps getting"
+" tokens for as long as it lasts."
 msgstr ""
 "**Cookie**。アカウントのリクエストも発行のリクエストも RP から見てクロスサイトになるため、セッション Cookie には "
 "`SameSite=None; Secure` "
 "が必要です。スコープは発行者のオリジンに限定してください。するとブラウザーはクロスサイトのフォーム送信にもこの Cookie "
 "を付けるので、ログインやログアウトなど、セッションを変えるリクエストを CSRF から保護してください（CSRF トークン、または `Sec-"
-"Fetch-Site` や `Origin` の確認）。保護しないと、ほかのサイトが訪問者を自分の管理するアカウントでサインインさせられます。"
+"Fetch-Site` や `Origin` "
+"の確認）。保護しないと、ほかのサイトが訪問者を自分の管理するアカウントでサインインさせられます。発行者が既存のアプリケーションとセッションを共有している場合、これはアプリケーション全体にかかります。また、有効期間の長い「ログイン状態を保持」のセッションは、続いているあいだずっとトークンを受け取れる点にも注意してください。"
 
-#: ../../guides/issuer-operations.md:148
+#: ../../guides/issuer-operations.md:193
 msgid ""
 "**EVT header.** Chrome accepts only `EdDSA`, `ES256` and `RS256` in the "
 "EVT header, not the `Ed25519` the draft requires. The default "
@@ -327,7 +418,7 @@ msgstr ""
 "と同じく、Ed25519 鍵に対して `EdDSA` を書き込みます。このライブラリの既定のプロファイルを使う RP "
 "はこれを受け入れますが、厳格な `draft-hardt-02` 検証プロファイルは受け入れません。ES256 鍵なら両方を満たせます。"
 
-#: ../../guides/issuer-operations.md:154
+#: ../../guides/issuer-operations.md:199
 msgid ""
 "Chrome also shows the user a one-time prompt per address (\"verify this "
 "email automatically?\") before the first issuance. It starts the check "
@@ -337,11 +428,11 @@ msgstr ""
 "Chrome は最初の発行の前に、アドレスごとに 1 "
 "回だけ、ユーザーに確認のプロンプト（「このメールアドレスを自動で確認しますか？」）を表示します。確認はフォーカスがメールアドレス欄から別のフォーム欄へ移ったときに始まり、同じアドレスで失敗が続くとレート制限がかかります。"
 
-#: ../../guides/issuer-operations.md:160
+#: ../../guides/issuer-operations.md:205
 msgid "Django"
 msgstr "Django"
 
-#: ../../guides/issuer-operations.md:162
+#: ../../guides/issuer-operations.md:207
 #, python-brace-format
 msgid ""
 "{mod}`pyevp.contrib.django.issuer` (`pip install \"pyevp[django]\"`) "
@@ -357,7 +448,7 @@ msgstr ""
 "[`examples/issuer_django`](https://github.com/gaato/pyevp/tree/main/examples/issuer_django)"
 " にあります。"
 
-#: ../../guides/issuer-operations.md:175
+#: ../../guides/issuer-operations.md:226
 msgid ""
 "Include `evp.urls` at the root of the issuer's origin. It serves the "
 "metadata at `/.well-known/email-verification`, the JWKS at `/email-"
@@ -376,29 +467,33 @@ msgstr ""
 "を送出します。別のパスを使うには、サブクラスで `issuance_path`、`jwks_path` などの `*_path` "
 "属性を設定します。"
 
-#: ../../guides/issuer-operations.md:182
+#: ../../guides/issuer-operations.md:233
 #, python-brace-format
 msgid "Subclass {class}`~pyevp.contrib.django.issuer.IssuerSite` to adapt it:"
 msgstr "動作を変えるには {class}`~pyevp.contrib.django.issuer.IssuerSite` をサブクラス化します。"
 
-#: ../../guides/issuer-operations.md:184
+#: ../../guides/issuer-operations.md:235
 msgid ""
 "`user_emails(request)` returns the addresses the signed-in user may get "
-"tokens for. It returns the user model's email field by default. Return "
-"only addresses the user has proven control of, for example the verified "
-"addresses of django-allauth."
+"tokens for, following [Deciding who gets a token](#who-gets-a-token). It "
+"has no default, and `IssuerSite` raises `ImproperlyConfigured` until you "
+"override it: a user model's email field is only right if your sign-up "
+"flow verified it. Return, for example, the verified addresses of django-"
+"allauth, or what your mail system delivers to the user's mailbox."
 msgstr ""
-"`user_emails(request)` "
-"は、サインイン中のユーザーがトークンを受け取れるアドレスを返します。既定ではユーザーモデルのメールフィールドを返します。ユーザーが管理していると確認済みのアドレス（たとえば"
-" django-allauth で確認済みのアドレス）だけを返してください。"
+"`user_emails(request)` は、サインイン中のユーザーがトークンを受け取れるアドレスを返します。[トークンを誰に発行するか"
+"](#who-gets-a-token)に従ってください。既定の実装はなく、オーバーライドするまで `IssuerSite` は "
+"`ImproperlyConfigured` "
+"を送出します。ユーザーモデルのメールアドレス欄が正しいのは、サインアップ時に検証している場合だけだからです。たとえば django-allauth"
+" の検証済みアドレスや、メールシステムがユーザーのメールボックスに配送するアドレスを返します。"
 
-#: ../../guides/issuer-operations.md:187
+#: ../../guides/issuer-operations.md:240
 msgid ""
 "`owns(request, email)` compares the requested address with those, case-"
 "insensitively by default."
 msgstr "`owns(request, email)` は、要求されたアドレスをそれらと比較します。既定では大文字と小文字を区別しません。"
 
-#: ../../guides/issuer-operations.md:189
+#: ../../guides/issuer-operations.md:242
 msgid ""
 "`get_issuer(request)` returns the issuer for the request. Override it "
 "instead of passing an `Issuer` when one deployment serves several "
@@ -407,7 +502,7 @@ msgstr ""
 "`get_issuer(request)` はリクエストに対応する発行者を返します。ホストごとに発行者を分けるなど、1 "
 "つのデプロイで複数の発行者を提供する場合は、`Issuer` を渡す代わりにこれをオーバーライドします。"
 
-#: ../../guides/issuer-operations.md:191
+#: ../../guides/issuer-operations.md:244
 msgid ""
 "`login_url` (an argument) is where Chrome sends users who are not signed "
 "in. It defaults to `settings.LOGIN_URL`."
@@ -415,7 +510,7 @@ msgstr ""
 "`login_url`（引数）は、サインインしていないユーザーを Chrome が案内する先です。既定値は "
 "`settings.LOGIN_URL` です。"
 
-#: ../../guides/issuer-operations.md:194
+#: ../../guides/issuer-operations.md:247
 #, python-brace-format
 msgid ""
 "Each endpoint is also a view of its own, for mounting it somewhere else "
@@ -437,11 +532,11 @@ msgstr ""
 "は記録を単独でコミットでき、別のデータベースエイリアスを用意しなくても `replay_guard=EVPReplayGuard()` を "
 "`Issuer` に渡せます。ビューは同期なので、同期版のガードを使ってください。16 KiB を超えるボディは読み込む前に拒否します。"
 
-#: ../../guides/issuer-operations.md:203
+#: ../../guides/issuer-operations.md:256
 msgid "Settings:"
 msgstr "設定は次のとおりです。"
 
-#: ../../guides/issuer-operations.md:216
+#: ../../guides/issuer-operations.md:269
 #, python-brace-format
 msgid ""
 "{class}`~pyevp.contrib.django.issuer.LoginStatusMiddleware` adds `Set-"
@@ -456,7 +551,37 @@ msgstr ""
 "にログインとログアウトを伝えられます。アプリをインストールしていれば、Chrome のクロスサイトリクエストでセッション Cookie "
 "が発行者に届かない設定のとき、`manage.py check` が警告（`pyevp.W001`、`pyevp.W002`）を出します。"
 
-#: ../../guides/issuer-operations.md:221
+#: ../../guides/issuer-operations.md:274
+msgid ""
+"Adding the issuer to an existing application usually means editing files "
+"the operator owns rather than the application's code:"
+msgstr "既存のアプリケーションに発行者を加えるときは、たいていアプリケーションのコードではなく、運用者が管理するファイルを編集することになります。"
+
+#: ../../guides/issuer-operations.md:277
+msgid ""
+"Include `evp.urls` before the application's own patterns, at the root. "
+"Plugin systems that mount apps under a prefix cannot serve `/.well-"
+"known/`."
+msgstr ""
+"`evp.urls` は、アプリケーション自身のパターンより前に、ルートで include "
+"します。アプリをプレフィックスの下にマウントするプラグイン機構では `/.well-known/` を提供できません。"
+
+#: ../../guides/issuer-operations.md:279
+msgid ""
+"Route `/.well-known/email-verification`, `/.well-known/web-identity`, "
+"`/email-verification/` and `/fedcm/` to Django in the reverse proxy. "
+"Configurations that hand every unknown path to a single-page app answer "
+"them with its HTML and a 200, which fails without an error."
+msgstr ""
+"リバースプロキシで、`/.well-known/email-verification`、`/.well-known/web-identity"
+"`、`/email-verification/`、`/fedcm/` を Django に振り分けます。知らないパスをすべて SPA "
+"に渡す設定では、これらにも SPA の HTML が 200 で返り、エラーにならないまま失敗します。"
+
+#: ../../guides/issuer-operations.md:282
+msgid "Set the session cookie, middleware and app as above."
+msgstr "セッション Cookie、ミドルウェア、アプリは上記のとおりに設定します。"
+
+#: ../../guides/issuer-operations.md:284
 #, python-brace-format
 msgid ""
 "If the issuer is on a subdomain such as `accounts.example.com`, Chrome "
@@ -469,11 +594,11 @@ msgstr ""
 "{class}`~pyevp.contrib.django.issuer.WebIdentityView` "
 "を提供するか、`web_identity_document()` の文書を返してください。"
 
-#: ../../guides/issuer-operations.md:226
+#: ../../guides/issuer-operations.md:289
 msgid "Not supported yet"
 msgstr "未対応の機能"
 
-#: ../../guides/issuer-operations.md:228
+#: ../../guides/issuer-operations.md:291
 msgid ""
 "`private_email` / `directed_email` requests are answered with "
 "`private_email_not_supported`, and the metadata says "
@@ -482,7 +607,7 @@ msgstr ""
 "`private_email` / `directed_email` のリクエストには `private_email_not_supported`"
 " で応答し、メタデータには `private_email_supported: false` と記載します。"
 
-#: ../../guides/issuer-operations.md:230
+#: ../../guides/issuer-operations.md:293
 msgid ""
 "The pre-153 Chrome format (`application/x-www-form-urlencoded` with a "
 "`request_token`) is refused with 415."
@@ -501,4 +626,17 @@ msgstr ""
 #~ "**Cookie**。アカウントのリクエストも発行のリクエストも RP から見てクロスサイトになるため、セッション"
 #~ " Cookie には `SameSite=None; Secure` "
 #~ "が必要です。スコープは発行者のオリジンに限定してください。"
+
+#~ msgid ""
+#~ "`user_emails(request)` returns the addresses "
+#~ "the signed-in user may get tokens"
+#~ " for. It returns the user model's "
+#~ "email field by default. Return only "
+#~ "addresses the user has proven control"
+#~ " of, for example the verified "
+#~ "addresses of django-allauth."
+#~ msgstr ""
+#~ "`user_emails(request)` "
+#~ "は、サインイン中のユーザーがトークンを受け取れるアドレスを返します。既定ではユーザーモデルのメールフィールドを返します。ユーザーが管理していると確認済みのアドレス（たとえば"
+#~ " django-allauth で確認済みのアドレス）だけを返してください。"
 

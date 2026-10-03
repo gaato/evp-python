@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from django.conf import settings
+from django.http import HttpRequest
 from django.urls import include, path
 from django.views.generic import TemplateView
 
@@ -24,7 +25,17 @@ issuer = Issuer(
     signer=_signer(),
     email_domains=settings.EVP_EMAIL_DOMAINS,
 )
-evp = IssuerSite(issuer)
+
+
+class Site(IssuerSite):
+    def user_emails(self, request: HttpRequest) -> list[str]:
+        # This example's accounts are created by the operator with the address of their
+        # mailbox. A real issuer returns the addresses its mail system delivers to the user.
+        user = getattr(request, "user", None)
+        return [user.email] if user is not None and user.is_authenticated and user.email else []
+
+
+evp = Site(issuer)
 
 urlpatterns = [
     # The issuer's endpoints and, when the issuer's host is its own registrable

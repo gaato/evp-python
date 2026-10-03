@@ -50,6 +50,19 @@ issuer = Issuer(
 )
 ```
 
+When the domains change at runtime, as on a hosting platform where they live in a database,
+pass a callable instead of a list. It is called for every request and for `dns_txt_records()`,
+it may return nothing, and names that are not valid domains are skipped with a warning rather
+than taking the issuer down.
+
+```python
+def hosted_domains():
+    return Domain.objects.filter(enabled=True).values_list("name", flat=True)
+
+
+issuer = Issuer(..., email_domains=hosted_domains)
+```
+
 `issuance_endpoint` must be the exact public URL. The request signature covers its authority and
 path. They are compared with this configured value, never with the `Host` header, so the issuer
 works behind a reverse proxy and a signature made for another server is rejected.
@@ -88,6 +101,32 @@ With an async replay guard, use `aparse_request`.
 `request.email` is exactly what the browser sent. The EVT asserts that string, and relying
 parties compare it with what the user typed. If your accounts treat addresses
 case-insensitively, compare them that way in `owns`, but do not rewrite `request.email`.
+
+(who-gets-a-token)=
+
+## Deciding who gets a token
+
+An EVT tells any relying party that the signed-in user controls the address, so it must prove
+no more than a verification email would. The rule that holds up is **issue for an address only
+if mail sent to it reaches this user**. Derive that from your mail system's delivery logic, not
+from your account model or from what the user may send as. It is easy to get subtly wrong:
+
+- **Aliases and forwards.** Follow aliases the way the MTA expands them, nested aliases and
+  domain aliases included. An address the user forwards elsewhere without keeping a copy no
+  longer reaches them. An address whose expansion loops is delivered to nobody.
+- **Shared aliases.** Every recipient of `team@` reads its mail, so each of them may get a token
+  for it, exactly as each could click a link sent there.
+- **Catch-alls.** `*@example.com` cannot be listed in the FedCM accounts response, so Chrome
+  never asks for those addresses. Leave them out.
+- **Send-as permissions** (sender addresses, "send as" delegations) are about sending. They do
+  not count.
+- **Domain names.** EVP requests carry A-labels in lowercase. If your data can hold one domain
+  under two spellings (`bücher.example` and `xn--bcher-kva.example`, or a domain alias named like
+  another tenant's domain), whoever controls one spelling could claim the other's addresses.
+  Compare canonical names, and refuse names that are ambiguous.
+- **Accounts.** Nothing for disabled accounts or disabled domains, nothing for a session that is
+  halfway through two-factor authentication, and nothing for administrators just because their
+  account has an email field.
 
 ## Preventing account enumeration
 
@@ -139,12 +178,18 @@ and then stops without telling the page why.
   must be one of them.
 - **Login status.** Chrome skips issuers it knows the user is signed out of. Send
   `Set-Login: logged-in` on a page response after login (or call
-  `navigator.login.setStatus("logged-in")`), and `logged-out` on logout.
+  `navigator.login.setStatus("logged-in")`), and `logged-out` on logout. A single-page app that
+  logs out through an API call or an OpenID Connect logout redirect may never serve a page
+  response from the issuer's origin; call `navigator.login.setStatus("logged-out")` from the app
+  then.
 - **Cookies.** Both the accounts request and the issuance request are cross-site from the relying
   party, so the session cookie needs `SameSite=None; Secure`. Scope it to the issuer's origin.
   Browsers then send it with cross-site form posts as well, so protect login, logout and other
   requests that change the session against CSRF (a CSRF token, or checking `Sec-Fetch-Site` /
-  `Origin`). Otherwise another site can sign visitors in to an account it controls.
+  `Origin`). Otherwise another site can sign visitors in to an account it controls. When the
+  issuer shares its session with an existing application, this applies to the whole
+  application. Also keep in mind that a long-lived "remember me" session keeps getting tokens
+  for as long as it lasts.
 - **EVT header.** Chrome accepts only `EdDSA`, `ES256` and `RS256` in the EVT header, not the
   `Ed25519` the draft requires. The default `chrome-153` profile therefore writes `EdDSA` for
   Ed25519 keys, as Gmail does. Relying parties using this library's default profile accept
@@ -168,7 +213,13 @@ addresses get tokens. A complete project lives in
 # urls.py on the issuer's origin
 from pyevp.contrib.django.issuer import IssuerSite
 
-evp = IssuerSite(issuer)  # the Issuer from "Set up"
+
+class Site(IssuerSite):
+    def user_emails(self, request):
+        return delivered_to(request.user)  # your mail system's answer
+
+
+evp = Site(issuer)  # the Issuer from "Set up"
 urlpatterns = [path("", include(evp.urls)), ...]
 ```
 
@@ -181,9 +232,11 @@ paths. `IssuerSite` raises `ImproperlyConfigured` otherwise. To use other paths,
 
 Subclass {class}`~pyevp.contrib.django.issuer.IssuerSite` to adapt it:
 
-- `user_emails(request)` returns the addresses the signed-in user may get tokens for. It returns
-  the user model's email field by default. Return only addresses the user has proven control
-  of, for example the verified addresses of django-allauth.
+- `user_emails(request)` returns the addresses the signed-in user may get tokens for, following
+  [Deciding who gets a token](#who-gets-a-token). It has no default, and `IssuerSite` raises
+  `ImproperlyConfigured` until you override it: a user model's email field is only right if your
+  sign-up flow verified it. Return, for example, the verified addresses of django-allauth, or
+  what your mail system delivers to the user's mailbox.
 - `owns(request, email)` compares the requested address with those, case-insensitively by
   default.
 - `get_issuer(request)` returns the issuer for the request. Override it instead of passing an
@@ -217,6 +270,16 @@ SESSION_COOKIE_SECURE = True
 `logged-out` to page responses, so Chrome learns about logins and logouts without changes to
 your login views. With the app installed, `manage.py check` warns (`pyevp.W001`, `pyevp.W002`)
 when the session cookie would not reach the issuer from Chrome's cross-site requests.
+
+Adding the issuer to an existing application usually means editing files the operator owns
+rather than the application's code:
+
+- Include `evp.urls` before the application's own patterns, at the root. Plugin systems that
+  mount apps under a prefix cannot serve `/.well-known/`.
+- Route `/.well-known/email-verification`, `/.well-known/web-identity`, `/email-verification/`
+  and `/fedcm/` to Django in the reverse proxy. Configurations that hand every unknown path to a
+  single-page app answer them with its HTML and a 200, which fails without an error.
+- Set the session cookie, middleware and app as above.
 
 If the issuer is on a subdomain such as `accounts.example.com`, Chrome reads
 `/.well-known/web-identity` from `example.com`. Serve

@@ -475,6 +475,24 @@ def test_domains_compare_case_insensitively(clock: FixedClock) -> None:
     assert issuer.parse_request(**Browser(clock).request("a@EXAMPLE.com")).email == "a@EXAMPLE.com"
 
 
+def test_domains_from_a_callable_follow_changes(
+    clock: FixedClock, caplog: pytest.LogCaptureFixture
+) -> None:
+    domains: list[str] = []
+    issuer = make_issuer(clock, email_domains=lambda: domains)
+    assert issuer.dns_txt_records() == {}
+    assert error(issuer, Browser(clock).request()).code is IssuanceErrorCode.AUTHENTICATION_REQUIRED
+
+    domains[:] = ["Example.COM", "bücher.example", "ü..example"]
+    assert issuer.email_domains == {"example.com", "xn--bcher-kva.example"}
+    assert "ü..example" in caplog.text
+    assert issuer.parse_request(**Browser(clock).request()).email == "alice@example.com"
+    assert set(issuer.dns_txt_records()) == {
+        "_email-verification.example.com",
+        "_email-verification.xn--bcher-kva.example",
+    }
+
+
 @pytest.mark.parametrize(
     ("value", "valid"),
     [

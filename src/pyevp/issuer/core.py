@@ -139,7 +139,10 @@ class Issuer:
     :param published_keys: further public JWKs to publish: the next key before a rotation,
         and retired keys until every EVT they signed has expired at relying parties.
     :param email_domains: domains EVTs may be issued for.  Requests for any other domain
-        are refused with ``authentication_required``.
+        are refused with ``authentication_required``.  Pass a callable returning the current
+        domains when they change at runtime, for example when they live in a database.  It is
+        called whenever the domains are needed, may return none, and names that are not
+        valid domains are skipped with a warning.
     """
 
     def __init__(
@@ -149,7 +152,7 @@ class Issuer:
         issuance_endpoint: str,
         jwks_uri: str,
         signer: Signer,
-        email_domains: Collection[str],
+        email_domains: Collection[str] | Callable[[], Iterable[str]],
         published_keys: Sequence[Mapping[str, Any]] = (),
         signing_alg_values_supported: Sequence[str] = ("Ed25519", "ES256"),
         profile: IssuanceProfile = DEFAULT_ISSUANCE_PROFILE,
@@ -170,9 +173,14 @@ class Issuer:
             raise ValueError(f"the signer's {signer.alg} is not in signing_alg_values_supported")
         self.signer = signer
         self._jwks = self._build_jwks(signer, published_keys)
-        self.email_domains = frozenset(discovery.email_domain(f"x@{d}") for d in email_domains)
-        if not self.email_domains:
-            raise ValueError("email_domains must not be empty")
+        self._domain_source: Callable[[], Iterable[str]] | None = None
+        self._domains: frozenset[str] = frozenset()
+        if callable(email_domains):
+            self._domain_source = cast("Callable[[], Iterable[str]]", email_domains)
+        else:
+            self._domains = frozenset(discovery.email_domain(f"x@{d}") for d in email_domains)
+            if not self._domains:
+                raise ValueError("email_domains must not be empty")
         self.profile = profile
         self.replay_guard = replay_guard
         self.observer = observer
@@ -190,6 +198,19 @@ class Issuer:
         if len(set(kids)) != len(kids):
             raise ValueError(f"duplicate kid in published keys: {kids}")
         return {"keys": keys}
+
+    @property
+    def email_domains(self) -> frozenset[str]:
+        """The domains EVTs may be issued for now, as lowercase A-labels."""
+        if self._domain_source is None:
+            return self._domains
+        domains = set()
+        for name in self._domain_source():
+            try:
+                domains.add(discovery.email_domain(f"x@{name}"))
+            except ValueError:
+                _logger.warning("EVP issuer: skipping invalid email domain %r", name)
+        return frozenset(domains)
 
     # --- documents ---
 

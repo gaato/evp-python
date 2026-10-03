@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 09:07+0900\n"
+"POT-Creation-Date: 2026-10-03 10:54+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -51,19 +51,25 @@ msgstr "{class}`~pyevp.AsyncVerifier` はどちらの種類も受け付けます
 msgid "Asynchronous verifier (FastAPI, Starlette, Django async views)."
 msgstr "非同期の verifier です（FastAPI、Starlette、Django の非同期ビュー向け）。"
 
+#: of pyevp.verifier.AsyncVerifier:3
+msgid "An async context manager: leaving it calls :meth:`aclose`."
+msgstr "非同期コンテキストマネージャーです。抜けると {meth}`aclose` を呼びます。"
+
 #: of pyevp.verifier.AsyncVerifier.default:1 pyevp.verifier.Verifier.default:1
 msgid "Build a verifier using dnspython and httpx (``pip install pyevp[all]``)."
 msgstr "dnspython と httpx を使う verifier を作ります（``pip install pyevp[all]``）。"
 
-#: of pyevp.verifier.AsyncVerifier.default:3 pyevp.verifier.Verifier.default:3
+#: of pyevp.verifier.AsyncVerifier.default:3
 msgid ""
-"Any constructor argument, including ``resolver`` / ``fetcher``, can be "
-"overridden."
-msgstr "``resolver`` や ``fetcher`` を含め、コンストラクターの引数はどれでも上書きできます。"
+"``resolver`` and ``fetcher`` default to those adapters, which "
+":meth:`aclose` closes; the other arguments are the constructor's."
+msgstr ""
+"``resolver`` と ``fetcher`` の既定値はこれらのアダプターで、{meth}`aclose` "
+"で閉じます。ほかの引数はコンストラクターと同じです。"
 
-#: ../../api.md of pyevp.adapters._doh.parse_txt_data
-#: pyevp.contrib.django.aget_nonce pyevp.contrib.django.averify_request
-#: pyevp.contrib.django.get_nonce
+#: ../../api.md of pyevp._email.email_domain pyevp._email.emails_match
+#: pyevp.adapters._doh.parse_txt_data pyevp.contrib.django.aget_nonce
+#: pyevp.contrib.django.averify_request pyevp.contrib.django.get_nonce
 #: pyevp.contrib.django.issuer.IssuanceView.as_view
 #: pyevp.contrib.django.issuer.IssuerSite.get_issuer
 #: pyevp.contrib.django.issuer.IssuerSite.owns
@@ -71,9 +77,8 @@ msgstr "``resolver`` や ``fetcher`` を含め、コンストラクターの引�
 #: pyevp.core.replay_key pyevp.core.verification_steps pyevp.core.verify_kb
 #: pyevp.diagnostics.adiscover pyevp.diagnostics.discover
 #: pyevp.diagnostics.discovery_steps pyevp.discovery.canonical_issuer
-#: pyevp.discovery.email_domain pyevp.discovery.is_public_hostname
-#: pyevp.discovery.parse_txt_records pyevp.discovery.validate_jwks
-#: pyevp.issuer.core.Issuer.aparse_request
+#: pyevp.discovery.is_public_hostname pyevp.discovery.parse_txt_records
+#: pyevp.discovery.validate_jwks pyevp.issuer.core.Issuer.aparse_request
 #: pyevp.issuer.core.Issuer.dns_txt_records pyevp.issuer.core.Issuer.issue
 #: pyevp.issuer.core.Issuer.jwks_document
 #: pyevp.issuer.core.Issuer.metadata_document
@@ -85,18 +90,29 @@ msgstr "``resolver`` や ``fetcher`` を含め、コンストラクターの引�
 #: pyevp.issuer.keys.SigningKey.private_jwk pyevp.issuer.keys.public_jwk
 #: pyevp.issuer.profile.IssuanceProfile.chrome_153
 #: pyevp.issuer.profile.IssuanceProfile.draft_hardt_02
-#: pyevp.nonce.generate_nonce pyevp.nonce.nonces_equal
-#: pyevp.ports.JsonFetcher.fetch_json pyevp.ports.TxtResolver.resolve_txt
-#: pyevp.profile.Profile.compat_2026_10 pyevp.profile.Profile.draft_hardt_02
+#: pyevp.issuer.profile.IssuanceProfile.replace pyevp.nonce.generate_nonce
+#: pyevp.nonce.nonces_equal pyevp.ports.JsonFetcher.fetch_json
+#: pyevp.ports.TxtResolver.resolve_txt pyevp.profile.Profile.compat_2026_10
+#: pyevp.profile.Profile.draft_hardt_02 pyevp.profile.Profile.emails_match
 #: pyevp.profile.Profile.named pyevp.profile.Profile.replace
 #: pyevp.replay.ReplayGuard.mark_used
 #: pyevp.testing.FakeBrowser.issuance_request
 #: pyevp.testing.FakeIssuer.gmail_like pyevp.testing.FakeIssuer.issue
 #: pyevp.testing.make_verifier pyevp.token.build_kb pyevp.token.sign_jwt
 #: pyevp.verifier.AsyncVerifier.default pyevp.verifier.AsyncVerifier.verify
-#: pyevp.verifier.Verifier.default
+#: pyevp.verifier.Verifier.default pyevp.verifier.Verifier.verify
 msgid "Return type"
 msgstr "戻り値の型"
+
+#: of pyevp.verifier.AsyncVerifier.aclose:1 pyevp.verifier.Verifier.close:1
+msgid "Close the resolver and fetcher that :meth:`default` created."
+msgstr "{meth}`default` が作ったリゾルバーとフェッチャーを閉じます。"
+
+#: of pyevp.verifier.AsyncVerifier.aclose:3 pyevp.verifier.Verifier.close:3
+msgid ""
+"Ports passed in belong to the caller, who closes them.  Safe to call "
+"twice."
+msgstr "渡されたポートは呼び出し側のものなので、呼び出し側で閉じてください。2 回呼んでも問題ありません。"
 
 #: of pyevp.verifier.AsyncVerifier.verify:1
 msgid "Async counterpart of :meth:`Verifier.verify`."
@@ -125,16 +141,36 @@ msgid ""
 msgstr "``ISSUER_UNREACHABLE`` は、一時的な可能性がある通信の失敗を表します。"
 
 #: of pyevp.errors.EVPError:1
-msgid "Base class for every verification failure."
-msgstr "すべての検証失敗の基底クラスです。"
+msgid "Base class for verification failures: the token must not be trusted."
+msgstr "検証失敗の基底クラスです。トークンを信頼してはいけません。"
+
+#: of pyevp.errors.EVPError:3
+msgid ""
+":class:`TokenError` and :class:`PolicyError` concern what was submitted; "
+":class:`DiscoveryError` concerns the issuer."
+msgstr ""
+"{class}`TokenError` と {class}`PolicyError` "
+"は送信された内容に関するもので、{class}`DiscoveryError` は発行者に関するものです。"
+
+#: of pyevp._email.EmailComparison:1
+msgid "How a submitted address is compared with the asserted one."
+msgstr "入力されたアドレスと、表明されたアドレスの比較方法です。"
 
 #: of pyevp.EmailComparison.EXACT:1
-msgid "Byte-for-byte (IETF draft)."
+msgid "Byte for byte (IETF draft)."
 msgstr "バイト単位で比較します（IETF のドラフト）。"
 
 #: of pyevp.EmailComparison.CASE_INSENSITIVE:1
-msgid "Unicode case-folded (W3C Email Verification API)."
-msgstr "Unicode のケースフォールディングをしてから比較します（W3C の Email Verification API）。"
+msgid "Local part Unicode case-folded, domain compared in IDNA2008 A-label form."
+msgstr "ローカル部は Unicode のケースフォールディングで大文字と小文字を区別せず、ドメインは IDNA2008 の A ラベル形式で比較します。"
+
+#: of pyevp.EmailComparison.CASE_INSENSITIVE:3
+msgid ""
+"Follows the W3C Email Verification API, without letting case folding "
+"merge two DNS names: ``a@faß.example`` does not match ``a@fass.example``."
+msgstr ""
+"W3C の Email Verification API に従いますが、ケースフォールディングで 2 つの DNS "
+"名を同一視することはありません。``a@faß.example`` は ``a@fass.example`` と一致しません。"
 
 #: of pyevp.cache.InMemoryCache:1
 msgid "Process-local TTL cache (not shared between workers)."
@@ -188,8 +224,16 @@ msgid "A cache that stores nothing: every verification fetches metadata and keys
 msgstr "何も保存しないキャッシュです。検証のたびにメタデータと鍵を取得します。"
 
 #: of pyevp.errors.PolicyError:1
-msgid "The token is authentic but does not satisfy the relying party's policy."
-msgstr "トークンは本物ですが、RP のポリシーを満たしていません。"
+msgid ""
+"The token does not satisfy the relying party's policy "
+"(``email_mismatch``, ...)."
+msgstr "トークンが RP のポリシーを満たしていません（``email_mismatch`` など）。"
+
+#: of pyevp.errors.PolicyError:3
+msgid ""
+"Checked offline, before the issuer's signature, so it says nothing about "
+"whether the token is authentic."
+msgstr "発行者の署名より前にオフラインで確認するため、トークンが本物かどうかは示しません。"
 
 #: of pyevp.Profile.require_kid:1
 msgid "When false, an absent or empty ``kid`` tries every compatible issuer key."
@@ -227,7 +271,20 @@ msgstr "draft-hardt-email-verification の編集者版（-02）を厳密に解�
 msgid "Look up a preset by name (e.g. ``\"draft-hardt-02\"``)."
 msgstr "名前でプリセットを引きます（たとえば ``\"draft-hardt-02\"``）。"
 
-#: of pyevp.profile.Profile.replace:1
+#: of pyevp.profile.Profile.emails_match:1
+msgid ""
+"Compare two addresses the way verification does (see "
+":class:`EmailComparison`)."
+msgstr "検証と同じ方法で 2 つのアドレスを比較します（{class}`EmailComparison` を参照）。"
+
+#: of pyevp.profile.Profile.emails_match:3
+msgid ""
+"Use it when looking up the account for a verified address, so that lookup"
+" and verification agree on which addresses are the same."
+msgstr "検証したアドレスのアカウントを探すときに使ってください。どのアドレスを同じとみなすかが、アカウントの検索と検証で一致します。"
+
+#: of pyevp.issuer.profile.IssuanceProfile.replace:1
+#: pyevp.profile.Profile.replace:1
 msgid "Return a copy with some fields changed (``dataclasses.replace``)."
 msgstr "一部のフィールドを変更したコピーを返します（``dataclasses.replace``）。"
 
@@ -284,14 +341,26 @@ msgid "Synchronous verifier (Django, Flask, scripts)."
 msgstr "同期の verifier です（Django、Flask、スクリプト向け）。"
 
 #: of pyevp.verifier.Verifier:3
-msgid "Thread-safe as long as the injected ports and cache are."
-msgstr "注入したポートとキャッシュがスレッドセーフであれば、スレッドセーフです。"
+msgid ""
+"Thread-safe as long as the injected ports and cache are.  A context "
+"manager: leaving it calls :meth:`close`."
+msgstr ""
+"注入したポートとキャッシュがスレッドセーフであれば、スレッドセーフです。コンテキストマネージャーで、抜けると {meth}`close` "
+"を呼びます。"
+
+#: of pyevp.verifier.Verifier.default:3
+msgid ""
+"``resolver`` and ``fetcher`` default to those adapters, which "
+":meth:`close` closes; the other arguments are the constructor's."
+msgstr ""
+"``resolver`` と ``fetcher`` の既定値はこれらのアダプターで、{meth}`close` "
+"で閉じます。ほかの引数はコンストラクターと同じです。"
 
 #: of pyevp.verifier.Verifier.verify:1
 msgid "Verify a presentation token."
 msgstr "提示用のトークンを検証します。"
 
-#: ../../api.md
+#: ../../api.md of pyevp.verifier.Verifier.verify
 msgid "Parameters"
 msgstr "パラメータ"
 
@@ -309,13 +378,55 @@ msgstr "ユーザーが送信したアドレス。トークンと照合します
 msgid "override the configured origin (multi-host deployments)."
 msgstr "設定したオリジンを上書きします（複数のホストで運用する場合）。"
 
-#: ../../api.md
+#: of pyevp.verifier.Verifier.verify
 msgid "Raises"
 msgstr "例外"
 
 #: of pyevp.verifier.Verifier.verify:7
-msgid "on any failure; see ``.code``."
-msgstr "失敗したとき。``.code`` を参照してください。"
+msgid "the token is malformed, stale, mis-bound or badly signed."
+msgstr "トークンの形式が不正か、古いか、バインディングが誤っているか、署名が不正です。"
+
+#: of pyevp.verifier.Verifier.verify:8
+msgid ""
+"the token does not satisfy the profile, e.g. it asserts another address."
+"  Raised before the issuer's signature is checked, so it says nothing "
+"about authenticity."
+msgstr "トークンがプロファイルを満たしていません（たとえば別のアドレスを表明している）。発行者の署名を確認する前に送出するため、本物かどうかは示しません。"
+
+#: of pyevp.verifier.Verifier.verify:11
+msgid ""
+"the issuer could not be used.  ``ISSUER_UNREACHABLE`` means its DNS or "
+"HTTPS failed and may be transient; other codes mean its records, metadata"
+" or keys are unusable."
+msgstr ""
+"発行者を利用できません。``ISSUER_UNREACHABLE`` は DNS か HTTPS "
+"が失敗したことを示し、一時的な障害の可能性があります。ほかのコードは、レコード、メタデータ、鍵のいずれかが使えないことを示します。"
+
+#: of pyevp.verifier.Verifier.verify:14
+msgid ""
+"anything raised by the cache or the replay guard, unchanged: a failure of"
+" your own infrastructure, not a verdict on the token."
+msgstr "キャッシュやリプレイガードが送出した例外は、そのまま伝わります。トークンの判定ではなく、自分の基盤の障害です。"
+
+#: of pyevp.verifier.Verifier.verify:17
+msgid "Any :class:`~pyevp.EVPError` means \"do not trust this token\"."
+msgstr "{class}`~pyevp.EVPError` はどれも「このトークンを信頼してはいけない」という意味です。"
+
+#: of pyevp._email.emails_match:1
+msgid "Whether two addresses name the same mailbox under ``comparison``."
+msgstr "``comparison`` のもとで、2 つのアドレスが同じメールボックスを指すかどうかを返します。"
+
+#: of pyevp._email.emails_match:3
+msgid ""
+"``EXACT`` compares the strings byte for byte.  ``CASE_INSENSITIVE`` case-"
+"folds the local part and compares domains in their IDNA2008 A-label form,"
+" so that case folding never merges two DNS names (``faß.example`` is not "
+"``fass.example``). Invalid addresses never match."
+msgstr ""
+"``EXACT`` は文字列をバイト単位で比較します。``CASE_INSENSITIVE`` はローカル部をケースフォールディングし、ドメインを"
+" IDNA2008 の A ラベル形式で比較するので、ケースフォールディングで 2 つの DNS "
+"名が同一視されることはありません（``faß.example`` と ``fass.example`` "
+"は別物です）。不正なアドレスはどれとも一致しません。"
 
 #: of pyevp.nonce.generate_nonce:1
 msgid "Return a URL-safe nonce with ``nbytes`` of entropy (at least 16)."
@@ -503,11 +614,11 @@ msgstr ""
 "``value`` が ``accepted`` のもとで受け付けられない場合は ``None`` "
 "を返します。ドラフトがバイト単位の比較を求めているため、ホストの大文字と小文字はそろえません。"
 
-#: of pyevp.discovery.email_domain:1
+#: of pyevp._email.email_domain:1
 msgid "Return the DNS (A-label) form of the domain part of ``email``."
 msgstr "``email`` のドメイン部を DNS の形式（A ラベル）で返します。"
 
-#: of pyevp.discovery.email_domain:3
+#: of pyevp._email.email_domain:3
 msgid ""
 "Internationalised domains are mapped with UTS #46 / IDNA2008, as browsers"
 " do. Python's ``\"idna\"`` codec implements IDNA2003, which maps some "
@@ -628,6 +739,11 @@ msgstr "httpx2 がインストールされていれば、既定のクライア�
 msgid "Asynchronous counterpart of :class:`HttpxFetcher` (asyncio or trio)."
 msgstr "{class}`HttpxFetcher` の非同期版です（asyncio または trio）。"
 
+#: of pyevp.adapters.httpx.AsyncHttpxFetcher.aclose:1
+#: pyevp.adapters.httpx.HttpxFetcher.close:1
+msgid "Close the client this fetcher created; a client passed in stays open."
+msgstr "このフェッチャーが作ったクライアントを閉じます。渡されたクライアントは開いたままです。"
+
 #: of pyevp.adapters.httpx.HttpxFetcher:1
 msgid "Synchronous fetcher."
 msgstr "同期のフェッチャーです。"
@@ -691,6 +807,10 @@ msgid ""
 "Synchronous DoH TXT resolver (Google by default; pass "
 "``endpoint=CLOUDFLARE`` etc.)."
 msgstr "同期の DoH TXT リゾルバーです（既定は Google。ほかを使うには ``endpoint=CLOUDFLARE`` などを渡します）。"
+
+#: of pyevp.adapters.doh.DohResolver.close:1
+msgid "Close the client this resolver created; a client passed in stays open."
+msgstr "このリゾルバーが作ったクライアントを閉じます。渡されたクライアントは開いたままです。"
 
 #: of pyevp.adapters._doh.parse_txt_data:1
 msgid "Decode a JSON-API TXT ``data`` value into one string."
@@ -780,21 +900,26 @@ msgid ""
 "``{% load pyevp %}`` and ``{% evp_token_input %}`` render the hidden "
 "token input, and :func:`verify_request` / :func:`averify_request` verify "
 "what the form submitted."
-msgstr "``{% load pyevp %}`` と ``{% evp_token_input %}`` はトークン用の hidden フィールドを描画し、{func}`verify_request` と {func}`averify_request` はフォームが送信した内容を検証します。"
+msgstr ""
+"``{% load pyevp %}`` と ``{% evp_token_input %}`` はトークン用の hidden "
+"フィールドを描画し、{func}`verify_request` と {func}`averify_request` "
+"はフォームが送信した内容を検証します。"
 
 #: of pyevp.contrib.django:7
 msgid ""
-":class:`EVPCache` / :class:`AsyncEVPCache` share issuer metadata "
-"and key sets between workers through Django's cache framework."
+":class:`EVPCache` / :class:`AsyncEVPCache` share issuer metadata and key "
+"sets between workers through Django's cache framework."
 msgstr ""
 "{class}`EVPCache` と {class}`AsyncEVPCache` は、Django "
 "のキャッシュフレームワークを通じて、発行者のメタデータと鍵セットをワーカー間で共有します。"
 
 #: of pyevp.contrib.django:9
 msgid ""
-":class:`EVPReplayGuard` / :class:`AsyncEVPReplayGuard` remember "
-"accepted tokens in a database table."
-msgstr "{class}`EVPReplayGuard` と {class}`AsyncEVPReplayGuard` は、受け入れたトークンをデータベースのテーブルに記録します。"
+":class:`EVPReplayGuard` / :class:`AsyncEVPReplayGuard` remember accepted "
+"tokens in a database table."
+msgstr ""
+"{class}`EVPReplayGuard` と {class}`AsyncEVPReplayGuard` "
+"は、受け入れたトークンをデータベースのテーブルに記録します。"
 
 #: of pyevp.contrib.django:27
 msgid ""
@@ -835,8 +960,8 @@ msgid ""
 "Use a backend shared between workers (Redis, Memcached, database) for the"
 " cache to help; ``locmem`` is per process like "
 ":class:`~pyevp.InMemoryCache`. An evicted entry is simply fetched again."
-"  With :class:`~pyevp.AsyncVerifier`, use :class:`AsyncEVPCache`, "
-"which does not block the event loop."
+"  With :class:`~pyevp.AsyncVerifier`, use :class:`AsyncEVPCache`, which "
+"does not block the event loop."
 msgstr ""
 "キャッシュを役立てるには、ワーカー間で共有されるバックエンド（Redis、Memcached、データベース）を使ってください。``locmem``"
 " は {class}`~pyevp.InMemoryCache` "
@@ -890,7 +1015,10 @@ msgid ""
 "Django refuses session access from async code, including from a template "
 "tag.  Call this before rendering; ``{% evp_token_input %}`` then reuses "
 "the nonce without touching the session."
-msgstr "Django は async のコードからのセッションアクセスを拒否し、テンプレートタグからのアクセスも同じです。描画の前にこれを呼んでおくと、``{% evp_token_input %}`` はセッションに触れずに同じ nonce を使います。"
+msgstr ""
+"Django は async "
+"のコードからのセッションアクセスを拒否し、テンプレートタグからのアクセスも同じです。描画の前にこれを呼んでおくと、``{% "
+"evp_token_input %}`` はセッションに触れずに同じ nonce を使います。"
 
 #: of pyevp.contrib.django.averify_request:1
 msgid ":func:`verify_request` for async views and :class:`~pyevp.AsyncVerifier`."
@@ -908,13 +1036,18 @@ msgid ""
 "Opening the page in another tab replaces it, and the older tab's forms "
 "then fall back to your usual flow.  ``{% evp_token_input %}`` calls this "
 "for you."
-msgstr "セッションに置ける nonce は 1 つなので、1 回のリクエストで描画するフォームはすべて同じ nonce を共有します。最初の呼び出しで生成し、以降の呼び出しは同じ値を返します。別のタブでページを開くと置き換わり、前のタブのフォームは通常の手順にフォールバックします。``{% evp_token_input %}`` はこれを内部で呼びます。"
+msgstr ""
+"セッションに置ける nonce は 1 つなので、1 回のリクエストで描画するフォームはすべて同じ nonce "
+"を共有します。最初の呼び出しで生成し、以降の呼び出しは同じ値を返します。別のタブでページを開くと置き換わり、前のタブのフォームは通常の手順にフォールバックします。``{%"
+" evp_token_input %}`` はこれを内部で呼びます。"
 
 #: of pyevp.contrib.django.get_nonce:8
 msgid ""
 "It replaces the nonce in the session, so in a view that handles a "
 "submission, call :func:`verify_request` before rendering a form again."
-msgstr "セッションの nonce を置き換えるので、送信を処理するビューでは、フォームを再描画する前に {func}`verify_request` を呼んでください。"
+msgstr ""
+"セッションの nonce を置き換えるので、送信を処理するビューでは、フォームを再描画する前に {func}`verify_request` "
+"を呼んでください。"
 
 #: of pyevp.contrib.django.get_nonce:11
 msgid ""
@@ -933,7 +1066,10 @@ msgid ""
 "support EVP, or the email provider does not issue tokens.  The nonce then"
 " stays in the session, so a form that is not rendered again (one sent "
 "with ``fetch()``) can still be verified on the next submission."
-msgstr "``field`` が空なら ``None`` を返します。ブラウザーが EVP に対応していないか、メールプロバイダーがトークンを発行していない場合です。このとき nonce はセッションに残るので、再描画しないフォーム（``fetch()`` で送るものなど）でも次の送信で検証できます。"
+msgstr ""
+"``field`` が空なら ``None`` を返します。ブラウザーが EVP "
+"に対応していないか、メールプロバイダーがトークンを発行していない場合です。このとき nonce "
+"はセッションに残るので、再描画しないフォーム（``fetch()`` で送るものなど）でも次の送信で検証できます。"
 
 #: of pyevp.contrib.django.verify_request:8
 msgid ""
@@ -941,7 +1077,10 @@ msgid ""
 ":meth:`pyevp.Verifier.verify`, which raises :class:`~pyevp.EVPError` on "
 "failure.  If the session has no nonce, for example because it expired, "
 "that is ``nonce_mismatch``."
-msgstr "それ以外の場合は nonce を消費し、{meth}`pyevp.Verifier.verify` でトークンを確認します。失敗すると {class}`~pyevp.EVPError` を送出します。セッション切れなどでセッションに nonce が無ければ ``nonce_mismatch`` になります。"
+msgstr ""
+"それ以外の場合は nonce を消費し、{meth}`pyevp.Verifier.verify` でトークンを確認します。失敗すると "
+"{class}`~pyevp.EVPError` を送出します。セッション切れなどでセッションに nonce が無ければ "
+"``nonce_mismatch`` になります。"
 
 #: of pyevp.contrib.django.verify_request:13
 msgid "the address the user submitted, as for :meth:`~pyevp.Verifier.verify`."
@@ -997,8 +1136,8 @@ msgstr "発行者の ``issuance_endpoint`` です。アドレスを管理して�
 msgid ""
 "Exempt from CSRF protection and from ``ATOMIC_REQUESTS``; use a "
 "synchronous replay guard such as "
-":class:`~pyevp.contrib.django.EVPReplayGuard`. Put per-IP rate "
-"limiting in front of it."
+":class:`~pyevp.contrib.django.EVPReplayGuard`. Put per-IP rate limiting "
+"in front of it."
 msgstr ""
 "CSRF 保護と ``ATOMIC_REQUESTS`` "
 "の対象外です。{class}`~pyevp.contrib.django.EVPReplayGuard` "
@@ -1391,4 +1530,16 @@ msgstr "URL ごとにドキュメントを返します。値が呼び出し可�
 #: of pyevp.testing.make_verifier:1
 msgid "A :class:`Verifier` wired to in-memory DNS/HTTP serving ``issuers``."
 msgstr "``issuers`` を配信するメモリー上の DNS と HTTP につないだ {class}`Verifier` を返します。"
+
+#~ msgid ""
+#~ "Any constructor argument, including "
+#~ "``resolver`` / ``fetcher``, can be "
+#~ "overridden."
+#~ msgstr "``resolver`` や ``fetcher`` を含め、コンストラクターの引数はどれでも上書きできます。"
+
+#~ msgid "Unicode case-folded (W3C Email Verification API)."
+#~ msgstr "Unicode のケースフォールディングをしてから比較します（W3C の Email Verification API）。"
+
+#~ msgid "on any failure; see ``.code``."
+#~ msgstr "失敗したとき。``.code`` を参照してください。"
 

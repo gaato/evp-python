@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 07:59+0900\n"
+"POT-Creation-Date: 2026-10-03 10:54+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -301,12 +301,19 @@ msgstr ""
 msgid ""
 "**Cookies.** Both the accounts request and the issuance request are "
 "cross-site from the relying party, so the session cookie needs "
-"`SameSite=None; Secure`. Scope it to the issuer's origin."
+"`SameSite=None; Secure`. Scope it to the issuer's origin. Browsers then "
+"send it with cross-site form posts as well, so protect login, logout and "
+"other requests that change the session against CSRF (a CSRF token, or "
+"checking `Sec-Fetch-Site` / `Origin`). Otherwise another site can sign "
+"visitors in to an account it controls."
 msgstr ""
 "**Cookie**。アカウントのリクエストも発行のリクエストも RP から見てクロスサイトになるため、セッション Cookie には "
-"`SameSite=None; Secure` が必要です。スコープは発行者のオリジンに限定してください。"
+"`SameSite=None; Secure` "
+"が必要です。スコープは発行者のオリジンに限定してください。するとブラウザーはクロスサイトのフォーム送信にもこの Cookie "
+"を付けるので、ログインやログアウトなど、セッションを変えるリクエストを CSRF から保護してください（CSRF トークン、または `Sec-"
+"Fetch-Site` や `Origin` の確認）。保護しないと、ほかのサイトが訪問者を自分の管理するアカウントでサインインさせられます。"
 
-#: ../../guides/issuer-operations.md:145
+#: ../../guides/issuer-operations.md:148
 msgid ""
 "**EVT header.** Chrome accepts only `EdDSA`, `ES256` and `RS256` in the "
 "EVT header, not the `Ed25519` the draft requires. The default "
@@ -320,7 +327,7 @@ msgstr ""
 "と同じく、Ed25519 鍵に対して `EdDSA` を書き込みます。このライブラリの既定のプロファイルを使う RP "
 "はこれを受け入れますが、厳格な `draft-hardt-02` 検証プロファイルは受け入れません。ES256 鍵なら両方を満たせます。"
 
-#: ../../guides/issuer-operations.md:151
+#: ../../guides/issuer-operations.md:154
 msgid ""
 "Chrome also shows the user a one-time prompt per address (\"verify this "
 "email automatically?\") before the first issuance. It starts the check "
@@ -330,11 +337,11 @@ msgstr ""
 "Chrome は最初の発行の前に、アドレスごとに 1 "
 "回だけ、ユーザーに確認のプロンプト（「このメールアドレスを自動で確認しますか？」）を表示します。確認はフォーカスがメールアドレス欄から別のフォーム欄へ移ったときに始まり、同じアドレスで失敗が続くとレート制限がかかります。"
 
-#: ../../guides/issuer-operations.md:157
+#: ../../guides/issuer-operations.md:160
 msgid "Django"
 msgstr "Django"
 
-#: ../../guides/issuer-operations.md:159
+#: ../../guides/issuer-operations.md:162
 #, python-brace-format
 msgid ""
 "{mod}`pyevp.contrib.django.issuer` (`pip install \"pyevp[django]\"`) "
@@ -350,7 +357,7 @@ msgstr ""
 "[`examples/issuer_django`](https://github.com/gaato/pyevp/tree/main/examples/issuer_django)"
 " にあります。"
 
-#: ../../guides/issuer-operations.md:172
+#: ../../guides/issuer-operations.md:175
 msgid ""
 "Include `evp.urls` at the root of the issuer's origin. It serves the "
 "metadata at `/.well-known/email-verification`, the JWKS at `/email-"
@@ -369,12 +376,12 @@ msgstr ""
 "を送出します。別のパスを使うには、サブクラスで `issuance_path`、`jwks_path` などの `*_path` "
 "属性を設定します。"
 
-#: ../../guides/issuer-operations.md:179
+#: ../../guides/issuer-operations.md:182
 #, python-brace-format
 msgid "Subclass {class}`~pyevp.contrib.django.issuer.IssuerSite` to adapt it:"
 msgstr "動作を変えるには {class}`~pyevp.contrib.django.issuer.IssuerSite` をサブクラス化します。"
 
-#: ../../guides/issuer-operations.md:181
+#: ../../guides/issuer-operations.md:184
 msgid ""
 "`user_emails(request)` returns the addresses the signed-in user may get "
 "tokens for. It returns the user model's email field by default. Return "
@@ -385,22 +392,22 @@ msgstr ""
 "は、サインイン中のユーザーがトークンを受け取れるアドレスを返します。既定ではユーザーモデルのメールフィールドを返します。ユーザーが管理していると確認済みのアドレス（たとえば"
 " django-allauth で確認済みのアドレス）だけを返してください。"
 
-#: ../../guides/issuer-operations.md:184
+#: ../../guides/issuer-operations.md:187
 msgid ""
 "`owns(request, email)` compares the requested address with those, case-"
 "insensitively by default."
 msgstr "`owns(request, email)` は、要求されたアドレスをそれらと比較します。既定では大文字と小文字を区別しません。"
 
-#: ../../guides/issuer-operations.md:186
+#: ../../guides/issuer-operations.md:189
 msgid ""
 "`get_issuer(request)` returns the issuer for the request. Override it "
 "instead of passing an `Issuer` when one deployment serves several "
 "issuers, for example one per host."
 msgstr ""
-"`get_issuer(request)` はリクエストに対応する発行者を返します。ホストごとに発行者を分けるなど、1 つのデプロイで複数の発行者"
-"を提供する場合は、`Issuer` を渡す代わりにこれをオーバーライドします。"
+"`get_issuer(request)` はリクエストに対応する発行者を返します。ホストごとに発行者を分けるなど、1 "
+"つのデプロイで複数の発行者を提供する場合は、`Issuer` を渡す代わりにこれをオーバーライドします。"
 
-#: ../../guides/issuer-operations.md:188
+#: ../../guides/issuer-operations.md:191
 msgid ""
 "`login_url` (an argument) is where Chrome sends users who are not signed "
 "in. It defaults to `settings.LOGIN_URL`."
@@ -408,7 +415,7 @@ msgstr ""
 "`login_url`（引数）は、サインインしていないユーザーを Chrome が案内する先です。既定値は "
 "`settings.LOGIN_URL` です。"
 
-#: ../../guides/issuer-operations.md:191
+#: ../../guides/issuer-operations.md:194
 #, python-brace-format
 msgid ""
 "Each endpoint is also a view of its own, for mounting it somewhere else "
@@ -417,9 +424,9 @@ msgid ""
 "CSRF checks and from `ATOMIC_REQUESTS`. A forged cross-site request "
 "cannot carry `Sec-Fetch-Dest: email-verification` or a valid signature. "
 "The exemption from `ATOMIC_REQUESTS` lets "
-"{class}`~pyevp.contrib.django.EVPReplayGuard` commit its record on its"
-" own, so pass `replay_guard=EVPReplayGuard()` to the `Issuer` without "
-"a second database alias. The view is synchronous, so use the synchronous "
+"{class}`~pyevp.contrib.django.EVPReplayGuard` commit its record on its "
+"own, so pass `replay_guard=EVPReplayGuard()` to the `Issuer` without a "
+"second database alias. The view is synchronous, so use the synchronous "
 "guard. Bodies over 16 KiB are refused before they are read."
 msgstr ""
 "各エンドポイントは単独のビューとしても使えます。`AccountsView.as_view(site=evp)` "
@@ -430,11 +437,11 @@ msgstr ""
 "は記録を単独でコミットでき、別のデータベースエイリアスを用意しなくても `replay_guard=EVPReplayGuard()` を "
 "`Issuer` に渡せます。ビューは同期なので、同期版のガードを使ってください。16 KiB を超えるボディは読み込む前に拒否します。"
 
-#: ../../guides/issuer-operations.md:200
+#: ../../guides/issuer-operations.md:203
 msgid "Settings:"
 msgstr "設定は次のとおりです。"
 
-#: ../../guides/issuer-operations.md:210
+#: ../../guides/issuer-operations.md:216
 #, python-brace-format
 msgid ""
 "{class}`~pyevp.contrib.django.issuer.LoginStatusMiddleware` adds `Set-"
@@ -449,7 +456,7 @@ msgstr ""
 "にログインとログアウトを伝えられます。アプリをインストールしていれば、Chrome のクロスサイトリクエストでセッション Cookie "
 "が発行者に届かない設定のとき、`manage.py check` が警告（`pyevp.W001`、`pyevp.W002`）を出します。"
 
-#: ../../guides/issuer-operations.md:215
+#: ../../guides/issuer-operations.md:221
 #, python-brace-format
 msgid ""
 "If the issuer is on a subdomain such as `accounts.example.com`, Chrome "
@@ -462,11 +469,11 @@ msgstr ""
 "{class}`~pyevp.contrib.django.issuer.WebIdentityView` "
 "を提供するか、`web_identity_document()` の文書を返してください。"
 
-#: ../../guides/issuer-operations.md:220
+#: ../../guides/issuer-operations.md:226
 msgid "Not supported yet"
 msgstr "未対応の機能"
 
-#: ../../guides/issuer-operations.md:222
+#: ../../guides/issuer-operations.md:228
 msgid ""
 "`private_email` / `directed_email` requests are answered with "
 "`private_email_not_supported`, and the metadata says "
@@ -475,11 +482,23 @@ msgstr ""
 "`private_email` / `directed_email` のリクエストには `private_email_not_supported`"
 " で応答し、メタデータには `private_email_supported: false` と記載します。"
 
-#: ../../guides/issuer-operations.md:224
+#: ../../guides/issuer-operations.md:230
 msgid ""
 "The pre-153 Chrome format (`application/x-www-form-urlencoded` with a "
 "`request_token`) is refused with 415."
 msgstr ""
 "バージョン 153 より前の Chrome の形式（`request_token` を含む `application/x-www-form-"
 "urlencoded`）は 415 で拒否します。"
+
+#~ msgid ""
+#~ "**Cookies.** Both the accounts request "
+#~ "and the issuance request are cross-"
+#~ "site from the relying party, so "
+#~ "the session cookie needs `SameSite=None; "
+#~ "Secure`. Scope it to the issuer's "
+#~ "origin."
+#~ msgstr ""
+#~ "**Cookie**。アカウントのリクエストも発行のリクエストも RP から見てクロスサイトになるため、セッション"
+#~ " Cookie には `SameSite=None; Secure` "
+#~ "が必要です。スコープは発行者のオリジンに限定してください。"
 

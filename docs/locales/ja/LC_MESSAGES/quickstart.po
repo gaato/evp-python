@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 09:52+0900\n"
+"POT-Creation-Date: 2026-10-03 10:54+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -56,7 +56,9 @@ msgid ""
 "The `nonce` must be a content attribute in the HTML. Frameworks that set "
 "it as a DOM property are not picked up by the browser. React 19 renders "
 "the `nonce` prop as a content attribute."
-msgstr "`nonce` は HTML のコンテンツ属性として書く必要があります。フレームワークが DOM プロパティとして設定した場合、ブラウザーはそれを読み取りません。React 19 は `nonce` prop をコンテンツ属性として描画します。"
+msgstr ""
+"`nonce` は HTML のコンテンツ属性として書く必要があります。フレームワークが DOM "
+"プロパティとして設定した場合、ブラウザーはそれを読み取りません。React 19 は `nonce` prop をコンテンツ属性として描画します。"
 
 #: ../../quickstart.md:33
 msgid ""
@@ -76,7 +78,11 @@ msgid ""
 " session, so add the inputs only to pages that have a form. An API "
 "without server sessions can keep the nonce in a cookie instead; see "
 "{doc}`guides/spa`."
-msgstr "セッションに置ける nonce は 1 つなので、同じページのフォームはすべて同じ nonce を共有します。同じ理由で、検証できるのは最後に開いたタブだけです。それより前に開いたタブのフォームは、通常の手順にフォールバックします。nonce を保存すると訪問者ごとにセッションができるので、入力欄はフォームのあるページにだけ追加してください。サーバーセッションの無い API では、代わりに nonce を Cookie に置けます。{doc}`guides/spa` を参照してください。"
+msgstr ""
+"セッションに置ける nonce は 1 つなので、同じページのフォームはすべて同じ nonce "
+"を共有します。同じ理由で、検証できるのは最後に開いたタブだけです。それより前に開いたタブのフォームは、通常の手順にフォールバックします。nonce"
+" を保存すると訪問者ごとにセッションができるので、入力欄はフォームのあるページにだけ追加してください。サーバーセッションの無い API "
+"では、代わりに nonce を Cookie に置けます。{doc}`guides/spa` を参照してください。"
 
 #: ../../quickstart.md:42
 msgid "Fitting EVP into an existing form"
@@ -120,10 +126,21 @@ msgid "Create the verifier once, with your origin as the audience:"
 msgstr "`Verifier` は一度だけ作成し、audience には自分のサイトのオリジンを指定します。"
 
 #: ../../quickstart.md:63
+msgid ""
+"The verifier keeps an HTTP client open. On shutdown, call "
+"`verifier.close()` (`await verifier.aclose()` for `AsyncVerifier`), or "
+"use it as a context manager. It closes only what `default()` created: a "
+"resolver, fetcher or HTTP client you pass in is yours to close."
+msgstr ""
+"verifier は HTTP クライアントを開いたままにします。終了時に `verifier.close()`（`AsyncVerifier` "
+"では `await verifier.aclose()`）を呼ぶか、コンテキストマネージャーとして使ってください。閉じるのは "
+"`default()` が作ったものだけです。自分で渡したリゾルバー、フェッチャー、HTTP クライアントは自分で閉じてください。"
+
+#: ../../quickstart.md:67
 msgid "Then, in the form handler:"
 msgstr "そして、フォームのハンドラーで次のように検証します。"
 
-#: ../../quickstart.md:78
+#: ../../quickstart.md:82
 msgid ""
 "Keeping the nonce when no token arrived matters when the page is not "
 "rendered again, for example a form sent with `fetch()`: its next "
@@ -132,22 +149,38 @@ msgstr ""
 "トークンが届かなかったときに nonce を残しておくのは、ページを再描画しない場合のためです。たとえば `fetch()` "
 "で送るフォームでも、次の送信で確認に使う nonce が残ります。"
 
-#: ../../quickstart.md:81
+#: ../../quickstart.md:85
 msgid "`AsyncVerifier` has the same API: `await verifier.verify(...)`."
 msgstr "`AsyncVerifier` も同じ API で、`await verifier.verify(...)` のように使います。"
-
-#: ../../quickstart.md:85
-msgid "3. Handle failures"
-msgstr "3\\. 失敗に対処する"
 
 #: ../../quickstart.md:87
 #, python-brace-format
 msgid ""
-"Every failure raises a subclass of {class}`pyevp.EVPError` with a stable "
-"{class}`pyevp.ErrorCode`:"
+"`result.email` is the address the issuer asserted. Under the default "
+"profile it may differ from the submitted one in case. To find the "
+"account, compare addresses with {meth}`verifier.profile.emails_match() "
+"<pyevp.Profile.emails_match>`, which applies the same rule as "
+"verification: the local part is case-folded, and domains are compared as "
+"DNS names, so `faß.example` and `fass.example` stay different."
 msgstr ""
-"どの失敗でも {class}`pyevp.EVPError` のサブクラスが送出され、安定した {class}`pyevp.ErrorCode` "
-"で理由がわかります。"
+"`result.email` "
+"は発行者が表明したアドレスです。既定のプロファイルでは、入力されたアドレスと大文字・小文字が異なることがあります。アカウントを探すときは "
+"{meth}`verifier.profile.emails_match() <pyevp.Profile.emails_match>` "
+"でアドレスを比較してください。検証と同じ規則で比較します。ローカル部は大文字と小文字を区別せず、ドメインは DNS "
+"名として比較するので、`faß.example` と `fass.example` は別のものとして扱われます。"
+
+#: ../../quickstart.md:95
+msgid "3. Handle failures"
+msgstr "3\\. 失敗に対処する"
+
+#: ../../quickstart.md:97
+#, python-brace-format
+msgid ""
+"A rejected token raises a subclass of {class}`pyevp.EVPError` with a "
+"stable {class}`pyevp.ErrorCode`:"
+msgstr ""
+"トークンを拒否すると {class}`pyevp.EVPError` のサブクラスが送出され、安定した "
+"{class}`pyevp.ErrorCode` で理由がわかります。"
 
 #: ../../quickstart.md
 msgid "Exception"
@@ -193,24 +226,30 @@ msgid "{class}`~pyevp.PolicyError`"
 msgstr "{class}`~pyevp.PolicyError`"
 
 #: ../../quickstart.md
-msgid "Authentic, but not acceptable"
-msgstr "真正だが、受け入れられない"
+msgid ""
+"Not acceptable to your profile; checked before the signature, so not a "
+"sign of authenticity"
+msgstr "プロファイルの条件を満たさない（署名より前に確認するため、本物であることは意味しない）"
 
 #: ../../quickstart.md
 msgid "`email_mismatch`, `email_not_verified`"
 msgstr "`email_mismatch`, `email_not_verified`"
 
-#: ../../quickstart.md:95
+#: ../../quickstart.md:106
 msgid ""
 "`issuer_unreachable` may be transient. Everything else means \"do not "
-"trust this token\". EVP is a progressive enhancement: when there is no "
-"token, or it is rejected, fall back to your existing verification flow."
+"trust this token\". Exceptions from your own cache or replay guard are "
+"not `EVPError`s; they propagate unchanged, so an outage on your side does"
+" not look like a rejected token. EVP is a progressive enhancement: when "
+"there is no token, or it is rejected, fall back to your existing "
+"verification flow."
 msgstr ""
 "`issuer_unreachable` "
-"は一時的な障害の可能性があります。それ以外はすべて「このトークンを信頼してはいけない」という意味です。EVP "
+"は一時的な障害の可能性があります。それ以外はすべて「このトークンを信頼してはいけない」という意味です。自分のキャッシュやリプレイガードの例外は "
+"`EVPError` ではなく、そのまま伝わるので、自分の側の障害がトークンの拒否に見えることはありません。EVP "
 "はプログレッシブエンハンスメントなので、トークンがないときや拒否されたときは、既存の検証フローにフォールバックしてください。"
 
-#: ../../quickstart.md:99
+#: ../../quickstart.md:112
 msgid ""
 "Whatever the code, the safe default is the fallback. The codes tell you "
 "whether the user can simply try again and whether something on your side "
@@ -381,18 +420,24 @@ msgstr "トークンが偽造または改ざんされている"
 msgid "Fall back and log; do not trust the address"
 msgstr "フォールバックしてログに記録する。アドレスは信頼しない"
 
-#: ../../quickstart.md:118
+#: ../../quickstart.md:131
 msgid ""
 "Codes may be added in minor releases, so treat unknown codes as \"fall "
 "back\"."
 msgstr "マイナーリリースでコードが追加されることがあるので、未知のコードは「フォールバックする」として扱ってください。"
 
-#: ../../quickstart.md:121
+#: ../../quickstart.md:134
 #, python-brace-format
 msgid ""
 "If the nonce is stored client-side, in a session kept in a signed cookie "
 "such as Starlette's `SessionMiddleware` or in a cookie of its own, "
 "popping it does not make it single-use. Enable {doc}`replay protection "
 "<guides/replay>`."
-msgstr "nonce をクライアント側に保存している場合、つまり Starlette の `SessionMiddleware` のような署名付き Cookie のセッションや、nonce 専用の Cookie に置いている場合は、取り出しても使い捨てにはなりません。{doc}`リプレイ対策 <guides/replay>` を有効にしてください。"
+msgstr ""
+"nonce をクライアント側に保存している場合、つまり Starlette の `SessionMiddleware` のような署名付き "
+"Cookie のセッションや、nonce 専用の Cookie に置いている場合は、取り出しても使い捨てにはなりません。{doc}`リプレイ対策 "
+"<guides/replay>` を有効にしてください。"
+
+#~ msgid "Authentic, but not acceptable"
+#~ msgstr "真正だが、受け入れられない"
 

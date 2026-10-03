@@ -94,15 +94,18 @@ as verification: the local part is case-folded, and domains are compared as DNS 
 
 ## 3. Handle failures
 
-Every failure raises a subclass of {class}`pyevp.EVPError` with a stable {class}`pyevp.ErrorCode`:
+A rejected token raises a subclass of {class}`pyevp.EVPError` with a stable
+{class}`pyevp.ErrorCode`:
 
 | Exception | Meaning | Typical codes |
 |---|---|---|
 | {class}`~pyevp.TokenError` | Malformed, stale, mis-bound or badly signed token | `nonce_mismatch`, `token_expired`, `token_replayed` |
 | {class}`~pyevp.DiscoveryError` | The issuer could not be discovered or used | `issuer_mismatch`, `issuer_unreachable` |
-| {class}`~pyevp.PolicyError` | Authentic, but not acceptable | `email_mismatch`, `email_not_verified` |
+| {class}`~pyevp.PolicyError` | Not acceptable to your profile; checked before the signature, so not a sign of authenticity | `email_mismatch`, `email_not_verified` |
 
-`issuer_unreachable` may be transient. Everything else means "do not trust this token". EVP is a
+`issuer_unreachable` may be transient. Everything else means "do not trust this token".
+Exceptions from your own cache or replay guard are not `EVPError`s; they propagate unchanged,
+so an outage on your side does not look like a rejected token. EVP is a
 progressive enhancement: when there is no token, or it is rejected, fall back to your existing
 verification flow.
 

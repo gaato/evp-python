@@ -1,7 +1,9 @@
 """Exception hierarchy.
 
-Every failure carries a stable :class:`ErrorCode` so that web frameworks can map
-it to a form error or an HTTP status without parsing messages.
+Every rejected token raises an :class:`EVPError` with a stable :class:`ErrorCode`, so
+that web frameworks can map it to a form error or an HTTP status without parsing
+messages.  Failures of the application's own cache or replay store are not
+``EVPError``: they propagate unchanged.
 """
 
 from __future__ import annotations
@@ -43,7 +45,11 @@ class ErrorCode(StrEnum):
 
 
 class EVPError(Exception):
-    """Base class for every verification failure."""
+    """Base class for verification failures: the token must not be trusted.
+
+    :class:`TokenError` and :class:`PolicyError` concern what was submitted;
+    :class:`DiscoveryError` concerns the issuer.
+    """
 
     code: ErrorCode
 
@@ -67,4 +73,8 @@ class DiscoveryError(EVPError):
 
 
 class PolicyError(EVPError):
-    """The token is authentic but does not satisfy the relying party's policy."""
+    """The token does not satisfy the relying party's policy (``email_mismatch``, ...).
+
+    Checked offline, before the issuer's signature, so it says nothing about whether
+    the token is authentic.
+    """

@@ -74,7 +74,7 @@ TXT `iss=…`), fetches its metadata and JWKS (cached), and verifies the issuer'
 hosts derived from DNS are ever contacted, never hosts named in the token, and only when they
 resolve to public addresses.
 
-Every failure carries a stable `ErrorCode`. The safe default is to fall back to your existing
+Every rejected token raises an `EVPError` with a stable `ErrorCode`. The safe default is to fall back to your existing
 verification flow; the [error table](https://docs.pyevp.dev/en/latest/quickstart.html#handle-failures) tells which codes
 the user can retry and which point at your configuration.
 

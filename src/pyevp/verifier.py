@@ -6,7 +6,8 @@ import inspect
 import logging
 import threading
 import time
-from contextlib import AsyncExitStack, ExitStack
+from collections.abc import Iterator
+from contextlib import AsyncExitStack, ExitStack, contextmanager
 from datetime import datetime, timedelta
 from types import TracebackType
 from typing import Any, Self
@@ -134,6 +135,17 @@ class _Base:
         return CacheEntry(value, self._clock())
 
 
+@contextmanager
+def _issuer_io(effect: ResolveTxt | FetchJson) -> Iterator[None]:
+    """Report a failed DNS or HTTP request to the issuer as ``ISSUER_UNREACHABLE``."""
+    try:
+        yield
+    except EVPError:
+        raise
+    except Exception as exc:
+        raise _unreachable(effect, exc) from exc
+
+
 def _unreachable(effect: ResolveTxt | FetchJson, exc: Exception) -> DiscoveryError:
     target = effect.name if isinstance(effect, ResolveTxt) else effect.url
     err = DiscoveryError(ErrorCode.ISSUER_UNREACHABLE, f"lookup of {target} failed: {exc}")
@@ -239,7 +251,17 @@ class Verifier(_Base):
         :param email: the address the user submitted; checked against the token.  Pass
             ``None`` explicitly to skip the check and use the asserted address instead.
         :param audience: override the configured origin (multi-host deployments).
-        :raises pyevp.EVPError: on any failure; see ``.code``.
+        :raises pyevp.TokenError: the token is malformed, stale, mis-bound or badly signed.
+        :raises pyevp.PolicyError: the token does not satisfy the profile, e.g. it asserts
+            another address.  Raised before the issuer's signature is checked, so it says
+            nothing about authenticity.
+        :raises pyevp.DiscoveryError: the issuer could not be used.  ``ISSUER_UNREACHABLE``
+            means its DNS or HTTPS failed and may be transient; other codes mean its
+            records, metadata or keys are unusable.
+        :raises Exception: anything raised by the cache or the replay guard, unchanged:
+            a failure of your own infrastructure, not a verdict on the token.
+
+        Any :class:`~pyevp.EVPError` means "do not trust this token".
         """
         started, result, error = time.perf_counter(), None, None
         try:
@@ -262,26 +284,23 @@ class Verifier(_Base):
             steps.close()
 
     def _perform(self, effect: Effect) -> object:
-        if isinstance(effect, MarkUsed):
-            # Failures of the application's own store propagate unchanged.
-            assert self._replay_guard is not None
-            return self._check_marked(
-                effect, self._replay_guard.mark_used(effect.key, effect.expires_at)
-            )
-        try:
-            match effect:
-                case ResolveTxt(name=name):
+        # Failures of the application's own replay store and cache propagate unchanged.
+        match effect:
+            case MarkUsed():
+                assert self._replay_guard is not None
+                return self._check_marked(
+                    effect, self._replay_guard.mark_used(effect.key, effect.expires_at)
+                )
+            case ResolveTxt(name=name):
+                with _issuer_io(effect):
                     return self._resolver.resolve_txt(name)
-                case FetchJson(url=url):
-                    if (entry := self._reuse(effect, self._cache.get(url))) is not None:
-                        return entry.value
+            case FetchJson(url=url):
+                if (entry := self._reuse(effect, self._cache.get(url))) is not None:
+                    return entry.value
+                with _issuer_io(effect):
                     value = self._fetcher.fetch_json(url)
-                    self._cache.set(url, self._entry(value), self._cache_ttl)
-                    return value
-        except EVPError:
-            raise
-        except Exception as exc:
-            raise _unreachable(effect, exc) from exc
+                self._cache.set(url, self._entry(value), self._cache_ttl)
+                return value
 
 
 class AsyncVerifier(_Base):
@@ -392,28 +411,26 @@ class AsyncVerifier(_Base):
             steps.close()
 
     async def _perform(self, effect: Effect) -> object:
-        if isinstance(effect, MarkUsed):
-            assert self._replay_guard is not None
-            marked = self._replay_guard.mark_used(effect.key, effect.expires_at)
-            return self._check_marked(
-                effect, await marked if inspect.isawaitable(marked) else marked
-            )
-        try:
-            match effect:
-                case ResolveTxt(name=name):
+        # Failures of the application's own replay store and cache propagate unchanged.
+        match effect:
+            case MarkUsed():
+                assert self._replay_guard is not None
+                marked = self._replay_guard.mark_used(effect.key, effect.expires_at)
+                return self._check_marked(
+                    effect, await marked if inspect.isawaitable(marked) else marked
+                )
+            case ResolveTxt(name=name):
+                with _issuer_io(effect):
                     return await self._resolver.resolve_txt(name)
-                case FetchJson(url=url):
-                    cached = self._cache.get(url)
-                    if inspect.isawaitable(cached):
-                        cached = await cached
-                    if (entry := self._reuse(effect, cached)) is not None:
-                        return entry.value
+            case FetchJson(url=url):
+                cached = self._cache.get(url)
+                if inspect.isawaitable(cached):
+                    cached = await cached
+                if (entry := self._reuse(effect, cached)) is not None:
+                    return entry.value
+                with _issuer_io(effect):
                     value = await self._fetcher.fetch_json(url)
-                    stored = self._cache.set(url, self._entry(value), self._cache_ttl)
-                    if inspect.isawaitable(stored):
-                        await stored
-                    return value
-        except EVPError:
-            raise
-        except Exception as exc:
-            raise _unreachable(effect, exc) from exc
+                stored = self._cache.set(url, self._entry(value), self._cache_ttl)
+                if inspect.isawaitable(stored):
+                    await stored
+                return value

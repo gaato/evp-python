@@ -16,6 +16,7 @@ from pyevp import (
     EVPError,
     InMemoryCache,
     NullCache,
+    PolicyError,
     Profile,
     TokenError,
     Verifier,
@@ -304,6 +305,65 @@ def test_transport_failure_is_issuer_unreachable(
         verifier.verify(token, nonce=nonce, email=None)
     assert exc.value.code is ErrorCode.ISSUER_UNREACHABLE
     assert exc.value.__cause__ is not None
+
+
+class _BrokenCache:
+    def __init__(self, fail: str) -> None:
+        self.fail = fail
+
+    def get(self, key: str) -> CacheEntry | None:
+        if self.fail == "get":
+            raise ConnectionError("cache down")
+        return None
+
+    def set(self, key: str, entry: CacheEntry, ttl: timedelta) -> None:
+        if self.fail == "set":
+            raise ConnectionError("cache down")
+
+
+class _AsyncBrokenCache:
+    def __init__(self, fail: str) -> None:
+        self.sync = _BrokenCache(fail)
+
+    async def get(self, key: str) -> CacheEntry | None:
+        return self.sync.get(key)
+
+    async def set(self, key: str, entry: CacheEntry, ttl: timedelta) -> None:
+        self.sync.set(key, entry, ttl)
+
+
+@pytest.mark.parametrize("fail", ["get", "set"])
+def test_cache_failures_propagate_unchanged(
+    issuer: FakeIssuer, token: str, nonce: str, fail: str
+) -> None:
+    # The application's own infrastructure failed, not the issuer: no ISSUER_UNREACHABLE.
+    verifier = make_verifier(issuer, audience=AUDIENCE, cache=_BrokenCache(fail))
+    with pytest.raises(ConnectionError):
+        verifier.verify(token, nonce=nonce, email=None)
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("fail", ["get", "set"])
+async def test_async_cache_failures_propagate_unchanged(
+    issuer: FakeIssuer, token: str, nonce: str, fail: str
+) -> None:
+    for cache in (_BrokenCache(fail), _AsyncBrokenCache(fail)):
+        verifier = make_async_verifier(issuer, audience=AUDIENCE, cache=cache)
+        with pytest.raises(ConnectionError):
+            await verifier.verify(token, nonce=nonce, email=None)
+
+
+def test_policy_errors_say_nothing_about_authenticity(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str
+) -> None:
+    forger = FakeIssuer(clock=issuer.clock)  # same issuer name, another key
+    token = browser.present(forger.issue(EMAIL, browser.public_jwk), audience=AUDIENCE, nonce=nonce)
+    verifier = make_verifier(issuer, audience=AUDIENCE)
+    with pytest.raises(PolicyError):
+        verifier.verify(token, nonce=nonce, email="mallory@example.com")
+    with pytest.raises(TokenError) as exc:
+        verifier.verify(token, nonce=nonce, email=EMAIL)
+    assert exc.value.code is ErrorCode.EVT_SIGNATURE_INVALID
 
 
 def test_audience_override(issuer: FakeIssuer, browser: FakeBrowser, nonce: str) -> None:

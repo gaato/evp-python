@@ -540,6 +540,61 @@ def test_async_replay_guard(clock: FixedClock) -> None:
     anyio.run(main)
 
 
+def test_request_expiring_in_the_replay_guard_is_refused(clock: FixedClock) -> None:
+    # A store that forgets expired keys cannot catch a copy that arrives after the
+    # deadline, so a request that outlives it while being marked is refused.
+    late = timedelta(seconds=302)  # past max_request_age (300 s) plus the 1 s margin
+
+    class SlowGuard:
+        def __init__(self) -> None:
+            self.inner = InMemoryReplayGuard(clock=clock)
+
+        def mark_used(self, key: str, expires_at: Any) -> bool:
+            clock.advance(late)
+            return self.inner.mark_used(key, expires_at)
+
+    issuer = make_issuer(clock, replay_guard=SlowGuard())
+    with pytest.raises(IssuanceError, match="expired during validation"):
+        issuer.parse_request(**Browser(clock).request())
+
+
+def test_concurrent_copies_crossing_the_deadline_are_refused(clock: FixedClock) -> None:
+    inner = InMemoryReplayGuard(clock=clock)
+    arrived = 0
+    both_in = anyio.Event()
+
+    class SlowGuard:
+        async def mark_used(self, key: str, expires_at: Any) -> bool:
+            nonlocal arrived
+            arrived += 1
+            if arrived == 2:
+                clock.advance(timedelta(seconds=302))
+                both_in.set()
+            await both_in.wait()
+            return inner.mark_used(key, expires_at)
+
+    issuer = make_issuer(clock, replay_guard=SlowGuard())
+    request = Browser(clock).request()
+    outcomes: list[str] = []
+
+    async def attempt() -> None:
+        try:
+            await issuer.aparse_request(**request)
+        except IssuanceError as exc:
+            outcomes.append(str(exc))
+        else:
+            outcomes.append("accepted")
+
+    async def main() -> None:
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(attempt)
+            tg.start_soon(attempt)
+
+    anyio.run(main)
+    assert len(outcomes) == 2
+    assert "accepted" not in outcomes
+
+
 def test_observer(clock: FixedClock) -> None:
     events: list[IssuanceEvent] = []
     issuer = make_issuer(clock, observer=events.append)

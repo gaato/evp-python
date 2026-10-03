@@ -221,7 +221,9 @@ class Issuer:
         try:
             request = self._validate(method, headers, body)
             if guard is not None:
-                self._check_replay(cast(ReplayGuard, guard).mark_used(*self._replay_key(request)))
+                key, expires_at = self._replay_key(request)
+                fresh = cast(ReplayGuard, guard).mark_used(key, expires_at)
+                self._check_replay(fresh, expires_at)
         except IssuanceError as exc:
             self._rejected(exc)
             raise
@@ -235,8 +237,10 @@ class Issuer:
         try:
             request = self._validate(method, headers, body)
             if self.replay_guard is not None:
-                marked = self.replay_guard.mark_used(*self._replay_key(request))
-                self._check_replay(await marked if inspect.isawaitable(marked) else marked)
+                key, expires_at = self._replay_key(request)
+                marked = self.replay_guard.mark_used(key, expires_at)
+                fresh = await marked if inspect.isawaitable(marked) else marked
+                self._check_replay(fresh, expires_at)
         except IssuanceError as exc:
             self._rejected(exc)
             raise
@@ -353,11 +357,18 @@ class Issuer:
         key = "issuance:" + hashlib.sha256(request.signature_base).hexdigest()
         return key, request.created + self.profile.max_request_age + timedelta(seconds=1)
 
-    @staticmethod
-    def _check_replay(fresh: bool) -> None:
+    def _check_replay(self, fresh: bool, expires_at: datetime) -> None:
         if not fresh:
             raise IssuanceError(
                 IssuanceErrorCode.INVALID_SIGNATURE,
                 "request was already used",
+                signature_error="invalid_signature",
+            )
+        # Freshness was judged before the guard ran.  If the request expired since, the
+        # record just written may already be gone, and a concurrent copy found nothing.
+        if self.clock() >= expires_at:
+            raise IssuanceError(
+                IssuanceErrorCode.INVALID_SIGNATURE,
+                "request expired during validation",
                 signature_error="invalid_signature",
             )

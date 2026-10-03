@@ -90,7 +90,7 @@ STYLESHEET = HERE / "static" / "site.css"
 EXAMPLES = (
     ("fastapi", "FastAPI", "fastapi/app.py"),
     ("flask", "Flask", "flask/app.py"),
-    ("django-allauth", "Django allauth", "django_allauth/evp_allauth.py"),
+    ("django", "Django", "django/views.py"),
 )
 NO_STORE = {"Cache-Control": "no-store"}
 

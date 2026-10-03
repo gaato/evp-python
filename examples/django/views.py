@@ -35,6 +35,7 @@ class SignupForm(forms.Form):
     email = forms.EmailField(widget=forms.EmailInput(attrs={"autocomplete": "email"}))
 
 
+# landing:start
 def signup(request: HttpRequest) -> HttpResponse:
     form = SignupForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -49,3 +50,4 @@ def signup(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"email": result.email, "verified": True, "issuer": result.issuer})
     # {% evp_token_input %} in the template puts a nonce in the session.
     return render(request, "signup.html", {"form": form})
+    # landing:end

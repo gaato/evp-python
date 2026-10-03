@@ -39,7 +39,6 @@ class EVPSignupForm(SignupForm):
         self.fields["email"].widget.attrs["autocomplete"] = "email"
 
 
-# landing:start
 class EVPAccountAdapter(DefaultAccountAdapter):
     def is_email_verified(self, request: HttpRequest, email: str) -> bool:
         if super().is_email_verified(request, email):
@@ -56,4 +55,3 @@ class EVPAccountAdapter(DefaultAccountAdapter):
         except EVPError as exc:
             logger.info("EVP token rejected: %s", exc.code)
             return False
-        # landing:end

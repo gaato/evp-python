@@ -22,7 +22,7 @@ COPY examples/site/templates /app/templates
 COPY --from=css /out/site.css /app/static/site.css
 COPY examples/fastapi/app.py /app/examples/fastapi/app.py
 COPY examples/flask/app.py /app/examples/flask/app.py
-COPY examples/django_allauth/evp_allauth.py /app/examples/django_allauth/evp_allauth.py
+COPY examples/django/views.py /app/examples/django/views.py
 ARG BUILD_SHA=unknown
 ENV BUILD_SHA=$BUILD_SHA EVP_EXAMPLES_DIR=/app/examples
 ENV PATH=/src/.venv/bin:$PATH PYTHONUNBUFFERED=1

@@ -207,7 +207,7 @@ comments:
 |---|---|
 | FastAPI | `examples/fastapi/app.py` |
 | Flask | `examples/flask/app.py` |
-| Django allauth | `examples/django_allauth/evp_allauth.py` |
+| Django | `examples/django/views.py` |
 
 Each file has exactly one marked region. The app refuses to start if one is missing, and a
 test checks all of them, so the page cannot drift from code that CI runs.

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 00:46+0900\n"
+"POT-Creation-Date: 2026-10-03 09:07+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -44,14 +44,12 @@ msgstr "1\\. フォームに nonce を埋め込む"
 
 #: ../../quickstart.md:14
 msgid ""
-"Generate a fresh nonce per form, keep it in the user's session, and add "
-"two inputs: the email field the user fills in, and a hidden field the "
-"browser fills with the token."
-msgstr ""
-"フォームごとに新しい nonce を生成してユーザーのセッションに保存し、入力欄を 2 "
-"つ追加します。ユーザーが入力するメールアドレス欄と、ブラウザーがトークンを書き込む hidden フィールドです。"
+"Generate a nonce each time you render the page, keep it in the user's "
+"session, and add two inputs to the form: the email field the user fills "
+"in, and a hidden field the browser fills with the token."
+msgstr "ページを描画するたびに nonce を生成してユーザーのセッションに保存し、フォームに入力欄を 2 つ追加します。ユーザーが入力するメールアドレス欄と、ブラウザーがトークンを書き込む hidden フィールドです。"
 
-#: ../../quickstart.md:29
+#: ../../quickstart.md:30
 msgid ""
 "The `nonce` must be a content attribute in the HTML. Frameworks that set "
 "it as a DOM property are not picked up by the browser."
@@ -59,7 +57,7 @@ msgstr ""
 "`nonce` は HTML のコンテンツ属性として書く必要があります。フレームワークが DOM "
 "プロパティとして設定した場合、ブラウザーはそれを読み取りません。"
 
-#: ../../quickstart.md:32
+#: ../../quickstart.md:33
 msgid ""
 "Chrome writes the token into the hidden field only when the form is "
 "submitted. Before that, page scripts read an empty value, so check the "
@@ -68,27 +66,68 @@ msgstr ""
 "Chrome がトークンを hidden "
 "フィールドに書き込むのは、フォームを送信するときだけです。それまではページのスクリプトから読んでも空の値なので、トークンはクライアント側のバリデーションではなくサーバーで確認してください。"
 
-#: ../../quickstart.md:36
+#: ../../quickstart.md:37
+msgid ""
+"The session holds one nonce, so all forms on a page share it. For the "
+"same reason, only the tab opened last can be verified; forms in older "
+"tabs fall back to your usual flow. Storing the nonce gives each visitor a"
+" session, so add the inputs only to pages that have a form."
+msgstr "セッションに置ける nonce は 1 つなので、同じページのフォームはすべて同じ nonce を共有します。同じ理由で、検証できるのは最後に開いたタブだけです。それより前に開いたタブのフォームは、通常の手順にフォールバックします。nonce を保存すると訪問者ごとにセッションができるので、入力欄はフォームのあるページにだけ追加してください。"
+
+#: ../../quickstart.md:41
+msgid "Fitting EVP into an existing form"
+msgstr "既存のフォームに組み込む"
+
+#: ../../quickstart.md:43
+msgid ""
+"The email field needs `autocomplete=\"email\"`. With "
+"`autocomplete=\"off\"` the browser does not offer verified addresses."
+msgstr "メールアドレス欄には `autocomplete=\"email\"` が必要です。`autocomplete=\"off\"` にすると、ブラウザーは確認済みのアドレスを候補に出しません。"
+
+#: ../../quickstart.md:45
+msgid ""
+"Leave the field empty. Chrome asks the email provider for a token only "
+"after the user types an address or picks one from autofill, so a pre-"
+"filled value sends none."
+msgstr "欄は空のままにしてください。Chrome がメールプロバイダーにトークンを求めるのは、ユーザーがアドレスを入力するか自動入力から選んだときだけです。あらかじめ値を入れておくと、トークンは送られません。"
+
+#: ../../quickstart.md:47
+msgid ""
+"Submit through the form. The token is filled in as part of the form's "
+"submission, so a script that sends the fields with `fetch()` from a click"
+" handler gets none. Send from the form's `submit` handler instead, "
+"including the `evt` field, as `FormData` if your server reads form "
+"fields."
+msgstr "フォームから送信してください。トークンはフォームの送信の過程で書き込まれるので、クリックハンドラーから `fetch()` で各欄を送るスクリプトにはトークンが入りません。代わりにフォームの `submit` ハンドラーから、`evt` フィールドも含めて送信します。サーバーがフォームの値を読むなら `FormData` で送ります。"
+
+#: ../../quickstart.md:52
 msgid "2. Verify on submit"
 msgstr "2\\. 送信時に検証する"
 
-#: ../../quickstart.md:38
+#: ../../quickstart.md:54
 msgid "Create the verifier once, with your origin as the audience:"
 msgstr "`Verifier` は一度だけ作成し、audience には自分のサイトのオリジンを指定します。"
 
-#: ../../quickstart.md:46
+#: ../../quickstart.md:62
 msgid "Then, in the form handler:"
 msgstr "そして、フォームのハンドラーで次のように検証します。"
 
-#: ../../quickstart.md:60
+#: ../../quickstart.md:77
+msgid ""
+"Keeping the nonce when no token arrived matters when the page is not "
+"rendered again, for example a form sent with `fetch()`: its next "
+"submission still has a nonce to check."
+msgstr "トークンが届かなかったときに nonce を残しておくのは、ページを再描画しない場合のためです。たとえば `fetch()` で送るフォームでも、次の送信で確認に使う nonce が残ります。"
+
+#: ../../quickstart.md:80
 msgid "`AsyncVerifier` has the same API: `await verifier.verify(...)`."
 msgstr "`AsyncVerifier` も同じ API で、`await verifier.verify(...)` のように使います。"
 
-#: ../../quickstart.md:64
+#: ../../quickstart.md:84
 msgid "3. Handle failures"
 msgstr "3\\. 失敗に対処する"
 
-#: ../../quickstart.md:66
+#: ../../quickstart.md:86
 #, python-brace-format
 msgid ""
 "Every failure raises a subclass of {class}`pyevp.EVPError` with a stable "
@@ -148,7 +187,7 @@ msgstr "真正だが、受け入れられない"
 msgid "`email_mismatch`, `email_not_verified`"
 msgstr "`email_mismatch`, `email_not_verified`"
 
-#: ../../quickstart.md:74
+#: ../../quickstart.md:94
 msgid ""
 "`issuer_unreachable` may be transient. Everything else means \"do not "
 "trust this token\". EVP is a progressive enhancement: when there is no "
@@ -158,7 +197,7 @@ msgstr ""
 "は一時的な障害の可能性があります。それ以外はすべて「このトークンを信頼してはいけない」という意味です。EVP "
 "はプログレッシブエンハンスメントなので、トークンがないときや拒否されたときは、既存の検証フローにフォールバックしてください。"
 
-#: ../../quickstart.md:78
+#: ../../quickstart.md:98
 msgid ""
 "Whatever the code, the safe default is the fallback. The codes tell you "
 "whether the user can simply try again and whether something on your side "
@@ -329,13 +368,13 @@ msgstr "トークンが偽造または改ざんされている"
 msgid "Fall back and log; do not trust the address"
 msgstr "フォールバックしてログに記録する。アドレスは信頼しない"
 
-#: ../../quickstart.md:97
+#: ../../quickstart.md:117
 msgid ""
 "Codes may be added in minor releases, so treat unknown codes as \"fall "
 "back\"."
 msgstr "マイナーリリースでコードが追加されることがあるので、未知のコードは「フォールバックする」として扱ってください。"
 
-#: ../../quickstart.md:100
+#: ../../quickstart.md:120
 #, python-brace-format
 msgid ""
 "If your sessions are stored client-side, for example with Starlette's "

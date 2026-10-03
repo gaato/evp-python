@@ -11,8 +11,9 @@ pip install "pyevp[all]"
 
 ## 1. Put a nonce on the form
 
-Generate a fresh nonce per form, keep it in the user's session, and add two inputs: the email
-field the user fills in, and a hidden field the browser fills with the token.
+Generate a nonce each time you render the page, keep it in the user's session, and add two
+inputs to the form: the email field the user fills in, and a hidden field the browser fills with
+the token.
 
 ```python
 from pyevp import generate_nonce
@@ -33,6 +34,21 @@ Chrome writes the token into the hidden field only when the form is submitted. B
 page scripts read an empty value, so check the token on the server, not in client-side
 validation.
 
+The session holds one nonce, so all forms on a page share it. For the same reason, only the tab
+opened last can be verified; forms in older tabs fall back to your usual flow. Storing the nonce
+gives each visitor a session, so add the inputs only to pages that have a form.
+
+### Fitting EVP into an existing form
+
+- The email field needs `autocomplete="email"`. With `autocomplete="off"` the browser does not
+  offer verified addresses.
+- Leave the field empty. Chrome asks the email provider for a token only after the user types an
+  address or picks one from autofill, so a pre-filled value sends none.
+- Submit through the form. The token is filled in as part of the form's submission, so a script
+  that sends the fields with `fetch()` from a click handler gets none. Send from the form's
+  `submit` handler instead, including the `evt` field, as `FormData` if your server reads form
+  fields.
+
 ## 2. Verify on submit
 
 Create the verifier once, with your origin as the audience:
@@ -46,8 +62,9 @@ verifier = Verifier.default(audience="https://example.com")
 Then, in the form handler:
 
 ```python
-nonce = session.pop("evp_nonce", None)  # single use
 token = form.get("evt")
+# Single use, once a token arrives; without one, the browser did not use the nonce.
+nonce = session.pop("evp_nonce", None) if token else None
 if token and nonce:
     try:
         result = verifier.verify(token, nonce=nonce, email=form["email"])
@@ -56,6 +73,9 @@ if token and nonce:
     else:
         mark_verified(result.email)  # result.issuer, result.claims, ...
 ```
+
+Keeping the nonce when no token arrived matters when the page is not rendered again, for
+example a form sent with `fetch()`: its next submission still has a nonce to check.
 
 `AsyncVerifier` has the same API: `await verifier.verify(...)`.
 

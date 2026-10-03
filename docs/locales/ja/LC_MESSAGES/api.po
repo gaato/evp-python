@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pyevp 0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-03 08:33+0900\n"
+"POT-Creation-Date: 2026-10-03 09:07+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -62,6 +62,8 @@ msgid ""
 msgstr "``resolver`` や ``fetcher`` を含め、コンストラクターの引数はどれでも上書きできます。"
 
 #: ../../api.md of pyevp.adapters._doh.parse_txt_data
+#: pyevp.contrib.django.aget_nonce pyevp.contrib.django.averify_request
+#: pyevp.contrib.django.get_nonce
 #: pyevp.contrib.django.issuer.IssuanceView.as_view
 #: pyevp.contrib.django.issuer.IssuerSite.get_issuer
 #: pyevp.contrib.django.issuer.IssuerSite.owns
@@ -768,29 +770,39 @@ msgstr "Django との連携（``pip install pyevp[django]``）。"
 
 #: of pyevp.contrib.django:3
 msgid ""
+"Add ``\"pyevp.contrib.django\"`` to ``INSTALLED_APPS`` and run "
+"``migrate``."
+msgstr "``INSTALLED_APPS`` に ``\"pyevp.contrib.django\"`` を追加し、``migrate`` を実行します。"
+
+#: of pyevp.contrib.django:5
+#, python-brace-format, python-format
+msgid ""
+"``{% load pyevp %}`` and ``{% evp_token_input %}`` render the hidden "
+"token input, and :func:`verify_request` / :func:`averify_request` verify "
+"what the form submitted."
+msgstr "``{% load pyevp %}`` と ``{% evp_token_input %}`` はトークン用の hidden フィールドを描画し、{func}`verify_request` と {func}`averify_request` はフォームが送信した内容を検証します。"
+
+#: of pyevp.contrib.django:7
+msgid ""
 ":class:`DjangoCache` / :class:`AsyncDjangoCache` share issuer metadata "
 "and key sets between workers through Django's cache framework."
 msgstr ""
 "{class}`DjangoCache` と {class}`AsyncDjangoCache` は、Django "
 "のキャッシュフレームワークを通じて、発行者のメタデータと鍵セットをワーカー間で共有します。"
 
-#: of pyevp.contrib.django:5
+#: of pyevp.contrib.django:9
 msgid ""
 ":class:`DjangoReplayGuard` / :class:`AsyncDjangoReplayGuard` remember "
-"accepted tokens in a database table.  Add ``\"pyevp.contrib.django\"`` to"
-" ``INSTALLED_APPS`` and run ``migrate`` to create it."
-msgstr ""
-"{class}`DjangoReplayGuard` と {class}`AsyncDjangoReplayGuard` "
-"は、受け入れたトークンをデータベースのテーブルに記録します。テーブルを作るには、``INSTALLED_APPS`` に "
-"``\"pyevp.contrib.django\"`` を追加して ``migrate`` を実行します。"
+"accepted tokens in a database table."
+msgstr "{class}`DjangoReplayGuard` と {class}`AsyncDjangoReplayGuard` は、受け入れたトークンをデータベースのテーブルに記録します。"
 
-#: of pyevp.contrib.django:18
+#: of pyevp.contrib.django:27
 msgid ""
 "Caches and databases are looked up on every call, so these can be created"
 " at import time, before Django's settings are configured."
 msgstr "キャッシュとデータベースは呼び出しのたびに参照するので、これらはインポート時、つまり Django の設定が済む前に作れます。"
 
-#: of pyevp.contrib.django:21
+#: of pyevp.contrib.django:30
 msgid "For running an issuer, see :mod:`pyevp.contrib.django.issuer`."
 msgstr "発行者を運用する場合は {mod}`pyevp.contrib.django.issuer` を参照してください。"
 
@@ -867,6 +879,78 @@ msgid ""
 msgstr ""
 "``INSTALLED_APPS`` に ``\"pyevp.contrib.django\"`` を追加し、``migrate`` "
 "を実行しておく必要があります。"
+
+#: of pyevp.contrib.django.aget_nonce:1
+msgid ":func:`get_nonce` for async views."
+msgstr "async ビュー用の {func}`get_nonce` です。"
+
+#: of pyevp.contrib.django.aget_nonce:3
+#, python-brace-format, python-format
+msgid ""
+"Django refuses session access from async code, including from a template "
+"tag.  Call this before rendering; ``{% evp_token_input %}`` then reuses "
+"the nonce without touching the session."
+msgstr "Django は async のコードからのセッションアクセスを拒否し、テンプレートタグからのアクセスも同じです。描画の前にこれを呼んでおくと、``{% evp_token_input %}`` はセッションに触れずに同じ nonce を使います。"
+
+#: of pyevp.contrib.django.averify_request:1
+msgid ":func:`verify_request` for async views and :class:`~pyevp.AsyncVerifier`."
+msgstr "async ビューと {class}`~pyevp.AsyncVerifier` 用の {func}`verify_request` です。"
+
+#: of pyevp.contrib.django.get_nonce:1
+msgid "Return the nonce for the forms on this page, keeping it in the session."
+msgstr "このページのフォームに使う nonce を返し、セッションに保存します。"
+
+#: of pyevp.contrib.django.get_nonce:3
+#, python-brace-format, python-format
+msgid ""
+"The session holds one nonce, so all forms rendered in a request share it:"
+" the first call creates it and later calls return the same value.  "
+"Opening the page in another tab replaces it, and the older tab's forms "
+"then fall back to your usual flow.  ``{% evp_token_input %}`` calls this "
+"for you."
+msgstr "セッションに置ける nonce は 1 つなので、1 回のリクエストで描画するフォームはすべて同じ nonce を共有します。最初の呼び出しで生成し、以降の呼び出しは同じ値を返します。別のタブでページを開くと置き換わり、前のタブのフォームは通常の手順にフォールバックします。``{% evp_token_input %}`` はこれを内部で呼びます。"
+
+#: of pyevp.contrib.django.get_nonce:8
+msgid ""
+"It replaces the nonce in the session, so in a view that handles a "
+"submission, call :func:`verify_request` before rendering a form again."
+msgstr "セッションの nonce を置き換えるので、送信を処理するビューでは、フォームを再描画する前に {func}`verify_request` を呼んでください。"
+
+#: of pyevp.contrib.django.get_nonce:11
+msgid ""
+"Every call writes the session, so render the token input only on pages "
+"that have a form: anywhere else it gives each visitor a session for "
+"nothing."
+msgstr "呼ぶたびにセッションに書き込むので、トークンの入力欄はフォームのあるページにだけ描画してください。ほかのページでは、訪問者ごとに不要なセッションができるだけです。"
+
+#: of pyevp.contrib.django.verify_request:1
+msgid "Verify the token that a form submitted, if it carried one."
+msgstr "フォームがトークンを送信していれば検証します。"
+
+#: of pyevp.contrib.django.verify_request:3
+msgid ""
+"Returns ``None`` when the ``field`` is empty: the browser does not "
+"support EVP, or the email provider does not issue tokens.  The nonce then"
+" stays in the session, so a form that is not rendered again (one sent "
+"with ``fetch()``) can still be verified on the next submission."
+msgstr "``field`` が空なら ``None`` を返します。ブラウザーが EVP に対応していないか、メールプロバイダーがトークンを発行していない場合です。このとき nonce はセッションに残るので、再描画しないフォーム（``fetch()`` で送るものなど）でも次の送信で検証できます。"
+
+#: of pyevp.contrib.django.verify_request:8
+msgid ""
+"Otherwise the nonce is consumed and the token checked with "
+":meth:`pyevp.Verifier.verify`, which raises :class:`~pyevp.EVPError` on "
+"failure.  If the session has no nonce, for example because it expired, "
+"that is ``nonce_mismatch``."
+msgstr "それ以外の場合は nonce を消費し、{meth}`pyevp.Verifier.verify` でトークンを確認します。失敗すると {class}`~pyevp.EVPError` を送出します。セッション切れなどでセッションに nonce が無ければ ``nonce_mismatch`` になります。"
+
+#: of pyevp.contrib.django.verify_request:13
+msgid "the address the user submitted, as for :meth:`~pyevp.Verifier.verify`."
+msgstr "ユーザーが送信したアドレス。{meth}`~pyevp.Verifier.verify` と同じです。"
+
+#: of pyevp.contrib.django.verify_request:14
+#, python-brace-format, python-format
+msgid "the name of the hidden input (``{% evp_token_input field=... %}``)."
+msgstr "hidden フィールドの名前（``{% evp_token_input field=... %}``）。"
 
 #: of pyevp.contrib.django.issuer:1
 msgid "Running an EVP issuer in Django (experimental)."

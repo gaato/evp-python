@@ -450,8 +450,8 @@ def test_real_markers_and_landing(client: TestClient) -> None:
         assert sum(line.strip() == "# landing:end" for line in lines) == 1
         code = site.extract_example(source)
         assert 10 <= len(code.splitlines()) <= 30
-        assert "nonce" in code
-        assert ".verify(" in code
+        # Each tab shows the verification call and the fallback.
+        assert "verify" in code
         assert "except EVPError" in code
         assert code in text
         assert f'<section id="example-{ident}"' in response.text

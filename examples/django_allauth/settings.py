@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "allauth",
     "allauth.account",
-    "pyevp.contrib.django",  # DjangoReplayGuard's table
+    "pyevp.contrib.django",  # {% load pyevp %} and DjangoReplayGuard's table
 ]
 
 MIDDLEWARE = [
@@ -44,7 +44,6 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
             ],
-            "builtins": ["evp_allauth"],
         },
     }
 ]

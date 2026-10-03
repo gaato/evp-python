@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "pyevp",
     "pyevp-example-authx",
+    "pyevp-example-django",
     "pyevp-example-django-allauth",
     "pyevp-example-fastapi",
     "pyevp-example-fastapi-users",
@@ -1315,6 +1316,33 @@ requires-dist = [
 dev = [
     { name = "httpx2", specifier = ">=2.13" },
     { name = "pytest", specifier = ">=9.1" },
+]
+
+[[package]]
+name = "pyevp-example-django"
+version = "0"
+source = { virtual = "examples/django" }
+dependencies = [
+    { name = "django" },
+    { name = "pyevp", extra = ["all"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-django" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "django", specifier = ">=6.1" },
+    { name = "pyevp", extras = ["all"], editable = "." },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.1" },
+    { name = "pytest-django", specifier = ">=4.11" },
 ]
 
 [[package]]

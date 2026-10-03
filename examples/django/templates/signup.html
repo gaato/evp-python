@@ -1,6 +1,6 @@
 {% load pyevp %}<!doctype html>
 <title>Sign up</title>
-<form method="post" action="{% url 'account_signup' %}">
+<form method="post">
   {% csrf_token %}
   {{ form.as_p }}
   {% evp_token_input %}

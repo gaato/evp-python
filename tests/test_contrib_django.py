@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import contextlib
+import re
 import warnings
 from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any
 
 import pytest
+from asgiref.sync import sync_to_async
+from django.contrib.sessions.backends.base import SessionBase
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.core.cache import caches
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.db import connections, transaction
-from django.test import override_settings
+from django.http import HttpRequest, HttpResponse
+from django.template import Context, Engine
+from django.test import RequestFactory, override_settings
 
 from pyevp import (
     AsyncCache,
@@ -18,16 +25,23 @@ from pyevp import (
     Cache,
     CacheEntry,
     ErrorCode,
+    EVPError,
     ReplayGuard,
     TokenError,
+    Verifier,
 )
 from pyevp.contrib.django import (
     AsyncDjangoCache,
     AsyncDjangoReplayGuard,
     DjangoCache,
     DjangoReplayGuard,
+    aget_nonce,
+    averify_request,
+    get_nonce,
+    verify_request,
 )
-from pyevp.testing import FakeIssuer, FixedClock, make_async_verifier, make_verifier
+from pyevp.observability import VerificationEvent
+from pyevp.testing import FakeBrowser, FakeIssuer, FixedClock, make_async_verifier, make_verifier
 
 from . import _django
 from .conftest import AUDIENCE, EMAIL
@@ -295,3 +309,139 @@ async def test_async_verifier_with_database_cache(
     with pytest.raises(TokenError) as exc:
         await verifier.verify(token, nonce=nonce, email=EMAIL)
     assert exc.value.code is ErrorCode.TOKEN_REPLAYED
+
+
+# --- forms: nonce, template tag and verify_request ------------------------------------
+
+_TAGS = Engine(libraries={"pyevp": "pyevp.contrib.django.templatetags.pyevp"})
+
+
+def _with_session(request: HttpRequest, session: SessionBase | None = None) -> HttpRequest:
+    if session is None:
+        SessionMiddleware(lambda r: HttpResponse()).process_request(request)
+    else:
+        request.session = session  # ty: ignore[unresolved-attribute]
+    return request
+
+
+def _render(request: HttpRequest, source: str) -> str:
+    return _TAGS.from_string("{% load pyevp %}" + source).render(Context({"request": request}))
+
+
+def _nonces(html: str) -> list[str]:
+    return re.findall(r'nonce="([^"]+)"', html)
+
+
+def _session(request: HttpRequest) -> SessionBase:
+    return request.session  # ty: ignore[unresolved-attribute]
+
+
+def _page() -> tuple[HttpRequest, str]:
+    """Render a page with a token input and return its request and nonce."""
+    page = _with_session(RequestFactory().get("/"))
+    (nonce,) = _nonces(_render(page, "{% evp_token_input %}"))
+    return page, nonce
+
+
+def _submit(page: HttpRequest, **data: str) -> HttpRequest:
+    return _with_session(RequestFactory().post("/", data), _session(page))
+
+
+def _present(issuer: FakeIssuer, browser: FakeBrowser, nonce: str, email: str = EMAIL) -> str:
+    return browser.present(issuer.issue(email, browser.public_jwk), audience=AUDIENCE, nonce=nonce)
+
+
+def test_tag_renders_the_token_input() -> None:
+    page = _with_session(RequestFactory().get("/"))
+    html = _render(page, '{% evp_token_input %}{% evp_token_input field="token" %}')
+    first, second = _nonces(html)
+    # One nonce per page: forms rendered in the same request share it.
+    assert first == second == _session(page)["evp_nonce"]
+    assert 'name="evt" autocomplete="email-verification-token"' in html
+    assert 'name="token"' in html
+
+
+def test_tag_needs_the_request() -> None:
+    with pytest.raises(ImproperlyConfigured):
+        _TAGS.from_string("{% load pyevp %}{% evp_token_input %}").render(Context({}))
+
+
+def test_each_request_gets_a_new_nonce() -> None:
+    page, nonce = _page()
+    again = _with_session(RequestFactory().get("/"), _session(page))
+    assert get_nonce(again) != nonce
+    assert _session(page)["evp_nonce"] == get_nonce(again)
+
+
+def test_verify_request(issuer: FakeIssuer, browser: FakeBrowser) -> None:
+    verifier = make_verifier(issuer, audience=AUDIENCE, replay_guard=DjangoReplayGuard())
+    page, nonce = _page()
+    token = _present(issuer, browser, nonce)
+    request = _submit(page, evt=token)
+    result = verify_request(request, verifier, email=EMAIL)
+    assert result is not None
+    assert result.email == EMAIL
+    assert "evp_nonce" not in _session(request)
+    # A form rendered after verification gets a nonce that the session knows.
+    assert get_nonce(request) == _session(request)["evp_nonce"]
+
+    with pytest.raises(TokenError) as exc:
+        verify_request(_submit(page, evt=token), verifier, email=EMAIL)
+    assert exc.value.code is ErrorCode.NONCE_MISMATCH
+
+
+def test_verify_request_keeps_the_nonce_without_a_token(verifier: Verifier) -> None:
+    page, nonce = _page()
+    assert verify_request(_submit(page, email=EMAIL), verifier, email=EMAIL) is None
+    assert verify_request(_submit(page, evt=""), verifier, email=EMAIL) is None
+    assert _session(page)["evp_nonce"] == nonce
+
+
+def test_verify_request_without_a_session_nonce(issuer: FakeIssuer, browser: FakeBrowser) -> None:
+    events: list[VerificationEvent] = []
+    verifier = make_verifier(issuer, audience=AUDIENCE, observer=events.append)
+    page, nonce = _page()
+    del _session(page)["evp_nonce"]  # the session expired
+    with pytest.raises(TokenError) as exc:
+        verify_request(_submit(page, evt=_present(issuer, browser, nonce)), verifier, email=EMAIL)
+    assert exc.value.code is ErrorCode.NONCE_MISMATCH
+    assert [e.code for e in events] == [ErrorCode.NONCE_MISMATCH]
+
+
+def test_verify_request_raises_on_rejection(issuer: FakeIssuer, browser: FakeBrowser) -> None:
+    verifier = make_verifier(issuer, audience=AUDIENCE)
+    page, nonce = _page()
+    token = _present(issuer, browser, nonce, email="mallory@example.com")
+    with pytest.raises(EVPError) as exc:
+        verify_request(_submit(page, evt=token), verifier, email=EMAIL)
+    assert exc.value.code is ErrorCode.EMAIL_MISMATCH
+
+
+def test_verify_request_custom_field_and_audience(issuer: FakeIssuer, browser: FakeBrowser) -> None:
+    verifier = make_verifier(issuer, audience="https://other.example")
+    page, nonce = _page()
+    request = _submit(page, token=_present(issuer, browser, nonce))
+    result = verify_request(request, verifier, email=EMAIL, field="token", audience=AUDIENCE)
+    assert result is not None
+
+
+@pytest.mark.anyio
+async def test_async_verify_request(issuer: FakeIssuer, browser: FakeBrowser) -> None:
+    verifier = make_async_verifier(
+        issuer, audience=AUDIENCE, replay_guard=AsyncDjangoReplayGuard(clock=issuer.clock)
+    )
+    page = await sync_to_async(_with_session)(RequestFactory().get("/"))
+    nonce = await aget_nonce(page)
+    # The tag reuses the nonce without touching the session from async code.
+    assert _nonces(_render(page, "{% evp_token_input %}")) == [nonce]
+
+    empty = _submit(page, email=EMAIL)
+    assert await averify_request(empty, verifier, email=EMAIL) is None
+
+    token = _present(issuer, browser, nonce)
+    result = await averify_request(_submit(page, evt=token), verifier, email=EMAIL)
+    assert result is not None
+    assert result.email == EMAIL
+    with pytest.raises(TokenError) as exc:
+        await averify_request(_submit(page, evt=token), verifier, email=EMAIL)
+    assert exc.value.code is ErrorCode.NONCE_MISMATCH

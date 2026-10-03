@@ -76,6 +76,7 @@ def test_no_token_falls_back_to_confirmation_mail(client: Client, issuer: FakeIs
 def test_signup_page_has_evp_fields(client: Client) -> None:
     html = client.get("/accounts/signup/").content.decode()
     assert 'autocomplete="email-verification-token"' in html
+    assert html.count('name="evt"') == 1
     assert re.search(r'<input[^>]*name="email"[^>]*autocomplete="email"', html) or re.search(
         r'<input[^>]*autocomplete="email"[^>]*name="email"', html
     )

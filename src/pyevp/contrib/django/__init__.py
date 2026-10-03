@@ -1,19 +1,28 @@
 """Django integration (``pip install pyevp[django]``).
 
+Add ``"pyevp.contrib.django"`` to ``INSTALLED_APPS`` and run ``migrate``.
+
+- ``{% load pyevp %}`` and ``{% evp_token_input %}`` render the hidden token input, and
+  :func:`verify_request` / :func:`averify_request` verify what the form submitted.
 - :class:`DjangoCache` / :class:`AsyncDjangoCache` share issuer metadata and key
   sets between workers through Django's cache framework.
 - :class:`DjangoReplayGuard` / :class:`AsyncDjangoReplayGuard` remember accepted
-  tokens in a database table.  Add ``"pyevp.contrib.django"`` to
-  ``INSTALLED_APPS`` and run ``migrate`` to create it.
+  tokens in a database table.
 
 ::
 
-    from pyevp import Verifier
-    from pyevp.contrib.django import DjangoCache, DjangoReplayGuard
+    from pyevp import EVPError, Verifier
+    from pyevp.contrib.django import DjangoCache, DjangoReplayGuard, verify_request
 
     verifier = Verifier.default(
         audience=settings.EVP_ORIGIN, cache=DjangoCache(), replay_guard=DjangoReplayGuard()
     )
+
+    # In the view that handles the form:
+    try:
+        verified = verify_request(request, verifier, email=form.cleaned_data["email"])
+    except EVPError:
+        verified = None  # fall back to a confirmation email
 
 Caches and databases are looked up on every call, so these can be created at
 import time, before Django's settings are configured.
@@ -25,16 +34,132 @@ from __future__ import annotations
 
 import hashlib
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.core.cache import caches
 from django.db import IntegrityError, transaction
+from django.http import HttpRequest
 
 from pyevp.cache import CacheEntry
+from pyevp.nonce import generate_nonce
 from pyevp.ports import Clock, system_clock
+from pyevp.types import VerifiedEmail
+from pyevp.verifier import AsyncVerifier, Verifier
 
-__all__ = ["AsyncDjangoCache", "AsyncDjangoReplayGuard", "DjangoCache", "DjangoReplayGuard"]
+if TYPE_CHECKING:
+    from django.contrib.sessions.backends.base import SessionBase
+
+__all__ = [
+    "AsyncDjangoCache",
+    "AsyncDjangoReplayGuard",
+    "DjangoCache",
+    "DjangoReplayGuard",
+    "aget_nonce",
+    "averify_request",
+    "get_nonce",
+    "verify_request",
+]
+
+_SESSION_KEY = "evp_nonce"
+# The nonce handed out during the current request, so that every form on a page gets it.
+_REQUEST_KEY = "_pyevp_nonce"
+
+
+def get_nonce(request: HttpRequest) -> str:
+    """Return the nonce for the forms on this page, keeping it in the session.
+
+    The session holds one nonce, so all forms rendered in a request share it: the
+    first call creates it and later calls return the same value.  Opening the
+    page in another tab replaces it, and the older tab's forms then fall back to
+    your usual flow.  ``{% evp_token_input %}`` calls this for you.
+
+    It replaces the nonce in the session, so in a view that handles a submission,
+    call :func:`verify_request` before rendering a form again.
+
+    Every call writes the session, so render the token input only on pages that
+    have a form: anywhere else it gives each visitor a session for nothing.
+    """
+    nonce = request.__dict__.get(_REQUEST_KEY)
+    if nonce is None:
+        nonce = generate_nonce()
+        _session(request)[_SESSION_KEY] = nonce
+        request.__dict__[_REQUEST_KEY] = nonce
+    return nonce
+
+
+async def aget_nonce(request: HttpRequest) -> str:
+    """:func:`get_nonce` for async views.
+
+    Django refuses session access from async code, including from a template
+    tag.  Call this before rendering; ``{% evp_token_input %}`` then reuses the
+    nonce without touching the session.
+    """
+    return await sync_to_async(get_nonce, thread_sensitive=True)(request)
+
+
+def verify_request(
+    request: HttpRequest,
+    verifier: Verifier,
+    *,
+    email: str | None,
+    field: str = "evt",
+    audience: str | None = None,
+) -> VerifiedEmail | None:
+    """Verify the token that a form submitted, if it carried one.
+
+    Returns ``None`` when the ``field`` is empty: the browser does not support
+    EVP, or the email provider does not issue tokens.  The nonce then stays in
+    the session, so a form that is not rendered again (one sent with ``fetch()``)
+    can still be verified on the next submission.
+
+    Otherwise the nonce is consumed and the token checked with
+    :meth:`pyevp.Verifier.verify`, which raises :class:`~pyevp.EVPError` on
+    failure.  If the session has no nonce, for example because it expired, that
+    is ``nonce_mismatch``.
+
+    :param email: the address the user submitted, as for :meth:`~pyevp.Verifier.verify`.
+    :param field: the name of the hidden input (``{% evp_token_input field=... %}``).
+    """
+    taken = _take_nonce(request, field)
+    if taken is None:
+        return None
+    token, nonce = taken
+    return verifier.verify(token, nonce=nonce, email=email, audience=audience)
+
+
+async def averify_request(
+    request: HttpRequest,
+    verifier: AsyncVerifier,
+    *,
+    email: str | None,
+    field: str = "evt",
+    audience: str | None = None,
+) -> VerifiedEmail | None:
+    """:func:`verify_request` for async views and :class:`~pyevp.AsyncVerifier`."""
+    taken = await sync_to_async(_take_nonce, thread_sensitive=True)(request, field)
+    if taken is None:
+        return None
+    token, nonce = taken
+    return await verifier.verify(token, nonce=nonce, email=email, audience=audience)
+
+
+def _take_nonce(request: HttpRequest, field: str) -> tuple[str, str] | None:
+    token = request.POST.get(field, "")
+    if not token:
+        return None
+    # The nonce is consumed: a form rendered later in this request needs a new one.
+    request.__dict__.pop(_REQUEST_KEY, None)
+    # Without a nonce in the session, a throwaway one makes the verifier fail with
+    # nonce_mismatch, so observers see it like any other rejection.
+    nonce = _session(request).pop(_SESSION_KEY, None) or generate_nonce()
+    return token, nonce
+
+
+def _session(request: HttpRequest) -> SessionBase:
+    # Added by SessionMiddleware, which Django's types do not model.
+    return request.session  # ty: ignore[unresolved-attribute]
 
 
 def _digest(key: str) -> str:

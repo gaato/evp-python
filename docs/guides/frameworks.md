@@ -47,6 +47,32 @@ When the verified address *is* the login, replay protection is essential.
 :start-at: "@app.post(\"/login\")"
 ```
 
+## Django
+
+{mod}`pyevp.contrib.django` renders the hidden input with a template tag and verifies what the
+form submitted with {func}`~pyevp.contrib.django.verify_request`. Add `"pyevp.contrib.django"`
+to `INSTALLED_APPS` and enable the `request` context processor, then put the tag inside the
+form:
+
+```{literalinclude} ../../examples/django/templates/signup.html
+:language: html+django
+```
+
+In the view, verify before rendering the form again:
+
+```{literalinclude} ../../examples/django/views.py
+:language: python
+:start-at: "@cache"
+```
+
+- All tags on a page share one nonce, so a page may have several forms.
+- `verify_request` returns `None` when the form carried no token, and leaves the nonce in the
+  session for the next submission. Otherwise it consumes the nonce and raises
+  {class}`~pyevp.EVPError` like {meth}`pyevp.Verifier.verify` does.
+- In async views, call `await aget_nonce(request)` before rendering, because Django refuses
+  session access from async code, including from a template tag. Then verify with
+  `await averify_request(request, verifier, email=...)` and an {class}`~pyevp.AsyncVerifier`.
+
 ## django-allauth
 
 Override `DefaultAccountAdapter.is_email_verified`. A valid token makes the new `EmailAddress`
@@ -57,7 +83,8 @@ verified, so no confirmation mail is sent; anything else falls back to allauth's
 :start-at: "@cache"
 ```
 
-Add `{% evp_token_input %}` inside the signup form template, and set `ACCOUNT_ADAPTER`,
+Add `{% load pyevp %}` and `{% evp_token_input %}` to the signup form template. In the settings,
+add `"pyevp.contrib.django"` to `INSTALLED_APPS` and set `ACCOUNT_ADAPTER`,
 `ACCOUNT_FORMS["signup"]` and `EVP_ORIGIN` (see `examples/django_allauth/settings.py`).
 
 ## Django building blocks

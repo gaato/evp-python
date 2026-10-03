@@ -15,6 +15,7 @@ A Prometheus counter, for example::
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
@@ -45,13 +46,22 @@ Observer: TypeAlias = Callable[[VerificationEvent], None]
 """Receives one :class:`VerificationEvent` per verification; must not block or raise."""
 
 
+# What ``email_domain`` returns for a name DNS could hold.  Anything else (spaces, line
+# breaks, ...) comes from an unverified token and must not reach logs or metric labels.
+_DNS_NAME = re.compile(r"[a-z0-9_-]+(?:\.[a-z0-9_-]+)*")
+
+
 def claimed_email_domain(token: str) -> str | None:
-    """Best-effort domain of the (unverified) ``email`` claim, for grouping metrics."""
+    """Best-effort domain of the (unverified) ``email`` claim, for grouping metrics.
+
+    ``None`` unless the claim holds an address whose domain is a plausible DNS name.
+    """
     try:
         email = parse_token(token, allow_disclosures=True).evt.claims.get("email")
-        return discovery.email_domain(email) if isinstance(email, str) else None
+        domain = discovery.email_domain(email) if isinstance(email, str) else None
     except Exception:
         return None
+    return domain if domain is not None and _DNS_NAME.fullmatch(domain) else None
 
 
 class LoggingObserver:
@@ -67,8 +77,13 @@ class LoggingObserver:
             "EVP verification %s code=%s issuer=%s domain=%s profile=%s duration_ms=%.1f",
             "succeeded" if event.ok else "failed",
             event.code,
-            event.issuer,
-            event.email_domain,
-            event.profile,
+            _escaped(event.issuer),
+            _escaped(event.email_domain),
+            _escaped(event.profile),
             event.duration.total_seconds() * 1000,
         )
+
+
+def _escaped(value: str | None) -> str | None:
+    """``value``, or its ``repr`` if it holds a line break or another unprintable character."""
+    return value if value is None or value.isprintable() else repr(value)

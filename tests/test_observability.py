@@ -7,7 +7,7 @@ import pytest
 
 from pyevp import ErrorCode, EVPError, LoggingObserver, VerificationEvent
 from pyevp.observability import claimed_email_domain
-from pyevp.testing import FakeIssuer, make_async_verifier, make_verifier
+from pyevp.testing import FakeBrowser, FakeIssuer, make_async_verifier, make_verifier
 
 from .conftest import AUDIENCE
 
@@ -76,3 +76,37 @@ def test_logging_observer(
 @pytest.mark.parametrize("value", ["", "a.b.c~d.e.f", "not a token"])
 def test_claimed_email_domain_is_best_effort(value: str) -> None:
     assert claimed_email_domain(value) is None
+
+
+FORGED = "a@example.com\nFORGED_EVENT ok=true"
+
+
+@pytest.mark.parametrize("email", [FORGED, "a@exa mple.com", "a@example.com\u2028x"])
+def test_claimed_email_domain_is_a_dns_name(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, email: str
+) -> None:
+    token = browser.present(issuer.issue(email, browser.public_jwk), audience=AUDIENCE, nonce=nonce)
+    assert claimed_email_domain(token) is None
+
+
+def test_forged_domain_does_not_add_log_lines(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    token = browser.present(
+        issuer.issue(FORGED, browser.public_jwk), audience=AUDIENCE, nonce=nonce
+    )
+    verifier = make_verifier(issuer, audience=AUDIENCE, observer=LoggingObserver())
+    with caplog.at_level(logging.INFO, logger="pyevp"), pytest.raises(EVPError):
+        verifier.verify(token, nonce=nonce, email=None)
+    [record] = caplog.records
+    assert "\n" not in record.getMessage()
+    assert "domain=None" in record.getMessage()
+
+
+def test_logging_observer_escapes_unprintable_fields(caplog: pytest.LogCaptureFixture) -> None:
+    event = VerificationEvent(False, None, None, "x\nFORGED", "p\r", timedelta(0))
+    with caplog.at_level(logging.INFO, logger="pyevp"):
+        LoggingObserver()(event)
+    [record] = caplog.records
+    assert record.getMessage().count("\n") == 0
+    assert "domain='x\\nFORGED'" in record.getMessage()

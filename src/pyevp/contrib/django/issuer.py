@@ -48,6 +48,7 @@ from pyevp.issuer import (
     IssuanceResponse,
     Issuer,
     accounts_document,
+    is_valid_email,
     web_identity_document,
 )
 
@@ -124,8 +125,12 @@ class IssuerSite:
         raise NotImplementedError
 
     def owns(self, request: HttpRequest, email: str) -> bool:
-        """Whether the signed-in user controls ``email``, compared case-insensitively."""
-        return email.lower() in {e.lower() for e in self.user_emails(request)}
+        """Whether the signed-in user controls ``email``, compared case-insensitively.
+
+        Addresses EVP cannot carry are ignored: lowercasing a non-ASCII one can turn it into
+        someone else's (``\\u212aate@`` with a KELVIN SIGN becomes ``kate@``).
+        """
+        return email.lower() in {e.lower() for e in self.user_emails(request) if is_valid_email(e)}
 
     def get_login_url(self, request: HttpRequest) -> str:
         url = resolve_url(self.login_url or settings.LOGIN_URL)
@@ -214,7 +219,7 @@ class AccountsView(_IssuerView):
     def get(self, request: HttpRequest) -> HttpResponse:
         if request.headers.get("Sec-Fetch-Dest") != FEDCM_FETCH_DEST:
             return JsonResponse({"error": "not a FedCM request"}, status=400)
-        emails = self._site().user_emails(request)
+        emails = [e for e in self._site().user_emails(request) if is_valid_email(e)]
         if not emails:
             return JsonResponse({"accounts": []}, status=401)
         return JsonResponse(accounts_document(emails))

@@ -100,7 +100,10 @@ With an async replay guard, use `aparse_request`.
 
 `request.email` is exactly what the browser sent. The EVT asserts that string, and relying
 parties compare it with what the user typed. If your accounts treat addresses
-case-insensitively, compare them that way in `owns`, but do not rewrite `request.email`.
+case-insensitively, compare them that way in `owns`, but do not rewrite `request.email`. Compare
+only ASCII addresses, as {func}`pyevp.issuer.is_valid_email` accepts them: lowercasing a
+non-ASCII address can turn it into someone else's (`\u212aate@` with a KELVIN SIGN becomes
+`kate@`).
 
 (who-gets-a-token)=
 
@@ -125,8 +128,8 @@ from your account model or from what the user may send as. It is easy to get sub
   another tenant's domain), whoever controls one spelling could claim the other's addresses.
   Compare canonical names, and refuse names that are ambiguous.
 - **Accounts.** Nothing for disabled accounts or disabled domains, nothing for a session that is
-  halfway through two-factor authentication, and nothing for administrators just because their
-  account has an email field.
+  halfway through two-factor authentication, nothing for an administrator who is impersonating
+  the user, and nothing for administrators just because their account has an email field.
 
 (identity-provider)=
 
@@ -147,6 +150,11 @@ them. Before issuing:
   person" is made.
 - Consider requiring that the session was established with multi-factor authentication. A token
   lets other sites sign the user in, so it is worth no less than the login that produced it.
+  Count a second factor only after a first one: a one-time code on its own, or a passkey that did
+  not verify the user, is a single factor.
+- Know every way an address can change: self-service profile edits, enrollment and invitation
+  flows that let users type an address, and synchronisation from sources. Each one lets
+  somebody claim an address nobody else has yet, such as `security@` or a former employee's.
 
 ## Preventing account enumeration
 

@@ -248,6 +248,20 @@ def test_hooks_choose_issuer_and_addresses(client: Client, clock: FixedClock) ->
         assert _issue(client, FakeBrowser(clock=clock), "alias@example.com").status_code == 200
 
 
+def test_lookalike_addresses_are_ignored(client: Client, clock: FixedClock) -> None:
+    # U+212A KELVIN SIGN lowercases to an ASCII "k".
+    class LookalikeSite(EmailSite):
+        def user_emails(self, request: HttpRequest) -> list[str]:
+            return ["\u212aate@example.com"]
+
+    site = LookalikeSite(_make_issuer(clock))
+    with _mount(*site.urls):
+        _login(client)
+        fedcm = client.get("/fedcm/accounts", headers={"Sec-Fetch-Dest": "webidentity"})
+        assert fedcm.status_code == 401
+        assert _issue(client, FakeBrowser(clock=clock), "kate@example.com").status_code == 401
+
+
 def test_views_mount_on_their_own(client: Client, issuer: Issuer) -> None:
     from django.urls import path  # noqa: PLC0415
 

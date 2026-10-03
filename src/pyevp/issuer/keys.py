@@ -62,7 +62,7 @@ class SigningKey:
         self._key = key
         self.kid = kid
         self.alg = alg
-        self._public = public_jwk(key.as_dict(private=False), kid=kid, alg=alg)
+        self._public = public_jwk(_derived_public(key), kid=kid, alg=alg)
 
     @classmethod
     def generate(cls, alg: str = "Ed25519", *, kid: str) -> SigningKey:
@@ -91,6 +91,11 @@ class SigningKey:
             key = cls_.import_key(material)
         except (JoseError, ValueError, TypeError) as exc:
             raise ValueError(f"invalid private key: {exc}") from None
+        # joserfc signs with ``d`` but reports the ``x`` it was given; a mismatch would
+        # publish a key that verifies none of our signatures.
+        derived = _derived_public(key)
+        if any(material.get(m) != derived[m] for m in ("x", "y") if m in derived):
+            raise ValueError("invalid private key: public key does not match the private key")
         return cls(key, kid=kid, alg=alg)
 
     def private_jwk(self) -> dict[str, Any]:
@@ -106,3 +111,14 @@ class SigningKey:
 
     def __repr__(self) -> str:
         return f"SigningKey(kid={self.kid!r}, alg={self.alg!r})"
+
+
+def _derived_public(key: OKPKey | ECKey) -> dict[str, Any]:
+    """The public JWK computed from the private key, ignoring any stored public members."""
+    if isinstance(key, OKPKey):
+        assert key.private_key is not None
+        public: OKPKey | ECKey = OKPKey.import_key(key.private_key.public_key())
+    else:
+        assert key.private_key is not None
+        public = ECKey.import_key(key.private_key.public_key())
+    return dict(public.as_dict(private=False))

@@ -10,7 +10,7 @@ import anyio
 import pytest
 from joserfc.jwk import ECKey, OKPKey
 
-from pyevp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, _sf, discovery
+from pyevp import EVPError, InMemoryReplayGuard, Profile, Verifier, _httpsig, _jose, _sf, discovery
 from pyevp._jose import decode_json_segment
 from pyevp.diagnostics import discover
 from pyevp.issuer import (
@@ -252,6 +252,24 @@ def test_signing_key_round_trips_through_jwk() -> None:
     loaded = SigningKey.from_jwk(key.private_jwk())
     assert loaded.public_jwk == key.public_jwk
     assert key.private_jwk()["d"] not in repr(loaded)
+
+
+@pytest.mark.parametrize("alg", ["Ed25519", "ES256"])
+def test_signing_key_rejects_a_foreign_public_key(alg: str) -> None:
+    jwk = SigningKey.generate(alg, kid="k").private_jwk()
+    other = SigningKey.generate(alg, kid="k").public_jwk
+    jwk.update({m: other[m] for m in ("x", "y") if m in other})
+    with pytest.raises(ValueError, match="invalid private key"):
+        SigningKey.from_jwk(jwk)
+
+
+@pytest.mark.parametrize("alg", ["Ed25519", "ES256"])
+def test_loaded_signing_key_signs_for_its_public_key(clock: FixedClock, alg: str) -> None:
+    signer = SigningKey.from_jwk(SigningKey.generate(alg, kid="k").private_jwk())
+    issuer = make_issuer(clock, signer=signer)
+    evt = issuer.issue(issuer.parse_request(**Browser(clock).request())).removesuffix("~")
+    header_alg = decode_json_segment(evt.split(".")[0])["alg"]
+    assert _jose.verify_compact(evt, dict(signer.public_jwk), header_alg)
 
 
 @pytest.mark.parametrize(

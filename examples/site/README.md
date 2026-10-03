@@ -22,6 +22,12 @@ interop test (`interop/`) runs against it too.
 Anyone can sign in as `demo@pyevp.dev`. A token from this provider proves only that someone
 pressed the button. Do not accept it anywhere but a demo.
 
+The [rowan.fyi](https://rowan.fyi/made/email-verification/) and
+[verifyemails.vercel.app](https://verifyemails.vercel.app/) demos came first. Some ideas from
+rowan.fyi's provider are reimplemented here: one-button sign-in, a `Sec-Fetch-Site` check
+against CSRF, and announcing sign-in with both `Set-Login` and `setStatus()`. No code or text
+was copied.
+
 ## DNS
 
 ```

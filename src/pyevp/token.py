@@ -47,6 +47,10 @@ class CompactJWT:
             claims = _jose.decode_json_segment(parts[1])
         except ValueError as exc:
             raise TokenError(ErrorCode.MALFORMED_TOKEN, f"{what}: {exc}") from exc
+        # The claims above are read from a base64url payload; an unencoded one (RFC 7797)
+        # would be signed as different bytes.  RFC 7797 section 7 forbids it in JWTs.
+        if header.get("b64", True) is not True:
+            raise TokenError(ErrorCode.MALFORMED_TOKEN, f"{what} has an unencoded payload")
         return cls(compact=compact, header=header, claims=claims)
 
     @property

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from pyevp import ErrorCode, TokenError, _jose
@@ -72,3 +74,27 @@ def test_presenting_an_issuance_token_with_its_tilde(
     without = browser.present(evt, audience="https://rp.example", nonce=nonce)
     assert with_tilde == without
     assert parse_token(with_tilde).disclosures == ()
+
+
+def _with_header(compact: str, **changes: object) -> str:
+    header, payload, signature = compact.split(".")
+    new = {**_jose.decode_json_segment(header), **changes}
+    return ".".join((_jose.b64url_encode(json.dumps(new).encode()), payload, signature))
+
+
+@pytest.mark.parametrize("part", ["evt", "kb"])
+@pytest.mark.parametrize("b64", [False, "false", None])
+def test_unencoded_payload_is_rejected(token: str, part: str, b64: object) -> None:
+    evt, kb = token.split("~")
+    if part == "evt":
+        evt = _with_header(evt, b64=b64, crit=["b64"])
+    else:
+        kb = _with_header(kb, b64=b64, crit=["b64"])
+    with pytest.raises(TokenError, match="unencoded payload") as exc:
+        parse_token(f"{evt}~{kb}")
+    assert exc.value.code is ErrorCode.MALFORMED_TOKEN
+
+
+def test_explicit_b64_true_is_accepted(token: str) -> None:
+    evt, kb = token.split("~")
+    assert parse_token(f"{_with_header(evt, b64=True)}~{kb}").evt.header["b64"] is True

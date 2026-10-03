@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import warnings
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypeAlias
 
 import anyio
 import pytest
+from joserfc import jws
+from joserfc.errors import SecurityWarning
 
 from pyevp import (
     DEFAULT_PROFILE,
@@ -383,6 +386,26 @@ def test_case_folding_does_not_merge_domains(
     with pytest.raises(EVPError) as exc:
         verifier.verify(token, nonce=nonce, email="a@fass.example")
     assert exc.value.code is ErrorCode.EMAIL_MISMATCH
+
+
+@pytest.mark.parametrize("profile", [Profile.compat_2026_10(), Profile.draft_hardt_02()])
+def test_signed_unencoded_payload_is_refused(
+    issuer: FakeIssuer, browser: FakeBrowser, nonce: str, profile: Profile
+) -> None:
+    # Signed over the payload segment as raw bytes (RFC 7797), while the claims would be
+    # read by base64url-decoding it: the signature and the claims must not disagree.
+    payload = issuer.issue(EMAIL, browser.public_jwk).split(".")[1]
+    header = {"alg": issuer.alg, "kid": issuer.kid, "typ": "evt+jwt", "b64": False, "crit": ["b64"]}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", SecurityWarning)
+        evt = jws.serialize_compact(header, payload.encode(), issuer.key, algorithms=[issuer.alg])
+    assert evt.split(".")[1] == payload
+    token = browser.present(evt + "~", audience=AUDIENCE, nonce=nonce)
+    with pytest.raises(EVPError) as exc:
+        make_verifier(issuer, audience=AUDIENCE, profile=profile).verify(
+            token, nonce=nonce, email=EMAIL
+        )
+    assert exc.value.code is ErrorCode.MALFORMED_TOKEN
 
 
 def test_holder_key_without_verify_op_is_refused(
